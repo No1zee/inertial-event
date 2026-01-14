@@ -768,7 +768,8 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                     };
 
                     // 1. Softened popup blocking
-                    // Instead of blocking everything, we'll let Electron's setWindowOpenHandler handle it
+                    // Restore basic window.open blocking to prevent popup creation attempts
+                    window.open = function() { return null; };
                     // window.alert = function() {}; // Keep alert blocked as it's rarely used legitimately in embeds
                     // window.confirm = function() { return false; };
                     window.onbeforeunload = null; 
@@ -852,10 +853,15 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                                     if (el && el.parentNode && el !== document.body && el !== document.documentElement && el.tagName !== 'VIDEO') {
                                         // Specific check to not kill the video container if it uses these styles
                                         if (el.contains(window.AG_VIDEO)) return;
-                                        el.remove();
+                                        
+                                        // Safe removal
+                                        try {
+                                             if (el.parentNode) el.parentNode.removeChild(el);
+                                             else el.remove();
+                                        } catch(e) {}
                                     }
                                 });
-                            } catch(e) {}
+                             } catch(e) {}
                         });
                     };
                     
@@ -925,6 +931,12 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
         webview.addEventListener('did-fail-load', onDidFailLoad);
         webview.addEventListener('crashed', onCrashed);
         webview.addEventListener('console-message', onConsole);
+        // Prevent all popups from the webview to avoid main process window creation (which triggers the "Destroyer")
+        // @ts-ignore
+        webview.addEventListener('new-window', (e)=>{
+            console.log('[Webview] Blocked popup:', e.url);
+            e.preventDefault();
+        });
         return ()=>{
             isReadyRef.current = false;
             webview.removeEventListener('did-finish-load', onDidFinishLoadEvent);
@@ -946,12 +958,12 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                     className: "w-10 h-10 text-white animate-spin"
                 }, void 0, false, {
                     fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                    lineNumber: 515,
+                    lineNumber: 528,
                     columnNumber: 21
                 }, ("TURBOPACK compile-time value", void 0))
             }, void 0, false, {
                 fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                lineNumber: 514,
+                lineNumber: 527,
                 columnNumber: 17
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("webview", {
@@ -972,13 +984,13 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                 useragent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             }, void 0, false, {
                 fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                lineNumber: 518,
+                lineNumber: 531,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-        lineNumber: 512,
+        lineNumber: 525,
         columnNumber: 9
     }, ("TURBOPACK compile-time value", void 0));
 });

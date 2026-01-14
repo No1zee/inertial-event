@@ -124,12 +124,12 @@ function createWindow() {
     });
 
     // Emergency Window Destroyer (if any window slips through)
-    app.on('browser-window-created', (event, window) => {
-        if (window !== mainWindow) {
-            console.log(`[AG] DESTROYING ROGUE WINDOW: ${window.getURL()}`);
-            window.destroy();
-        }
-    });
+    // app.on('browser-window-created', (event, window) => {
+    //     if (window !== mainWindow) {
+    //         console.log(`[AG] DESTROYING ROGUE WINDOW: ${window.getURL()}`);
+    //         window.destroy();
+    //     }
+    // });
 
     // 7. Download Lockdown (Blocks "Opera" and other unwanted downloads)
     session.defaultSession.on('will-download', (event, item, webContents) => {

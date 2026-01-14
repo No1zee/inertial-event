@@ -334,7 +334,8 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({ src, t
                     };
 
                     // 1. Softened popup blocking
-                    // Instead of blocking everything, we'll let Electron's setWindowOpenHandler handle it
+                    // Restore basic window.open blocking to prevent popup creation attempts
+                    window.open = function() { return null; };
                     // window.alert = function() {}; // Keep alert blocked as it's rarely used legitimately in embeds
                     // window.confirm = function() { return false; };
                     window.onbeforeunload = null; 
@@ -418,10 +419,15 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({ src, t
                                     if (el && el.parentNode && el !== document.body && el !== document.documentElement && el.tagName !== 'VIDEO') {
                                         // Specific check to not kill the video container if it uses these styles
                                         if (el.contains(window.AG_VIDEO)) return;
-                                        el.remove();
+                                        
+                                        // Safe removal
+                                        try {
+                                             if (el.parentNode) el.parentNode.removeChild(el);
+                                             else el.remove();
+                                        } catch(e) {}
                                     }
                                 });
-                            } catch(e) {}
+                             } catch(e) {}
                         });
                     };
                     
@@ -497,6 +503,13 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({ src, t
         webview.addEventListener('did-fail-load', onDidFailLoad);
         webview.addEventListener('crashed', onCrashed);
         webview.addEventListener('console-message', onConsole);
+
+        // Prevent all popups from the webview to avoid main process window creation (which triggers the "Destroyer")
+        // @ts-ignore
+        webview.addEventListener('new-window', (e: any) => {
+            console.log('[Webview] Blocked popup:', e.url);
+            e.preventDefault();
+        });
 
         return () => {
             isReadyRef.current = false;
