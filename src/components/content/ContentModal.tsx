@@ -38,7 +38,9 @@ export const ContentModal = () => {
                         </div>
 
                         <div className="absolute bottom-0 left-0 right-0 p-8 space-y-4">
-                            <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-white drop-shadow-xl">{modalContent.title}</h2>
+                            <Dialog.Title className="text-4xl md:text-5xl font-bold tracking-tighter text-white drop-shadow-xl">
+                                {modalContent.title}
+                            </Dialog.Title>
 
                             <div className="flex items-center gap-3 text-sm font-medium text-zinc-300">
                                 <span className="text-green-400 font-bold">{Math.round((modalContent.rating || 0) * 10)}% Match</span>
