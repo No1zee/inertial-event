@@ -1,0 +1,6 @@
+{
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/tmdb-api/[...path]/route": "app/tmdb-api/[...path]/route.js",
+  "/tmdb-img/[...path]/route": "app/tmdb-img/[...path]/route.js",
+  "/watch/[id]/page": "app/watch/[id]/page.js"
+}
