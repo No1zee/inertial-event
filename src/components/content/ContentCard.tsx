@@ -70,7 +70,8 @@ export function ContentCard({ item, aspectRatio = "portrait" }: ContentCardProps
                             onClick={(e) => {
                                 e.stopPropagation();
                                 // Direct play if play button clicked
-                                window.location.href = `/watch/${item.id}?type=${item.type || 'movie'}`;
+                                const type = item.type || ((item as any).seasonsList?.length > 0 ? 'tv' : 'movie');
+                                window.location.href = `/watch/${item.id}?type=${type}`;
                             }}
                         >
                             <Play size={18} fill="currentColor" className="ml-0.5" />

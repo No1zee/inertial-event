@@ -129,7 +129,10 @@ const contentApi = {
             const randomPage = Math.floor(Math.random() * 5) + 1;
             const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/tv/popular?language=en-US&page=${randomPage}`);
             const data = res.data.results || [];
-            return data.map(transformToContent).sort(()=>Math.random() - 0.5);
+            return data.map((item)=>transformToContent({
+                    ...item,
+                    type: 'tv'
+                })).sort(()=>Math.random() - 0.5);
         } catch (error) {
             console.error("Failed to fetch popular TV:", error);
             return [];
@@ -141,9 +144,101 @@ const contentApi = {
             const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
             const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?with_genres=${genreId}&language=en-US&page=${randomPage}&sort_by=popularity.desc`);
             const data = res.data.results || [];
-            return data.map(transformToContent); // Preserving order for relevance unless specifically shuffled elsewhere
+            return data.map((item)=>transformToContent({
+                    ...item,
+                    type
+                })); // Preserving order for relevance unless specifically shuffled elsewhere
         } catch (error) {
             console.error(`Failed to fetch genre ${genreId}:`, error);
+            return [];
+        }
+    },
+    // --- Dynamic Categories (The Candy Store) ---
+    getAnime: async (page)=>{
+        try {
+            const randomPage = page || Math.floor(Math.random() * 3) + 1;
+            // Discover TV with 'anime' keyword (210024) and Animation genre (16)
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/discover/tv?with_keywords=210024&with_genres=16&language=en-US&sort_by=popularity.desc&page=${randomPage}`);
+            const data = res.data.results || [];
+            return data.map((item)=>transformToContent({
+                    ...item,
+                    type: 'anime'
+                }));
+        } catch (error) {
+            console.error("Failed to fetch anime:", error);
+            return [];
+        }
+    },
+    getBangers: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=vote_average.desc&vote_count.gte=1000&language=en-US&page=${randomPage}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getClassics: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const dateFilter = type === 'movie' ? 'primary_release_date.lte=2010-01-01' : 'first_air_date.lte=2010-01-01';
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=popularity.desc&vote_average.gte=7.5&${dateFilter}&language=en-US&page=${randomPage}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getUnderrated: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=vote_average.desc&vote_count.gte=200&vote_count.lte=2000&vote_average.gte=8.0&language=en-US&page=${randomPage}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getFresh: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const currentYear = new Date().getFullYear();
+            const dateFilter = type === 'movie' ? `primary_release_year=${currentYear}` : `first_air_date_year=${currentYear}`;
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=popularity.desc&${dateFilter}&language=en-US&page=${randomPage}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getDayOneDrops: async (type = 'movie')=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            // Get date range for last 14 days (extended slightly from 7 for better results)
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - 14);
+            const formatDate = (d)=>d.toISOString().split('T')[0];
+            const dateFilter = type === 'movie' ? `primary_release_date.gte=${formatDate(pastDate)}&primary_release_date.lte=${formatDate(today)}` : `first_air_date.gte=${formatDate(pastDate)}&first_air_date.lte=${formatDate(today)}`;
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=popularity.desc&${dateFilter}&language=en-US&page=1`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
             return [];
         }
     },
@@ -158,7 +253,10 @@ const contentApi = {
             });
             const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
             const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?${queryParams.toString()}`);
-            return (res.data.results || []).map(transformToContent);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
         } catch (error) {
             console.error("Failed to discover content:", error);
             return [];
@@ -177,9 +275,11 @@ const contentApi = {
     },
     getDetails: async (id, type = 'movie')=>{
         try {
+            // Ensure ID is a string
+            const idStr = String(id);
             // Strip 'tmdb_' prefix if present
-            const cleanId = id.replace('tmdb_', '');
-            const endpoint = `/tmdb-api/${type}/${cleanId}?language=en-US`;
+            const cleanId = idStr.replace('tmdb_', '');
+            const endpoint = `/tmdb-api/${type}/${cleanId}?language=en-US&append_to_response=credits,recommendations,videos`;
             const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(endpoint);
             return transformToContent({
                 ...res.data,
@@ -187,6 +287,16 @@ const contentApi = {
             });
         } catch (error) {
             console.error(`Failed to fetch ${type} details for ${id}:`, error);
+            return null;
+        }
+    },
+    getSeasonDetails: async (id, seasonNumber)=>{
+        try {
+            const idStr = String(id).replace('tmdb_', '');
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/tv/${idStr}/season/${seasonNumber}?language=en-US`);
+            return res.data;
+        } catch (error) {
+            console.error(`Failed to fetch season ${seasonNumber} for ${id}:`, error);
             return null;
         }
     }
@@ -206,7 +316,7 @@ const transformToContent = (item)=>{
         return fallbackUrl || fallbackAsset;
     };
     return {
-        id: item._id || item.id || `tmdb_${item.tmdbId}`,
+        id: String(item._id || item.id || `tmdb_${item.tmdbId}`),
         title: item.title || item.name || "Unknown Title",
         description: item.description || item.overview || "",
         poster: getProxyUrl(item.poster_path, item.posterUrl, 'w500', "/images/placeholder.png"),
@@ -214,9 +324,26 @@ const transformToContent = (item)=>{
         rating: item.rating || item.vote_average || 0,
         releaseDate: item.year || item.release_date || item.first_air_date || "2024",
         type: item.type || item.media_type || "movie",
-        genres: item.genres || [],
+        genres: (item.genres || []).map((g)=>typeof g === 'object' ? g.name : g),
         status: 'ongoing',
-        isAdult: false
+        isAdult: false,
+        seasonsList: item.seasons?.map((s)=>({
+                id: s.id,
+                season_number: s.season_number,
+                episode_count: s.episode_count,
+                name: s.name
+            })) || [],
+        cast: item.credits?.cast?.slice(0, 10).map((c)=>({
+                id: c.id,
+                name: c.name,
+                character: c.character,
+                profilePath: c.profile_path ? `/tmdb-img/w185/${c.profile_path}` : null
+            })) || [],
+        recommendations: item.recommendations?.results?.slice(0, 5).map((r)=>transformToContent({
+                ...r,
+                type: r.media_type || item.type || 'movie'
+            })) || [],
+        trailer: item.videos?.results?.find((v)=>v.type === "Trailer" && v.site === "YouTube")?.key || null
     };
 };
 }),
@@ -246,23 +373,36 @@ class SourceProvider {
             return [];
         }
     }
-    async getAllSources(content) {
-        const cacheKey = `${content.type}:${content.id}`;
+    async getAllSources(content, season = 1, episode = 1) {
+        const cacheKey = `${content.type}:${content.id}:${season}:${episode}`;
         if (this.cache.has(cacheKey)) {
             return this.cache.get(cacheKey);
         }
         const sources = new Map();
         // Single call to backend which handles aggregator logic (Vidlink + Torrent + etc)
-        const allSources = await this.getSources(content.id, content.type, content.title);
-        if (allSources.length > 0) {
-            // Group by type for the UI
-            const vidlink = allSources.filter((s)=>s.type === 'hls' || s.type === 'embed');
-            const torrent = allSources.filter((s)=>s.type === 'torrent' || s.type === 'mp4');
-            if (vidlink.length > 0) sources.set('vidlink', vidlink);
-            if (torrent.length > 0) sources.set('torrent', torrent);
+        const url = `/api/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;
+        console.log(`[SourceProvider] Fetching: ${url}`);
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.error("[SourceProvider] API error:", response.status, response.statusText);
+                return sources;
+            }
+            const data = await response.json();
+            const allSources = data.sources || [];
+            if (allSources.length > 0) {
+                // Group by type for the UI
+                const vidlink = allSources.filter((s)=>s.type === 'hls' || s.type === 'embed');
+                const torrent = allSources.filter((s)=>s.type === 'torrent' || s.type === 'mp4');
+                if (vidlink.length > 0) sources.set('vidlink', vidlink);
+                if (torrent.length > 0) sources.set('torrent', torrent);
+            }
+            this.cache.set(cacheKey, sources);
+            return sources;
+        } catch (error) {
+            console.error('Source fetch error:', error);
+            return sources;
         }
-        this.cache.set(cacheKey, sources);
-        return sources;
     }
     clearCache() {
         this.cache.clear();
@@ -455,9 +595,9 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$volume$2d$x$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__VolumeX$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/volume-x.js [app-ssr] (ecmascript) <export default as VolumeX>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/play.js [app-ssr] (ecmascript) <export default as Play>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$pause$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Pause$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/pause.js [app-ssr] (ecmascript) <export default as Pause>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$settings$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Settings$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/settings.js [app-ssr] (ecmascript) <export default as Settings>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$picture$2d$in$2d$picture$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__PictureInPicture$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/picture-in-picture.js [app-ssr] (ecmascript) <export default as PictureInPicture>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$zap$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Zap$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/zap.js [app-ssr] (ecmascript) <export default as Zap>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$maximize$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Maximize$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/maximize.js [app-ssr] (ecmascript) <export default as Maximize>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/navigation.js [app-ssr] (ecmascript)");
 "use client";
 ;
@@ -470,7 +610,7 @@ const formatTimeLocal = (seconds)=>{
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
-function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration, isPaused, volume, isMuted, isSaved, downloadUrl, isSeeking, seekValue, type, isTorrent, season, episode, seasons, onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute, onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onNext, onPrev, onSeasonChange, onEpisodeChange }) {
+function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration, isPaused, volume, isMuted, isSaved, downloadUrl, isSeeking, seekValue, type, isTorrent, season, episode, seasons, onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute, onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen }) {
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRouter"])();
     const currentSeasonNum = parseInt(season);
     const currentEpisodeNum = parseInt(episode);
@@ -502,12 +642,12 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                     "aria-hidden": "true"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                    lineNumber: 86,
+                                    lineNumber: 87,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 85,
+                                lineNumber: 86,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -518,7 +658,7 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                         children: title
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 89,
+                                        lineNumber: 90,
                                         columnNumber: 25
                                     }, this),
                                     subTitle && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -526,19 +666,19 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                         children: subTitle
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 90,
+                                        lineNumber: 91,
                                         columnNumber: 38
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 88,
+                                lineNumber: 89,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                        lineNumber: 84,
+                        lineNumber: 85,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -552,12 +692,12 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                     fill: "currentColor"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                    lineNumber: 99,
+                                    lineNumber: 100,
                                     columnNumber: 29
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 98,
+                                lineNumber: 99,
                                 columnNumber: 25
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -569,19 +709,19 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                     "aria-hidden": "true"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                    lineNumber: 104,
+                                    lineNumber: 105,
                                     columnNumber: 36
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$heart$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Heart$3e$__["Heart"], {
                                     size: 20,
                                     "aria-hidden": "true"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                    lineNumber: 104,
+                                    lineNumber: 105,
                                     columnNumber: 81
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 103,
+                                lineNumber: 104,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -595,24 +735,24 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                     "aria-hidden": "true"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                    lineNumber: 114,
+                                    lineNumber: 115,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 107,
+                                lineNumber: 108,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                        lineNumber: 95,
+                        lineNumber: 96,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                lineNumber: 83,
+                lineNumber: 84,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -626,7 +766,7 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                 children: formatTimeLocal(displayTime)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 124,
+                                lineNumber: 125,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -642,7 +782,7 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                 className: "flex-1 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:scale-125 transition-all"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 125,
+                                lineNumber: 126,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -650,13 +790,13 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                 children: formatTimeLocal(safeDuration)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 137,
+                                lineNumber: 138,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                        lineNumber: 123,
+                        lineNumber: 124,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -675,7 +815,7 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                             "aria-hidden": "true"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                            lineNumber: 146,
+                                            lineNumber: 147,
                                             columnNumber: 41
                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$pause$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Pause$3e$__["Pause"], {
                                             size: 32,
@@ -683,12 +823,12 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                             "aria-hidden": "true"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                            lineNumber: 146,
+                                            lineNumber: 147,
                                             columnNumber: 101
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 145,
+                                        lineNumber: 146,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -703,19 +843,19 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                                     "aria-hidden": "true"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                    lineNumber: 152,
+                                                    lineNumber: 153,
                                                     columnNumber: 49
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$volume$2d$2$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Volume2$3e$__["Volume2"], {
                                                     size: 24,
                                                     "aria-hidden": "true"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                    lineNumber: 152,
+                                                    lineNumber: 153,
                                                     columnNumber: 92
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                lineNumber: 151,
+                                                lineNumber: 152,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -736,18 +876,18 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                                     className: "w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer ml-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                    lineNumber: 155,
+                                                    lineNumber: 156,
                                                     columnNumber: 33
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                lineNumber: 154,
+                                                lineNumber: 155,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 150,
+                                        lineNumber: 151,
                                         columnNumber: 25
                                     }, this),
                                     type === 'tv' && seasons && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -763,12 +903,12 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                                     "aria-hidden": "true"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                    lineNumber: 177,
+                                                    lineNumber: 178,
                                                     columnNumber: 37
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                lineNumber: 176,
+                                                lineNumber: 177,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -788,19 +928,19 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                                                 ]
                                                             }, s.id, true, {
                                                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                                lineNumber: 188,
+                                                                lineNumber: 189,
                                                                 columnNumber: 45
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                        lineNumber: 181,
+                                                        lineNumber: 182,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                         className: "w-[1px] h-4 bg-white/10"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                        lineNumber: 191,
+                                                        lineNumber: 192,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -822,19 +962,19 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                                                     ]
                                                                 }, ep, true, {
                                                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                                    lineNumber: 202,
+                                                                    lineNumber: 203,
                                                                     columnNumber: 49
                                                                 }, this));
                                                         })()
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                        lineNumber: 192,
+                                                        lineNumber: 193,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                lineNumber: 180,
+                                                lineNumber: 181,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -846,46 +986,29 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                                     "aria-hidden": "true"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                    lineNumber: 209,
+                                                    lineNumber: 210,
                                                     columnNumber: 37
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                                lineNumber: 208,
+                                                lineNumber: 209,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 175,
+                                        lineNumber: 176,
                                         columnNumber: 29
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 143,
+                                lineNumber: 144,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex items-center gap-4",
                                 children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                        onClick: onToggleSettings,
-                                        "aria-label": "Open settings",
-                                        className: `p-2 rounded-full transition-colors text-white/70 hover:text-white`,
-                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$settings$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Settings$3e$__["Settings"], {
-                                            size: 20,
-                                            "aria-hidden": "true"
-                                        }, void 0, false, {
-                                            fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                            lineNumber: 223,
-                                            columnNumber: 29
-                                        }, this)
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 218,
-                                        columnNumber: 25
-                                    }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                         onClick: onTogglePiP,
                                         "aria-label": "Toggle Picture in Picture",
@@ -896,36 +1019,54 @@ function PlayerControls({ show, title, subTitle, backUrl, currentTime, duration,
                                             "aria-hidden": "true"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                            lineNumber: 233,
+                                            lineNumber: 225,
                                             columnNumber: 29
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                        lineNumber: 227,
+                                        lineNumber: 219,
+                                        columnNumber: 25
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: onToggleFullscreen,
+                                        "aria-label": "Toggle Fullscreen",
+                                        className: "p-2 rounded-full transition-colors text-white/70 hover:text-white",
+                                        title: "Fullscreen",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$maximize$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Maximize$3e$__["Maximize"], {
+                                            size: 20,
+                                            "aria-hidden": "true"
+                                        }, void 0, false, {
+                                            fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
+                                            lineNumber: 235,
+                                            columnNumber: 29
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
+                                        lineNumber: 229,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                                lineNumber: 216,
+                                lineNumber: 217,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                        lineNumber: 141,
+                        lineNumber: 142,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-                lineNumber: 120,
+                lineNumber: 121,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/player/overlay/PlayerControls.tsx",
-        lineNumber: 80,
+        lineNumber: 81,
         columnNumber: 9
     }, this);
 }
@@ -938,41 +1079,316 @@ __turbopack_context__.s([
     ()=>SettingsOverlay
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/ssr/react.js [app-ssr] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/x.js [app-ssr] (ecmascript) <export default as X>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/chevron-right.js [app-ssr] (ecmascript) <export default as ChevronRight>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$check$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Check$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/check.js [app-ssr] (ecmascript) <export default as Check>");
 "use client";
 ;
-function SettingsOverlay({ show, onClose }) {
-    if (!show) return null;
-    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "absolute inset-0 z-[70] bg-black/80 flex items-center justify-center",
-        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            className: "bg-zinc-900 p-6 rounded-lg",
+;
+;
+function SettingsOverlay({ show, onClose, tracks = [], audioTracks = [], qualities = [], playbackSpeed = 1, onTrackChange, onAudioTrackChange, onQualityChange, onSpeedChange }) {
+    const [activeTab, setActiveTab] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('main');
+    if (!show) {
+        if (activeTab !== 'main') setTimeout(()=>setActiveTab('main'), 300);
+        return null;
+    }
+    const speeds = [
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        2
+    ];
+    const renderMain = ()=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "flex flex-col gap-2 min-w-[250px]",
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                    className: "text-white text-xl mb-4",
-                    children: "Settings"
-                }, void 0, false, {
+                    className: "text-white text-lg font-bold mb-2 flex justify-between items-center",
+                    children: [
+                        "Settings",
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            onClick: onClose,
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__["X"], {
+                                className: "w-5 h-5 text-zinc-400 hover:text-white"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                lineNumber: 39,
+                                columnNumber: 43
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 39,
+                            columnNumber: 17
+                        }, this)
+                    ]
+                }, void 0, true, {
                     fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
-                    lineNumber: 10,
+                    lineNumber: 37,
+                    columnNumber: 13
+                }, this),
+                qualities.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                    onClick: ()=>setActiveTab('quality'),
+                    className: "flex items-center justify-between p-3 rounded hover:bg-white/10 text-white text-sm transition-colors",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: "Quality"
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 44,
+                            columnNumber: 21
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center gap-2 text-zinc-400",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    children: qualities.find((q)=>q.active)?.label || 'Auto'
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 46,
+                                    columnNumber: 25
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
+                                    className: "w-4 h-4"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 47,
+                                    columnNumber: 25
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 45,
+                            columnNumber: 21
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                    lineNumber: 43,
+                    columnNumber: 17
+                }, this),
+                audioTracks.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                    onClick: ()=>setActiveTab('audio'),
+                    className: "flex items-center justify-between p-3 rounded hover:bg-white/10 text-white text-sm transition-colors",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: "Audio"
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 54,
+                            columnNumber: 21
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center gap-2 text-zinc-400",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    children: audioTracks.find((t)=>t.active)?.label || 'Default'
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 56,
+                                    columnNumber: 25
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
+                                    className: "w-4 h-4"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 57,
+                                    columnNumber: 25
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 55,
+                            columnNumber: 21
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                    lineNumber: 53,
+                    columnNumber: 17
+                }, this),
+                tracks.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                    onClick: ()=>setActiveTab('subtitle'),
+                    className: "flex items-center justify-between p-3 rounded hover:bg-white/10 text-white text-sm transition-colors",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: "Subtitles"
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 64,
+                            columnNumber: 21
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center gap-2 text-zinc-400",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    children: tracks.find((t)=>t.active)?.label || 'Off'
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 66,
+                                    columnNumber: 25
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
+                                    className: "w-4 h-4"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 67,
+                                    columnNumber: 25
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 65,
+                            columnNumber: 21
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                    lineNumber: 63,
                     columnNumber: 17
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                    onClick: onClose,
-                    className: "text-white/70 hover:text-white",
-                    children: "Close"
-                }, void 0, false, {
+                    onClick: ()=>setActiveTab('speed'),
+                    className: "flex items-center justify-between p-3 rounded hover:bg-white/10 text-white text-sm transition-colors",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: "Speed"
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 73,
+                            columnNumber: 17
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex items-center gap-2 text-zinc-400",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    children: [
+                                        playbackSpeed,
+                                        "x"
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 75,
+                                    columnNumber: 21
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
+                                    className: "w-4 h-4"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                    lineNumber: 76,
+                                    columnNumber: 21
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 74,
+                            columnNumber: 17
+                        }, this)
+                    ]
+                }, void 0, true, {
                     fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
-                    lineNumber: 11,
-                    columnNumber: 17
+                    lineNumber: 72,
+                    columnNumber: 13
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
-            lineNumber: 9,
+            lineNumber: 36,
+            columnNumber: 9
+        }, this);
+    const renderList = (title, items, onSelect, getLabel, getActive)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "flex flex-col gap-1 min-w-[250px] max-h-[60vh] overflow-y-auto",
+            children: [
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                    className: "text-white text-lg font-bold mb-2 flex items-center gap-2",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            onClick: ()=>setActiveTab('main'),
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__["X"], {
+                                className: "w-5 h-5 rotate-45"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                lineNumber: 85,
+                                columnNumber: 62
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                            lineNumber: 85,
+                            columnNumber: 17
+                        }, this),
+                        title
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                    lineNumber: 84,
+                    columnNumber: 13
+                }, this),
+                items.map((item, idx)=>{
+                    const isActive = getActive(item, idx);
+                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: ()=>{
+                            onSelect(idx);
+                            setActiveTab('main');
+                        },
+                        className: `flex items-center justify-between p-3 rounded text-sm transition-colors ${isActive ? 'bg-white/20 text-white font-medium' : 'hover:bg-white/10 text-zinc-300'}`,
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                children: getLabel(item)
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                lineNumber: 96,
+                                columnNumber: 25
+                            }, this),
+                            isActive && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$check$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Check$3e$__["Check"], {
+                                className: "w-4 h-4"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                                lineNumber: 97,
+                                columnNumber: 38
+                            }, this)
+                        ]
+                    }, idx, true, {
+                        fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+                        lineNumber: 91,
+                        columnNumber: 21
+                    }, this);
+                })
+            ]
+        }, void 0, true, {
+            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+            lineNumber: 83,
+            columnNumber: 9
+        }, this);
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "absolute inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center",
+        onClick: (e)=>{
+            if (e.target === e.currentTarget) onClose();
+        },
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "bg-zinc-900 border border-white/10 p-4 rounded-xl shadow-2xl animate-in fade-in zoom-in duration-200",
+            children: [
+                activeTab === 'main' && renderMain(),
+                activeTab === 'quality' && renderList("Quality", qualities, onQualityChange, (q)=>q.label, (q)=>q.active),
+                activeTab === 'audio' && renderList("Audio", audioTracks, onAudioTrackChange, (t)=>t.label, (t)=>t.active),
+                activeTab === 'subtitle' && renderList("Subtitles", [
+                    {
+                        label: 'Off',
+                        active: !tracks.some((t)=>t.active)
+                    },
+                    ...tracks
+                ], (idx)=>onTrackChange(idx - 1), (t)=>t.label, (t)=>t.active),
+                activeTab === 'speed' && renderList("Playback Speed", speeds, (idx)=>onSpeedChange(speeds[idx]), (s)=>s + 'x', (s)=>s === playbackSpeed)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
+            lineNumber: 106,
             columnNumber: 13
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/components/player/overlay/SettingsOverlay.tsx",
-        lineNumber: 8,
+        lineNumber: 105,
         columnNumber: 9
     }, this);
 }
@@ -995,7 +1411,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$
 ;
 ;
 ;
-const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ src, title, initialVolume = 1, subtitleStyle, onEnded, onStateUpdate }, ref)=>{
+const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["forwardRef"])(({ src, title, initialVolume = 1, subtitleStyle, onEnded, onStateUpdate, type = 'movie', season = '1', episode = '1', seasons = [], onSeasonChange, onEpisodeChange }, ref)=>{
     const webviewRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"])(null);
     const [isLoading, setIsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(true);
     const isReadyRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"])(false);
@@ -1005,7 +1421,7 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
         subtitleStyle
     });
     // --- Overlay State ---
-    const [showControls, setShowControls] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [showControls, setShowControls] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(true); // Always start visible
     const controlsTimeoutRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"])();
     const [showSettings, setShowSettings] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [playerState, setPlayerState] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])({
@@ -1046,7 +1462,7 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
         setShowControls(true);
         if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         if (!playerState.isPaused) {
-            controlsTimeoutRef.current = setTimeout(()=>setShowControls(false), 3000);
+            controlsTimeoutRef.current = setTimeout(()=>setShowControls(false), 5000); // 5s linger
         }
     };
     const handleTogglePlay = ()=>{
@@ -1090,6 +1506,13 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                 volume: newVol
             }));
     };
+    const handleToggleFullscreen = ()=>{
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((e)=>console.error("Fullscreen error:", e));
+        } else {
+            document.exitFullscreen().catch((e)=>console.error("Exit Fullscreen error:", e));
+        }
+    };
     // Keep refs updated
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         callbacksRef.current = {
@@ -1111,6 +1534,10 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
         const onDidFinishLoad = ()=>{
             if (isReadyRef.current) return;
             setIsLoading(false);
+            // Linger controls on startup
+            setShowControls(true);
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+            controlsTimeoutRef.current = setTimeout(()=>setShowControls(false), 5000);
             const script = `
                 (function() {
                     const AG_VERSION = 6; 
@@ -1328,22 +1755,23 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                     className: "w-10 h-10 text-white animate-spin"
                 }, void 0, false, {
                     fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                    lineNumber: 346,
+                    lineNumber: 383,
                     columnNumber: 21
                 }, ("TURBOPACK compile-time value", void 0))
             }, void 0, false, {
                 fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                lineNumber: 345,
+                lineNumber: 382,
                 columnNumber: 17
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("webview", {
                 ref: webviewRef,
                 src: src,
-                className: "w-full h-full border-0",
+                className: "w-full h-full border-0 transition-opacity duration-500 ease-in-out",
                 style: {
                     width: '100vw',
                     height: '100vh',
-                    background: '#000'
+                    background: '#000',
+                    opacity: isLoading ? 0 : 1
                 },
                 // @ts-ignore
                 allowpopups: "false",
@@ -1353,11 +1781,20 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                 useragent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             }, void 0, false, {
                 fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                lineNumber: 350,
+                lineNumber: 387,
+                columnNumber: 13
+            }, ("TURBOPACK compile-time value", void 0)),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "absolute inset-0 z-10",
+                onClick: handleTogglePlay,
+                onDoubleClick: handleToggleFullscreen
+            }, void 0, false, {
+                fileName: "[project]/src/components/player/WebviewPlayer.tsx",
+                lineNumber: 406,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$2f$overlay$2f$PlayerControls$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
-                show: showControls || playerState.isPaused,
+                show: showControls || playerState.isPaused || isLoading,
                 title: title || "",
                 currentTime: playerState.currentTime,
                 duration: playerState.duration,
@@ -1368,9 +1805,12 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                 downloadUrl: null,
                 isSeeking: playerState.isSeeking,
                 seekValue: playerState.seekValue,
-                type: "movie",
-                season: "1",
-                episode: "1",
+                type: type,
+                season: season,
+                episode: episode,
+                seasons: seasons,
+                onSeasonChange: onSeasonChange,
+                onEpisodeChange: onEpisodeChange,
                 onTogglePlay: handleTogglePlay,
                 onSeekChange: handleSeekChange,
                 onSeekCommit: handleSeekCommit,
@@ -1379,24 +1819,33 @@ const WebviewPlayer = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$proje
                 onToggleLibrary: ()=>{},
                 onDownload: ()=>{},
                 onToggleSettings: ()=>setShowSettings(!showSettings),
-                onTogglePiP: ()=>safeExecute(`window.AG_CMD_PIP && window.AG_CMD_PIP()`, true)
+                onTogglePiP: ()=>safeExecute(`window.AG_CMD_PIP && window.AG_CMD_PIP()`, true),
+                onToggleFullscreen: handleToggleFullscreen
             }, void 0, false, {
                 fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                lineNumber: 363,
+                lineNumber: 412,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$2f$overlay$2f$SettingsOverlay$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
                 show: showSettings,
-                onClose: ()=>setShowSettings(false)
+                onClose: ()=>setShowSettings(false),
+                tracks: playerState.tracks,
+                audioTracks: playerState.audioTracks,
+                qualities: playerState.qualities,
+                playbackSpeed: 1,
+                onTrackChange: (idx)=>safeExecute(`window.AG_CMD_TRACK && window.AG_CMD_TRACK(${idx})`),
+                onAudioTrackChange: (idx)=>safeExecute(`window.AG_CMD_AUDIO_TRACK && window.AG_CMD_AUDIO_TRACK(${idx})`),
+                onQualityChange: (idx)=>safeExecute(`window.AG_CMD_QUALITY && window.AG_CMD_QUALITY(${idx})`),
+                onSpeedChange: (speed)=>safeExecute(`window.AG_CMD_SPEED && window.AG_CMD_SPEED(${speed})`)
             }, void 0, false, {
                 fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-                lineNumber: 389,
+                lineNumber: 442,
                 columnNumber: 13
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/player/WebviewPlayer.tsx",
-        lineNumber: 339,
+        lineNumber: 376,
         columnNumber: 9
     }, ("TURBOPACK compile-time value", void 0));
 });
@@ -1580,60 +2029,25 @@ function WatchPage({ params }) {
     const [sourceUrl, setSourceUrl] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
     const [isEmbed, setIsEmbed] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [currentSeason, setCurrentSeason] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(Number(searchParams.get("season")) || 1);
+    const [currentEpisode, setCurrentEpisode] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(Number(searchParams.get("episode")) || 1);
+    // 1. Fetch Content Details
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
         let mounted = true;
-        async function loadData() {
-            setLoading(true);
-            setError(null);
+        async function fetchDetails() {
             try {
-                // 1. Fetch Content Details
                 const details = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2f$content$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["contentApi"].getDetails(id, type);
                 if (!mounted) return;
                 if (!details) {
                     setError("Content not found");
-                    setLoading(false);
                     return;
                 }
                 setContent(details);
-                // 2. Fetch Sources
-                // MAPPING: backend expects specific types
-                const sourceType = type === 'movie' ? 'movie' : type === 'tv' ? 'series' : 'anime';
-                const sourcesMap = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$sourceProvider$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].getAllSources({
-                    id: details.id,
-                    title: details.title,
-                    type: sourceType
-                });
-                if (!mounted) return;
-                // 3. Select Best Source
-                let bestSourceObj = null; // Typing 'any' to avoid strict checks for now
-                console.log("[WatchPage] Sources Map keys:", Array.from(sourcesMap.keys()));
-                // Priority: Vidlink (HLS/Embed) -> Torrent -> Consumet
-                const vidlink = sourcesMap.get('vidlink');
-                const torrent = sourcesMap.get('torrent');
-                console.log("[WatchPage] Vidlink sources:", vidlink);
-                console.log("[WatchPage] Torrent sources:", torrent);
-                if (vidlink && vidlink.length > 0) {
-                    bestSourceObj = vidlink[0];
-                } else if (torrent && torrent.length > 0) {
-                    bestSourceObj = torrent[0]; // Streaming torrent URL
-                } else {
-                    console.warn("[WatchPage] No sources found in map.");
-                    setError("No playable sources found");
-                }
-                if (bestSourceObj) {
-                    setSourceUrl(bestSourceObj.url);
-                    setIsEmbed(bestSourceObj.type === 'embed');
-                }
             } catch (err) {
-                console.error("Watch page error:", err);
-                if (mounted) setError(err.message || "Failed to load content");
-            } finally{
-                if (mounted) setLoading(false);
+                if (mounted) setError("Failed to load content details");
             }
         }
-        if (id) {
-            loadData();
-        }
+        fetchDetails();
         return ()=>{
             mounted = false;
         };
@@ -1641,6 +2055,60 @@ function WatchPage({ params }) {
         id,
         type
     ]);
+    // 2. Fetch Sources when content or episode changes
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
+        if (!content) return;
+        let mounted = true;
+        async function fetchSources() {
+            setLoading(true);
+            setError(null);
+            try {
+                const sourceType = type === 'movie' ? 'movie' : type === 'tv' ? 'series' : 'anime';
+                const sourcesMap = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$sourceProvider$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"].getAllSources({
+                    id: content.id,
+                    title: content.title,
+                    type: sourceType
+                }, currentSeason, currentEpisode);
+                if (!mounted) return;
+                let bestSourceObj = null;
+                const vidlink = sourcesMap.get('vidlink');
+                const torrent = sourcesMap.get('torrent');
+                if (vidlink && vidlink.length > 0) {
+                    bestSourceObj = vidlink[0];
+                } else if (torrent && torrent.length > 0) {
+                    bestSourceObj = torrent[0];
+                } else {
+                    setError("No playable sources found for this episode");
+                }
+                if (bestSourceObj) {
+                    setSourceUrl(bestSourceObj.url);
+                    setIsEmbed(bestSourceObj.type === 'embed');
+                } else {
+                    setSourceUrl(null);
+                }
+            } catch (err) {
+                if (mounted) setError(err.message || "Failed to load sources");
+            } finally{
+                if (mounted) setLoading(false);
+            }
+        }
+        fetchSources();
+        return ()=>{
+            mounted = false;
+        };
+    }, [
+        content,
+        currentSeason,
+        currentEpisode,
+        type
+    ]);
+    const handleSeasonChange = (s)=>{
+        setCurrentSeason(s);
+        setCurrentEpisode(1); // Reset to ep 1
+    };
+    const handleEpisodeChange = (e)=>{
+        setCurrentEpisode(parseInt(e));
+    };
     if (loading) {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
             className: "flex h-screen w-full items-center justify-center bg-black",
@@ -1651,7 +2119,7 @@ function WatchPage({ params }) {
                         className: "h-10 w-10 animate-spin text-red-600"
                     }, void 0, false, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 104,
+                        lineNumber: 112,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1659,18 +2127,18 @@ function WatchPage({ params }) {
                         children: "Locating stream..."
                     }, void 0, false, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 105,
+                        lineNumber: 113,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                lineNumber: 103,
+                lineNumber: 111,
                 columnNumber: 17
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/watch/[id]/page.tsx",
-            lineNumber: 102,
+            lineNumber: 110,
             columnNumber: 13
         }, this);
     }
@@ -1684,7 +2152,7 @@ function WatchPage({ params }) {
                         className: "h-12 w-12 text-red-500 mx-auto"
                     }, void 0, false, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 115,
+                        lineNumber: 123,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -1692,7 +2160,7 @@ function WatchPage({ params }) {
                         children: "Playback Error"
                     }, void 0, false, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 116,
+                        lineNumber: 124,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1700,7 +2168,7 @@ function WatchPage({ params }) {
                         children: error || "Unknown error occurred"
                     }, void 0, false, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 117,
+                        lineNumber: 125,
                         columnNumber: 21
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$UI$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
@@ -1711,25 +2179,25 @@ function WatchPage({ params }) {
                                 className: "mr-2 h-4 w-4"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 119,
+                                lineNumber: 127,
                                 columnNumber: 25
                             }, this),
                             "Go Back"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 118,
+                        lineNumber: 126,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                lineNumber: 114,
+                lineNumber: 122,
                 columnNumber: 17
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/app/watch/[id]/page.tsx",
-            lineNumber: 113,
+            lineNumber: 121,
             columnNumber: 13
         }, this);
     }
@@ -1748,14 +2216,14 @@ function WatchPage({ params }) {
                                 className: "mr-2 h-5 w-5"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 136,
+                                lineNumber: 144,
                                 columnNumber: 21
                             }, this),
                             "Back"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 131,
+                        lineNumber: 139,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1766,127 +2234,95 @@ function WatchPage({ params }) {
                                 children: content.title
                             }, void 0, false, {
                                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 141,
+                                lineNumber: 149,
+                                columnNumber: 21
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                                className: "text-lg font-bold text-white drop-shadow-md",
+                                children: content.title
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/watch/[id]/page.tsx",
+                                lineNumber: 150,
                                 columnNumber: 21
                             }, this),
                             type === 'tv' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                 className: "text-sm text-zinc-300",
-                                children: "Season 1 • Episode 1"
-                            }, void 0, false, {
+                                children: [
+                                    "Season ",
+                                    currentSeason,
+                                    " • Episode ",
+                                    currentEpisode
+                                ]
+                            }, void 0, true, {
                                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 142,
+                                lineNumber: 151,
                                 columnNumber: 39
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 140,
+                        lineNumber: 148,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                lineNumber: 130,
+                lineNumber: 138,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "flex-1 flex items-center justify-center bg-black",
-                children: [
-                    sourceUrl ? isEmbed ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$2f$WebviewPlayer$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
+                children: sourceUrl ? isEmbed ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$2f$WebviewPlayer$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
+                    src: sourceUrl,
+                    title: content.title,
+                    type: type,
+                    season: currentSeason.toString(),
+                    episode: currentEpisode.toString(),
+                    seasons: content.seasonsList,
+                    onSeasonChange: handleSeasonChange,
+                    onEpisodeChange: handleEpisodeChange,
+                    onStateUpdate: (state)=>{
+                        console.log("[WatchPage] Webview State Update:", state);
+                    }
+                }, void 0, false, {
+                    fileName: "[project]/src/app/watch/[id]/page.tsx",
+                    lineNumber: 159,
+                    columnNumber: 25
+                }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "w-full h-full max-w-[1920px]",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$2f$VideoPlayer$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["VideoPlayer"], {
                         src: sourceUrl,
+                        poster: content.backdrop || content.poster,
                         title: content.title,
-                        onStateUpdate: (state)=>{
-                            console.log("[WatchPage] Webview State Update:", state);
+                        onEnded: ()=>{
+                            console.log("Video ended");
                         }
                     }, void 0, false, {
                         fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 150,
-                        columnNumber: 25
-                    }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "w-full h-full max-w-[1920px]",
-                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$player$2f$VideoPlayer$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["VideoPlayer"], {
-                            src: sourceUrl,
-                            poster: content.backdrop || content.poster,
-                            title: content.title,
-                            onEnded: ()=>{
-                                console.log("Video ended");
-                            }
-                        }, void 0, false, {
-                            fileName: "[project]/src/app/watch/[id]/page.tsx",
-                            lineNumber: 159,
-                            columnNumber: 29
-                        }, this)
-                    }, void 0, false, {
-                        fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 158,
-                        columnNumber: 25
-                    }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "text-zinc-500",
-                        children: "Source URL missing"
-                    }, void 0, false, {
-                        fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 168,
-                        columnNumber: 21
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "absolute bottom-4 left-4 z-50 p-2 bg-black/80 text-xs text-green-400 font-mono rounded pointer-events-none select-text",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                children: [
-                                    "Status: ",
-                                    loading ? 'Loading' : 'Ready'
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 173,
-                                columnNumber: 21
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                children: [
-                                    "Type: ",
-                                    type
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 174,
-                                columnNumber: 21
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                children: [
-                                    "Embed Mode: ",
-                                    isEmbed ? 'YES' : 'NO'
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 175,
-                                columnNumber: 21
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                children: [
-                                    "Source: ",
-                                    sourceUrl || 'None'
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/app/watch/[id]/page.tsx",
-                                lineNumber: 176,
-                                columnNumber: 21
-                            }, this)
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/src/app/watch/[id]/page.tsx",
-                        lineNumber: 172,
-                        columnNumber: 17
+                        lineNumber: 174,
+                        columnNumber: 29
                     }, this)
-                ]
-            }, void 0, true, {
+                }, void 0, false, {
+                    fileName: "[project]/src/app/watch/[id]/page.tsx",
+                    lineNumber: 173,
+                    columnNumber: 25
+                }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "text-zinc-500",
+                    children: "Source URL missing"
+                }, void 0, false, {
+                    fileName: "[project]/src/app/watch/[id]/page.tsx",
+                    lineNumber: 183,
+                    columnNumber: 21
+                }, this)
+            }, void 0, false, {
                 fileName: "[project]/src/app/watch/[id]/page.tsx",
-                lineNumber: 147,
+                lineNumber: 156,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/watch/[id]/page.tsx",
-        lineNumber: 128,
+        lineNumber: 136,
         columnNumber: 9
     }, this);
 }

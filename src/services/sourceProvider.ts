@@ -32,9 +32,11 @@ class SourceProvider {
     }
 
     async getAllSources(
-        content: ContentItem
+        content: ContentItem,
+        season: number = 1,
+        episode: number = 1
     ): Promise<Map<string, StreamSource[]>> {
-        const cacheKey = `${content.type}:${content.id}`;
+        const cacheKey = `${content.type}:${content.id}:${season}:${episode}`;
         if (this.cache.has(cacheKey)) {
             return this.cache.get(cacheKey)!;
         }
@@ -42,19 +44,34 @@ class SourceProvider {
         const sources = new Map<string, StreamSource[]>();
 
         // Single call to backend which handles aggregator logic (Vidlink + Torrent + etc)
-        const allSources = await this.getSources(content.id, content.type, content.title);
+        const url = `/api/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;
+        console.log(`[SourceProvider] Fetching: ${url}`);
 
-        if (allSources.length > 0) {
-            // Group by type for the UI
-            const vidlink = allSources.filter(s => s.type === 'hls' || s.type === 'embed');
-            const torrent = allSources.filter(s => s.type === 'torrent' || s.type === 'mp4');
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.error("[SourceProvider] API error:", response.status, response.statusText);
+                return sources;
+            }
+            const data = await response.json();
+            const allSources = data.sources || [];
 
-            if (vidlink.length > 0) sources.set('vidlink', vidlink);
-            if (torrent.length > 0) sources.set('torrent', torrent);
+
+            if (allSources.length > 0) {
+                // Group by type for the UI
+                const vidlink = allSources.filter((s: any) => s.type === 'hls' || s.type === 'embed');
+                const torrent = allSources.filter((s: any) => s.type === 'torrent' || s.type === 'mp4');
+
+                if (vidlink.length > 0) sources.set('vidlink', vidlink);
+                if (torrent.length > 0) sources.set('torrent', torrent);
+            }
+
+            this.cache.set(cacheKey, sources);
+            return sources;
+        } catch (error) {
+            console.error('Source fetch error:', error);
+            return sources;
         }
-
-        this.cache.set(cacheKey, sources);
-        return sources;
     }
 
     clearCache() {

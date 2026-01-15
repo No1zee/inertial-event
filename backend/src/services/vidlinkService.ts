@@ -9,9 +9,14 @@ class VidlinkService {
         if (!this.config.enabled) return null;
 
         try {
-            // Strip 'tmdb_' or other prefixes to ensure raw TMDB ID
-            const cleanId = id.replace(/^(tmdb_|tv_|movie_)/, '');
-            console.log(`[Vidlink] Generatng Embed for ID: ${cleanId} Type: ${type}`);
+            // Strip 'tmdb_', 'tv_', 'movie_', 'series_' prefixes to ensure raw TMDB ID
+            const cleanId = id.replace(/^(tmdb_|tv_|movie_|series_)/, '');
+
+            // Fallback: If ID still contains non-numeric characters (and isn't 'imdb'), try to extract numbers
+            // This handles cases like "id-12345" if they ever occur
+            const numericId = cleanId.match(/^\d+$/) ? cleanId : (cleanId.match(/\d+/) || [cleanId])[0];
+
+            console.log(`[Vidlink] Generatng Embed for ID: ${id} -> Clean: ${numericId} Type: ${type} Season: ${season} Episode: ${episode}`);
 
             const sources = [];
 
@@ -27,15 +32,19 @@ class VidlinkService {
 
             // 1. Primary: Vidlink (Better Quality)
             if (type === 'movie') {
+                const url = `https://vidlink.pro/movie/${numericId}?${params}`;
+                console.log(`[Vidlink] Movie URL: ${url}`);
                 sources.push({
-                    url: `https://vidlink.pro/movie/${cleanId}?${params}`,
+                    url: url,
                     quality: "1080p",
                     type: "embed",
                     provider: "Vidlink (HQ)"
                 });
             } else {
+                const url = `https://vidlink.pro/tv/${numericId}/${season}/${episode}?${params}`;
+                console.log(`[Vidlink] TV URL: ${url}`);
                 sources.push({
-                    url: `https://vidlink.pro/tv/${cleanId}/${season}/${episode}?${params}`,
+                    url: url,
                     quality: "1080p",
                     type: "embed",
                     provider: "Vidlink (HQ)"

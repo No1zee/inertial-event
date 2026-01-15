@@ -21,7 +21,7 @@ class TorrentService {
     }
 
     // New Hardened Method for SourceService integration
-    async getSources(title: string, episodeNumber: number): Promise<IProviderResponse | null> {
+    async getSources(title: string, episodeNumber: number, seasonNumber?: number): Promise<IProviderResponse | null> {
         if (!this.config.enabled) return null;
 
         // Torrents are complex; this is a placeholder for the actual search logic.

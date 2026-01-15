@@ -15,6 +15,24 @@ export interface Content {
     isAdult: boolean;
     language?: string;
     country?: string[];
+    seasonsList?: Season[];
+    cast?: CastMember[];
+    recommendations?: Content[];
+    trailer?: string;
+}
+
+export interface CastMember {
+    id: number;
+    name: string;
+    character: string;
+    profilePath: string | null;
+}
+
+export interface Season {
+    id: number;
+    season_number: number;
+    episode_count: number;
+    name: string;
 }
 
 export interface Episode {

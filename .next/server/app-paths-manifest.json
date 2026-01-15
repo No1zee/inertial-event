@@ -1,0 +1,11 @@
+{
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(dashboard)/browse/page": "app/(dashboard)/browse/page.js",
+  "/(dashboard)/files/page": "app/(dashboard)/files/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/tmdb-api/[...path]/route": "app/tmdb-api/[...path]/route.js",
+  "/tmdb-img/[...path]/route": "app/tmdb-img/[...path]/route.js",
+  "/watch/[id]/page": "app/watch/[id]/page.js"
+}

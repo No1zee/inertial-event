@@ -6,6 +6,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { contentApi } from "@/lib/api/content";
 import sourceProvider from "@/services/sourceProvider";
+import { usePlayerStore } from "@/lib/store/playerStore";
+import { useHistoryStore } from "@/lib/store/historyStore";
 import { VideoPlayer } from "@/components/player/VideoPlayer";
 import WebviewPlayer from "@/components/player/WebviewPlayer";
 import { Button } from "@/components/UI/button";
@@ -24,78 +26,94 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
     const [sourceUrl, setSourceUrl] = useState<string | null>(null);
     const [isEmbed, setIsEmbed] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [currentSeason, setCurrentSeason] = useState(Number(searchParams.get("season")) || 1);
+    const [currentEpisode, setCurrentEpisode] = useState(Number(searchParams.get("episode")) || 1);
+    const { setDuration, setCurrentTime, setPlaying } = usePlayerStore();
+    const addToHistory = useHistoryStore(state => state.addToHistory);
+    const isSaved = false; // Todo: Implement library store
 
+    // Save to history when content loads
+    useEffect(() => {
+        if (content) {
+            addToHistory(content);
+        }
+    }, [content, addToHistory]);
+
+    // 1. Fetch Content Details
     useEffect(() => {
         let mounted = true;
-
-        async function loadData() {
-            setLoading(true);
-            setError(null);
-
+        async function fetchDetails() {
             try {
-                // 1. Fetch Content Details
                 const details = await contentApi.getDetails(id, type);
                 if (!mounted) return;
-
                 if (!details) {
                     setError("Content not found");
-                    setLoading(false);
                     return;
                 }
                 setContent(details);
+            } catch (err) {
+                if (mounted) setError("Failed to load content details");
+            }
+        }
+        fetchDetails();
+        return () => { mounted = false; };
+    }, [id, type]);
 
-                // 2. Fetch Sources
-                // MAPPING: backend expects specific types
+    // 2. Fetch Sources when content or episode changes
+    useEffect(() => {
+        if (!content) return;
+        let mounted = true;
+
+        async function fetchSources() {
+            setLoading(true);
+            setError(null);
+            try {
                 const sourceType = type === 'movie' ? 'movie' : type === 'tv' ? 'series' : 'anime';
-
                 const sourcesMap = await sourceProvider.getAllSources({
-                    id: details.id, // ID might need adjustment if provider expects specific format
-                    title: details.title,
+                    id: content.id,
+                    title: content.title,
                     type: sourceType
-                });
+                }, currentSeason, currentEpisode);
 
                 if (!mounted) return;
 
-                // 3. Select Best Source
-                let bestSourceObj: any = null; // Typing 'any' to avoid strict checks for now
-
-                console.log("[WatchPage] Sources Map keys:", Array.from(sourcesMap.keys()));
-
-                // Priority: Vidlink (HLS/Embed) -> Torrent -> Consumet
+                let bestSourceObj: any = null;
                 const vidlink = sourcesMap.get('vidlink');
                 const torrent = sourcesMap.get('torrent');
-
-                console.log("[WatchPage] Vidlink sources:", vidlink);
-                console.log("[WatchPage] Torrent sources:", torrent);
 
                 if (vidlink && vidlink.length > 0) {
                     bestSourceObj = vidlink[0];
                 } else if (torrent && torrent.length > 0) {
-                    bestSourceObj = torrent[0]; // Streaming torrent URL
+                    bestSourceObj = torrent[0];
                 } else {
-                    console.warn("[WatchPage] No sources found in map.");
-                    setError("No playable sources found");
+                    setError("No playable sources found for this episode");
                 }
 
                 if (bestSourceObj) {
                     setSourceUrl(bestSourceObj.url);
                     setIsEmbed(bestSourceObj.type === 'embed');
+                } else {
+                    setSourceUrl(null);
                 }
-
             } catch (err: any) {
-                console.error("Watch page error:", err);
-                if (mounted) setError(err.message || "Failed to load content");
+                if (mounted) setError(err.message || "Failed to load sources");
             } finally {
                 if (mounted) setLoading(false);
             }
         }
 
-        if (id) {
-            loadData();
-        }
-
+        fetchSources();
         return () => { mounted = false; };
-    }, [id, type]);
+    }, [content, currentSeason, currentEpisode, type]);
+
+    const handleSeasonChange = (s: number) => {
+        setCurrentSeason(s);
+        setCurrentEpisode(1); // Reset to ep 1
+    };
+
+    const handleEpisodeChange = (e: string) => {
+        setCurrentEpisode(parseInt(e));
+    };
 
     if (loading) {
         return (
@@ -139,7 +157,7 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
 
                 <div className="text-right">
                     <h1 className="text-lg font-bold text-white drop-shadow-md">{content.title}</h1>
-                    {type === 'tv' && <p className="text-sm text-zinc-300">Season 1 • Episode 1</p>}
+                    {type === 'tv' && <p className="text-sm text-zinc-300">Season {currentSeason} • Episode {currentEpisode}</p>}
                 </div>
             </div>
 
@@ -150,6 +168,13 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
                         <WebviewPlayer
                             src={sourceUrl}
                             title={content.title}
+                            isSaved={isSaved}
+                            type={type}
+                            season={currentSeason.toString()}
+                            episode={currentEpisode.toString()}
+                            seasons={content.seasonsList}
+                            onSeasonChange={handleSeasonChange}
+                            onEpisodeChange={handleEpisodeChange}
                             onStateUpdate={(state) => {
                                 console.log("[WatchPage] Webview State Update:", state);
                             }}
@@ -168,13 +193,6 @@ export default function WatchPage({ params }: { params: Promise<{ id: string }> 
                     <div className="text-zinc-500">Source URL missing</div>
                 )}
 
-                {/* Debug Overlay */}
-                <div className="absolute bottom-4 left-4 z-50 p-2 bg-black/80 text-xs text-green-400 font-mono rounded pointer-events-none select-text">
-                    <p>Status: {loading ? 'Loading' : 'Ready'}</p>
-                    <p>Type: {type}</p>
-                    <p>Embed Mode: {isEmbed ? 'YES' : 'NO'}</p>
-                    <p>Source: {sourceUrl || 'None'}</p>
-                </div>
             </div>
         </div>
     );

@@ -3,9 +3,10 @@ import sourceService from '../services/sourceService.js';
 
 export const getSources = async (req: Request, res: Response) => {
     try {
-        const { id, title, episode, type } = req.query;
+        const { id, title, season, episode, type } = req.query;
         const result = await sourceService.getAllSources(
             id as string,
+            parseInt(season as string) || 1,
             parseInt(episode as string) || 1,
             title as string,
             (type as 'movie' | 'tv') || 'movie'

@@ -1,5 +1,10 @@
 {
+  "/(dashboard)/browse/anime/page": "app/(dashboard)/browse/anime/page.js",
+  "/(dashboard)/browse/movies/page": "app/(dashboard)/browse/movies/page.js",
+  "/(dashboard)/browse/page": "app/(dashboard)/browse/page.js",
+  "/(dashboard)/browse/tv-shows/page": "app/(dashboard)/browse/tv-shows/page.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/tmdb-api/[...path]/route": "app/tmdb-api/[...path]/route.js",
   "/tmdb-img/[...path]/route": "app/tmdb-img/[...path]/route.js",
   "/watch/[id]/page": "app/watch/[id]/page.js"

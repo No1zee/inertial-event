@@ -139,9 +139,13 @@ const contentApi = {
     getPopularTV: async ()=>{
         try {
             const randomPage = Math.floor(Math.random() * 5) + 1;
-            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/tv/popular?language=en-US&page=${randomPage}`);
+            // Exclude anime (210024) from generic TV popular list
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/tv/popular?language=en-US&page=${randomPage}&without_keywords=210024`);
             const data = res.data.results || [];
-            return data.map(transformToContent).sort(()=>Math.random() - 0.5);
+            return data.map((item)=>transformToContent({
+                    ...item,
+                    type: 'tv'
+                })).sort(()=>Math.random() - 0.5);
         } catch (error) {
             console.error("Failed to fetch popular TV:", error);
             return [];
@@ -151,11 +155,160 @@ const contentApi = {
         try {
             const randomPage = page || Math.floor(Math.random() * 5) + 1;
             const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
-            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?with_genres=${genreId}&language=en-US&page=${randomPage}&sort_by=popularity.desc`);
+            const extraFilter = type === 'tv' ? '&without_keywords=210024' : ''; // Filter anime from generic TV genres
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?with_genres=${genreId}&language=en-US&page=${randomPage}&sort_by=popularity.desc${extraFilter}`);
             const data = res.data.results || [];
-            return data.map(transformToContent); // Preserving order for relevance unless specifically shuffled elsewhere
+            return data.map((item)=>transformToContent({
+                    ...item,
+                    type
+                })); // Preserving order for relevance unless specifically shuffled elsewhere
         } catch (error) {
             console.error(`Failed to fetch genre ${genreId}:`, error);
+            return [];
+        }
+    },
+    // --- Dynamic Categories (The Candy Store) ---
+    getAnime: async (page)=>{
+        try {
+            const randomPage = page || Math.floor(Math.random() * 3) + 1;
+            // Discover TV with 'anime' keyword (210024) and Animation genre (16)
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/discover/tv?with_keywords=210024&with_genres=16&language=en-US&sort_by=popularity.desc&page=${randomPage}`);
+            const data = res.data.results || [];
+            return data.map((item)=>transformToContent({
+                    ...item,
+                    type: 'anime'
+                }));
+        } catch (error) {
+            console.error("Failed to fetch anime:", error);
+            return [];
+        }
+    },
+    getBangers: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=vote_average.desc&vote_count.gte=1000&language=en-US&page=${randomPage}${extraFilter}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getClassics: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const dateFilter = type === 'movie' ? 'primary_release_date.lte=2010-01-01' : 'first_air_date.lte=2010-01-01';
+            const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=popularity.desc&vote_average.gte=7.5&${dateFilter}&language=en-US&page=${randomPage}${extraFilter}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getUnderrated: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=vote_average.desc&vote_count.gte=200&vote_count.lte=2000&vote_average.gte=8.0&language=en-US&page=${randomPage}${extraFilter}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getFresh: async (type = 'movie', page)=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            const randomPage = page || 1;
+            const currentYear = new Date().getFullYear();
+            const dateFilter = type === 'movie' ? `primary_release_year=${currentYear}` : `first_air_date_year=${currentYear}`;
+            const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=popularity.desc&${dateFilter}&language=en-US&page=${randomPage}${extraFilter}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getRecommendations: async (id)=>{
+        try {
+            const cleanId = id.replace('tmdb_', '');
+            // We can't easily know the type from just ID here without lookup, but usually recommendations come from same type.
+            // Try movie first, if fail/empty try tv. Or better, pass type if possible.
+            // For now, let's assume we can get type or just try both.
+            // Actually, best is to ask the caller to provide valid context or just return empty if id invalid.
+            // Let's rely on the fact that we can often guess or duplicate.
+            // A safer bet: The history item SHOULD have the type. But if we only have ID...
+            // Optimization: The caller (Page) has the history item, so it knows the type.
+            // Let's update signature to take type.
+            return [];
+        } catch (error) {
+            return [];
+        }
+    },
+    getSimilar: async (id, type)=>{
+        try {
+            // For Anime, we treat it as TV for TMDB queries usually
+            const queryType = type === 'anime' ? 'tv' : type;
+            const cleanId = id.replace('tmdb_', '');
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/${queryType}/${cleanId}/recommendations?language=en-US&page=1`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    // --- Anime Specific Categories ---
+    getAnimeByGenre: async (genreId, page)=>{
+        try {
+            const randomPage = page || 1;
+            // 16 is Animation genre.
+            // Common Keywords:
+            // Isekai: 210024
+            // Mecha: 10701
+            // Dark Fantasy: 209252
+            // Slice of Life: 9840
+            // Sports: 6075
+            // Psychological: 9880 or genre 9648 (Mystery) + Animation
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/discover/tv?with_genres=16&${genreId}&language=en-US&sort_by=popularity.desc&page=${randomPage}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type: 'anime'
+                }));
+        } catch (error) {
+            return [];
+        }
+    },
+    getDayOneDrops: async (type = 'movie')=>{
+        try {
+            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
+            // Get date range for last 14 days (extended slightly from 7 for better results)
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - 14);
+            const formatDate = (d)=>d.toISOString().split('T')[0];
+            const dateFilter = type === 'movie' ? `primary_release_date.gte=${formatDate(pastDate)}&primary_release_date.lte=${formatDate(today)}` : `first_air_date.gte=${formatDate(pastDate)}&first_air_date.lte=${formatDate(today)}`;
+            const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?sort_by=popularity.desc&${dateFilter}&language=en-US&page=1${extraFilter}`);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
+        } catch (error) {
             return [];
         }
     },
@@ -170,7 +323,10 @@ const contentApi = {
             });
             const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
             const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`${endpoint}?${queryParams.toString()}`);
-            return (res.data.results || []).map(transformToContent);
+            return (res.data.results || []).map((item)=>transformToContent({
+                    ...item,
+                    type
+                }));
         } catch (error) {
             console.error("Failed to discover content:", error);
             return [];
@@ -189,9 +345,11 @@ const contentApi = {
     },
     getDetails: async (id, type = 'movie')=>{
         try {
+            // Ensure ID is a string
+            const idStr = String(id);
             // Strip 'tmdb_' prefix if present
-            const cleanId = id.replace('tmdb_', '');
-            const endpoint = `/tmdb-api/${type}/${cleanId}?language=en-US`;
+            const cleanId = idStr.replace('tmdb_', '');
+            const endpoint = `/tmdb-api/${type}/${cleanId}?language=en-US&append_to_response=credits,recommendations,videos`;
             const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(endpoint);
             return transformToContent({
                 ...res.data,
@@ -199,6 +357,16 @@ const contentApi = {
             });
         } catch (error) {
             console.error(`Failed to fetch ${type} details for ${id}:`, error);
+            return null;
+        }
+    },
+    getSeasonDetails: async (id, seasonNumber)=>{
+        try {
+            const idStr = String(id).replace('tmdb_', '');
+            const res = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(`/tmdb-api/tv/${idStr}/season/${seasonNumber}?language=en-US`);
+            return res.data;
+        } catch (error) {
+            console.error(`Failed to fetch season ${seasonNumber} for ${id}:`, error);
             return null;
         }
     }
@@ -218,7 +386,7 @@ const transformToContent = (item)=>{
         return fallbackUrl || fallbackAsset;
     };
     return {
-        id: item._id || item.id || `tmdb_${item.tmdbId}`,
+        id: String(item._id || item.id || `tmdb_${item.tmdbId}`),
         title: item.title || item.name || "Unknown Title",
         description: item.description || item.overview || "",
         poster: getProxyUrl(item.poster_path, item.posterUrl, 'w500', "/images/placeholder.png"),
@@ -226,9 +394,26 @@ const transformToContent = (item)=>{
         rating: item.rating || item.vote_average || 0,
         releaseDate: item.year || item.release_date || item.first_air_date || "2024",
         type: item.type || item.media_type || "movie",
-        genres: item.genres || [],
+        genres: (item.genres || []).map((g)=>typeof g === 'object' ? g.name : g),
         status: 'ongoing',
-        isAdult: false
+        isAdult: false,
+        seasonsList: item.seasons?.map((s)=>({
+                id: s.id,
+                season_number: s.season_number,
+                episode_count: s.episode_count,
+                name: s.name
+            })) || [],
+        cast: item.credits?.cast?.slice(0, 10).map((c)=>({
+                id: c.id,
+                name: c.name,
+                character: c.character,
+                profilePath: c.profile_path ? `/tmdb-img/w185/${c.profile_path}` : null
+            })) || [],
+        recommendations: item.recommendations?.results?.slice(0, 5).map((r)=>transformToContent({
+                ...r,
+                type: r.media_type || item.type || 'movie'
+            })) || [],
+        trailer: item.videos?.results?.find((v)=>v.type === "Trailer" && v.site === "YouTube")?.key || null
     };
 };
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
@@ -739,7 +924,8 @@ function ContentCard({ item, aspectRatio = "portrait" }) {
                                     onClick: (e)=>{
                                         e.stopPropagation();
                                         // Direct play if play button clicked
-                                        window.location.href = `/watch/${item.id}?type=${item.type || 'movie'}`;
+                                        const type = item.type || (item.seasonsList?.length > 0 ? 'tv' : 'movie');
+                                        window.location.href = `/watch/${item.id}?type=${type}`;
                                     },
                                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
                                         size: 18,
@@ -747,7 +933,7 @@ function ContentCard({ item, aspectRatio = "portrait" }) {
                                         className: "ml-0.5"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/content/ContentCard.tsx",
-                                        lineNumber: 76,
+                                        lineNumber: 77,
                                         columnNumber: 29
                                     }, this)
                                 }, void 0, false, {
@@ -764,12 +950,12 @@ function ContentCard({ item, aspectRatio = "portrait" }) {
                                         size: 18
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/content/ContentCard.tsx",
-                                        lineNumber: 82,
+                                        lineNumber: 83,
                                         columnNumber: 29
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/content/ContentCard.tsx",
-                                    lineNumber: 78,
+                                    lineNumber: 79,
                                     columnNumber: 25
                                 }, this)
                             ]
@@ -785,7 +971,7 @@ function ContentCard({ item, aspectRatio = "portrait" }) {
                                     children: item.title
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/content/ContentCard.tsx",
-                                    lineNumber: 88,
+                                    lineNumber: 89,
                                     columnNumber: 25
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -799,33 +985,33 @@ function ContentCard({ item, aspectRatio = "portrait" }) {
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/content/ContentCard.tsx",
-                                            lineNumber: 93,
+                                            lineNumber: 94,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             children: "•"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/content/ContentCard.tsx",
-                                            lineNumber: 94,
+                                            lineNumber: 95,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             children: item.releaseDate?.substring(0, 4) || "N/A"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/content/ContentCard.tsx",
-                                            lineNumber: 95,
+                                            lineNumber: 96,
                                             columnNumber: 29
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/content/ContentCard.tsx",
-                                    lineNumber: 92,
+                                    lineNumber: 93,
                                     columnNumber: 25
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/content/ContentCard.tsx",
-                            lineNumber: 87,
+                            lineNumber: 88,
                             columnNumber: 21
                         }, this)
                     ]
@@ -868,12 +1054,14 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/chevron-right.js [app-client] (ecmascript) <export default as ChevronRight>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$left$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronLeft$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/chevron-left.js [app-client] (ecmascript) <export default as ChevronLeft>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$content$2f$ContentCard$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/content/ContentCard.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/utils.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
+;
 ;
 ;
 ;
@@ -915,8 +1103,9 @@ function ContentRail({ title, items = [] }) {
                 className: "text-xl font-bold text-white tracking-tight flex items-center gap-2 group cursor-pointer w-fit px-4 lg:px-0",
                 children: [
                     title,
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "text-xs font-normal text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center",
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                        href: `/browse/view-all?title=${encodeURIComponent(title)}`,
+                        className: "text-xs font-normal text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center hover:text-white",
                         children: [
                             "See All ",
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
@@ -924,19 +1113,19 @@ function ContentRail({ title, items = [] }) {
                                 className: "ml-1"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/content/ContentRail.tsx",
-                                lineNumber: 57,
+                                lineNumber: 61,
                                 columnNumber: 29
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/content/ContentRail.tsx",
-                        lineNumber: 56,
+                        lineNumber: 57,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/content/ContentRail.tsx",
-                lineNumber: 54,
+                lineNumber: 55,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -950,12 +1139,12 @@ function ContentRail({ title, items = [] }) {
                             size: 32
                         }, void 0, false, {
                             fileName: "[project]/src/components/content/ContentRail.tsx",
-                            lineNumber: 70,
+                            lineNumber: 74,
                             columnNumber: 21
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/content/ContentRail.tsx",
-                        lineNumber: 63,
+                        lineNumber: 67,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -966,12 +1155,12 @@ function ContentRail({ title, items = [] }) {
                                 item: item
                             }, item.id, false, {
                                 fileName: "[project]/src/components/content/ContentRail.tsx",
-                                lineNumber: 80,
+                                lineNumber: 84,
                                 columnNumber: 25
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/src/components/content/ContentRail.tsx",
-                        lineNumber: 74,
+                        lineNumber: 78,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -982,24 +1171,24 @@ function ContentRail({ title, items = [] }) {
                             size: 32
                         }, void 0, false, {
                             fileName: "[project]/src/components/content/ContentRail.tsx",
-                            lineNumber: 89,
+                            lineNumber: 93,
                             columnNumber: 21
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/content/ContentRail.tsx",
-                        lineNumber: 85,
+                        lineNumber: 89,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/content/ContentRail.tsx",
-                lineNumber: 61,
+                lineNumber: 65,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/content/ContentRail.tsx",
-        lineNumber: 53,
+        lineNumber: 54,
         columnNumber: 9
     }, this);
 }
@@ -1021,13 +1210,19 @@ __turbopack_context__.s([
     ()=>__TURBOPACK__default__export__
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/@radix-ui/react-dialog/dist/index.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/play.js [app-client] (ecmascript) <export default as Play>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/x.js [app-client] (ecmascript) <export default as X>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$store$2f$uiStore$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/store/uiStore.ts [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/navigation.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/utils.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2f$content$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/api/content.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
+;
+;
+;
 ;
 ;
 ;
@@ -1036,186 +1231,730 @@ const ContentModal = ()=>{
     _s();
     const { isModalOpen, modalContent, closeModal } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$store$2f$uiStore$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useUIStore"])();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
-    if (!modalContent) return null;
+    const [activeTab, setActiveTab] = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useState('overview');
+    const [selectedSeason, setSelectedSeason] = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useState(1);
+    const [fullDetails, setFullDetails] = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useState(null);
+    const [showHeroOverlay, setShowHeroOverlay] = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useState(true);
+    const [episodes, setEpisodes] = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useState([]);
+    const content = fullDetails || modalContent;
+    __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useEffect({
+        "ContentModal.useEffect": ()=>{
+            if (isModalOpen && modalContent) {
+                setActiveTab('overview');
+                setSelectedSeason(1);
+                setFullDetails(null); // Reset
+                setShowHeroOverlay(true);
+                // Fetch full details (cast, seasons, recommendations)
+                const type = modalContent.type || 'movie';
+                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2f$content$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["contentApi"].getDetails(modalContent.id, type).then({
+                    "ContentModal.useEffect": (data)=>{
+                        if (data) setFullDetails(data);
+                    }
+                }["ContentModal.useEffect"]);
+            }
+        }
+    }["ContentModal.useEffect"], [
+        isModalOpen,
+        modalContent
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useEffect({
+        "ContentModal.useEffect": ()=>{
+            if (isModalOpen && content && (content.type === 'tv' || content.seasonsList?.length > 0)) {
+                setEpisodes([]); // Clear previous
+                __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$api$2f$content$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["contentApi"].getSeasonDetails(content.id, selectedSeason).then({
+                    "ContentModal.useEffect": (data)=>{
+                        if (data && data.episodes) {
+                            setEpisodes(data.episodes);
+                        }
+                    }
+                }["ContentModal.useEffect"]);
+            }
+        }
+    }["ContentModal.useEffect"], [
+        isModalOpen,
+        content?.id,
+        selectedSeason
+    ]);
+    __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].useEffect({
+        "ContentModal.useEffect": ()=>{
+            if (content?.trailer) {
+                const timer = setTimeout({
+                    "ContentModal.useEffect.timer": ()=>setShowHeroOverlay(false)
+                }["ContentModal.useEffect.timer"], 5000);
+                return ({
+                    "ContentModal.useEffect": ()=>clearTimeout(timer)
+                })["ContentModal.useEffect"];
+            }
+        }
+    }["ContentModal.useEffect"], [
+        content?.trailer
+    ]);
+    if (!content) return null;
     const handlePlay = ()=>{
         closeModal();
-        router.push(`/watch/${modalContent.id}?type=${modalContent.type || 'movie'}`);
+        const type = content.type || (content.seasonsList?.length > 0 ? 'tv' : 'movie');
+        // Play S1E1 by default for TV if not specified, or resume logic later
+        router.push(`/watch/${content.id}?type=${type}&season=1&episode=1`);
     };
+    const handleEpisodeClick = (seasonNum, episodeNum)=>{
+        closeModal();
+        const type = content.type || 'tv';
+        router.push(`/watch/${content.id}?type=${type}&season=${seasonNum}&episode=${episodeNum}`);
+    };
+    const isTV = content.type === 'tv' || content.seasonsList && content.seasonsList.length > 0;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Root"], {
         open: isModalOpen,
         onOpenChange: (open)=>!open && closeModal(),
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Portal"], {
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Overlay"], {
-                    className: "fixed inset-0 bg-black/80 backdrop-blur-sm z-50 animate-in fade-in"
+                    className: "fixed inset-0 bg-black/80 backdrop-blur-md z-50 animate-in fade-in duration-300"
                 }, void 0, false, {
                     fileName: "[project]/src/components/content/ContentModal.tsx",
-                    lineNumber: 21,
+                    lineNumber: 75,
                     columnNumber: 17
                 }, ("TURBOPACK compile-time value", void 0)),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Content"], {
-                    className: "fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-xl bg-zinc-950 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200 p-0 outline-none",
-                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "relative aspect-video w-full",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
-                                src: modalContent.backdrop || modalContent.poster,
-                                alt: modalContent.title,
-                                className: "h-full w-full object-cover opacity-60"
-                            }, void 0, false, {
-                                fileName: "[project]/src/components/content/ContentModal.tsx",
-                                lineNumber: 24,
-                                columnNumber: 25
-                            }, ("TURBOPACK compile-time value", void 0)),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent"
-                            }, void 0, false, {
-                                fileName: "[project]/src/components/content/ContentModal.tsx",
-                                lineNumber: 29,
-                                columnNumber: 25
-                            }, ("TURBOPACK compile-time value", void 0)),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "absolute top-0 right-0 p-4",
-                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                    onClick: closeModal,
-                                    className: "rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition-colors backdrop-blur-md border border-white/10",
-                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__["X"], {
-                                        size: 20
+                    className: "fixed left-[50%] top-[50%] z-50 w-[95vw] md:w-full max-w-5xl translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-xl bg-zinc-950/90 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200 p-0 outline-none max-h-[90vh] flex flex-col",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Description"], {
+                            className: "sr-only",
+                            children: [
+                                "Details for ",
+                                content.title
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                            lineNumber: 77,
+                            columnNumber: 21
+                        }, ("TURBOPACK compile-time value", void 0)),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "relative w-full aspect-video md:aspect-[2.4/1] bg-black shrink-0",
+                            children: [
+                                content.trailer ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("iframe", {
+                                    src: `https://www.youtube.com/embed/${content.trailer}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${content.trailer}`,
+                                    className: "w-full h-full opacity-60 pointer-events-none scale-125",
+                                    allow: "autoplay; encrypted-media"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                    lineNumber: 84,
+                                    columnNumber: 29
+                                }, ("TURBOPACK compile-time value", void 0)) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                    src: content.backdrop || content.poster,
+                                    alt: content.title,
+                                    className: "w-full h-full object-cover opacity-60"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                    lineNumber: 90,
+                                    columnNumber: 29
+                                }, ("TURBOPACK compile-time value", void 0)),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                    lineNumber: 96,
+                                    columnNumber: 25
+                                }, ("TURBOPACK compile-time value", void 0)),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-transparent to-transparent"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                    lineNumber: 97,
+                                    columnNumber: 25
+                                }, ("TURBOPACK compile-time value", void 0)),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "absolute top-4 right-4 z-10",
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: closeModal,
+                                        className: "rounded-full bg-black/40 p-2 text-white hover:bg-white/20 transition-colors backdrop-blur-md border border-white/10",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$x$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__X$3e$__["X"], {
+                                            size: 20
+                                        }, void 0, false, {
+                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                            lineNumber: 104,
+                                            columnNumber: 33
+                                        }, ("TURBOPACK compile-time value", void 0))
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/content/ContentModal.tsx",
-                                        lineNumber: 36,
-                                        columnNumber: 33
+                                        lineNumber: 100,
+                                        columnNumber: 29
                                     }, ("TURBOPACK compile-time value", void 0))
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/content/ContentModal.tsx",
-                                    lineNumber: 32,
-                                    columnNumber: 29
+                                    lineNumber: 99,
+                                    columnNumber: 25
+                                }, ("TURBOPACK compile-time value", void 0)),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("absolute bottom-0 left-0 p-4 md:p-8 space-y-2 md:space-y-4 max-w-3xl transition-opacity duration-1000", showHeroOverlay ? "opacity-100" : "opacity-0 hover:opacity-100"),
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Title"], {
+                                            className: "text-2xl md:text-5xl font-bold tracking-tighter text-white drop-shadow-xl line-clamp-1",
+                                            children: content.title
+                                        }, void 0, false, {
+                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                            lineNumber: 114,
+                                            columnNumber: 29
+                                        }, ("TURBOPACK compile-time value", void 0)),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "flex items-center gap-3 text-xs md:text-sm font-medium text-zinc-300",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "text-green-400 font-bold",
+                                                    children: [
+                                                        Math.round((content.rating || 0) * 10),
+                                                        "% Match"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 119,
+                                                    columnNumber: 33
+                                                }, ("TURBOPACK compile-time value", void 0)),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    children: content.releaseDate?.substring(0, 4)
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 120,
+                                                    columnNumber: 33
+                                                }, ("TURBOPACK compile-time value", void 0)),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    className: "uppercase border border-white/20 px-1.5 rounded bg-white/10 text-[10px]",
+                                                    children: content.type || (isTV ? 'TV' : 'MOVIE')
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 121,
+                                                    columnNumber: 33
+                                                }, ("TURBOPACK compile-time value", void 0)),
+                                                content.duration && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                    children: [
+                                                        Math.floor(content.duration / 60),
+                                                        "h ",
+                                                        content.duration % 60,
+                                                        "m"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 122,
+                                                    columnNumber: 54
+                                                }, ("TURBOPACK compile-time value", void 0))
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                            lineNumber: 118,
+                                            columnNumber: 29
+                                        }, ("TURBOPACK compile-time value", void 0)),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "flex items-center gap-4 pt-2",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                    onClick: handlePlay,
+                                                    className: "flex items-center gap-2 rounded-lg bg-white px-6 md:px-8 py-2 md:py-3 font-bold text-black transition-transform hover:scale-105 active:scale-95 hover:bg-zinc-200 text-sm md:text-base",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
+                                                            fill: "currentColor",
+                                                            size: 20
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                            lineNumber: 130,
+                                                            columnNumber: 37
+                                                        }, ("TURBOPACK compile-time value", void 0)),
+                                                        "Play"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 126,
+                                                    columnNumber: 33
+                                                }, ("TURBOPACK compile-time value", void 0)),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                    className: "flex items-center gap-2 rounded-lg bg-zinc-800/80 backdrop-blur-md px-4 md:px-6 py-2 md:py-3 font-medium text-white transition-colors hover:bg-zinc-700 border border-white/10 text-sm md:text-base",
+                                                    children: "+ My List"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 133,
+                                                    columnNumber: 33
+                                                }, ("TURBOPACK compile-time value", void 0))
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                            lineNumber: 125,
+                                            columnNumber: 29
+                                        }, ("TURBOPACK compile-time value", void 0))
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                    lineNumber: 108,
+                                    columnNumber: 25
                                 }, ("TURBOPACK compile-time value", void 0))
-                            }, void 0, false, {
-                                fileName: "[project]/src/components/content/ContentModal.tsx",
-                                lineNumber: 31,
-                                columnNumber: 25
-                            }, ("TURBOPACK compile-time value", void 0)),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "absolute bottom-0 left-0 right-0 p-8 space-y-4",
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                            lineNumber: 82,
+                            columnNumber: 21
+                        }, ("TURBOPACK compile-time value", void 0)),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex-1 overflow-y-auto custom-scrollbar bg-zinc-950/50 backdrop-blur-xl",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "p-4 md:p-8",
                                 children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$radix$2d$ui$2f$react$2d$dialog$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Title"], {
-                                        className: "text-4xl md:text-5xl font-bold tracking-tighter text-white drop-shadow-xl",
-                                        children: modalContent.title
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/components/content/ContentModal.tsx",
-                                        lineNumber: 41,
-                                        columnNumber: 29
-                                    }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "flex items-center gap-3 text-sm font-medium text-zinc-300",
+                                        className: "flex items-center gap-8 border-b border-white/10 mb-6 text-sm font-medium text-zinc-400",
                                         children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "text-green-400 font-bold",
-                                                children: [
-                                                    Math.round((modalContent.rating || 0) * 10),
-                                                    "% Match"
-                                                ]
-                                            }, void 0, true, {
-                                                fileName: "[project]/src/components/content/ContentModal.tsx",
-                                                lineNumber: 46,
-                                                columnNumber: 33
-                                            }, ("TURBOPACK compile-time value", void 0)),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                children: modalContent.releaseDate?.substring(0, 4)
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("pb-4 border-b-2 transition-colors", activeTab === 'overview' ? "text-white border-white" : "border-transparent hover:text-white"),
+                                                onClick: ()=>setActiveTab('overview'),
+                                                children: "Overview"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/content/ContentModal.tsx",
-                                                lineNumber: 47,
+                                                lineNumber: 146,
                                                 columnNumber: 33
                                             }, ("TURBOPACK compile-time value", void 0)),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                className: "uppercase border border-white/20 px-1.5 rounded bg-black/40 text-[10px]",
-                                                children: modalContent.type
+                                            isTV && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("pb-4 border-b-2 transition-colors", activeTab === 'episodes' ? "text-white border-white" : "border-transparent hover:text-white"),
+                                                onClick: ()=>setActiveTab('episodes'),
+                                                children: "Episodes"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/content/ContentModal.tsx",
-                                                lineNumber: 48,
+                                                lineNumber: 153,
+                                                columnNumber: 37
+                                            }, ("TURBOPACK compile-time value", void 0)),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("pb-4 border-b-2 transition-colors", activeTab === 'related' ? "text-white border-white" : "border-transparent hover:text-white"),
+                                                onClick: ()=>setActiveTab('related'),
+                                                children: "More Like This"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                lineNumber: 160,
                                                 columnNumber: 33
                                             }, ("TURBOPACK compile-time value", void 0))
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/content/ContentModal.tsx",
-                                        lineNumber: 45,
+                                        lineNumber: 145,
                                         columnNumber: 29
                                     }, ("TURBOPACK compile-time value", void 0)),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                        className: "text-lg text-zinc-200 line-clamp-3 max-w-2xl leading-relaxed",
-                                        children: modalContent.description
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/components/content/ContentModal.tsx",
-                                        lineNumber: 51,
-                                        columnNumber: 29
-                                    }, ("TURBOPACK compile-time value", void 0)),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                        className: "flex items-center gap-4 pt-4",
+                                    activeTab === 'overview' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "grid grid-cols-1 md:grid-cols-3 gap-8",
                                         children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                onClick: handlePlay,
-                                                className: "flex items-center gap-2 rounded-lg bg-white px-8 py-3 font-bold text-black transition-transform hover:scale-105 active:scale-95 hover:bg-zinc-200",
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "md:col-span-2 space-y-6",
                                                 children: [
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
-                                                        fill: "currentColor",
-                                                        size: 20
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                        className: "text-lg text-zinc-300 leading-relaxed",
+                                                        children: content.description
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/components/content/ContentModal.tsx",
-                                                        lineNumber: 60,
-                                                        columnNumber: 37
+                                                        lineNumber: 172,
+                                                        columnNumber: 41
                                                     }, ("TURBOPACK compile-time value", void 0)),
-                                                    "Play"
+                                                    content.cast && content.cast.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "space-y-3",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                                                className: "text-white font-semibold",
+                                                                children: "Cast"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 179,
+                                                                columnNumber: 49
+                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4",
+                                                                children: content.cast.slice(0, 10).map((actor)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "space-y-1 text-center group cursor-pointer",
+                                                                        children: [
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "aspect-square rounded-full overflow-hidden bg-zinc-800 border border-white/5",
+                                                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                                                                    src: actor.profilePath || "/images/placeholder.png",
+                                                                                    alt: actor.name,
+                                                                                    className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                                                }, void 0, false, {
+                                                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                                    lineNumber: 184,
+                                                                                    columnNumber: 65
+                                                                                }, ("TURBOPACK compile-time value", void 0))
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                                lineNumber: 183,
+                                                                                columnNumber: 61
+                                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-xs text-white font-medium truncate",
+                                                                                children: actor.name
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                                lineNumber: 190,
+                                                                                columnNumber: 61
+                                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                                className: "text-[10px] text-zinc-500 truncate",
+                                                                                children: actor.character
+                                                                            }, void 0, false, {
+                                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                                lineNumber: 191,
+                                                                                columnNumber: 61
+                                                                            }, ("TURBOPACK compile-time value", void 0))
+                                                                        ]
+                                                                    }, actor.id, true, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 182,
+                                                                        columnNumber: 57
+                                                                    }, ("TURBOPACK compile-time value", void 0)))
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 180,
+                                                                columnNumber: 49
+                                                            }, ("TURBOPACK compile-time value", void 0))
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                        lineNumber: 178,
+                                                        columnNumber: 45
+                                                    }, ("TURBOPACK compile-time value", void 0))
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/components/content/ContentModal.tsx",
-                                                lineNumber: 56,
-                                                columnNumber: 33
+                                                lineNumber: 171,
+                                                columnNumber: 37
                                             }, ("TURBOPACK compile-time value", void 0)),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                className: "flex items-center gap-2 rounded-lg bg-zinc-800/80 backdrop-blur-md px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700 border border-white/10",
-                                                children: "More Info"
-                                            }, void 0, false, {
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "space-y-6 text-sm text-zinc-400",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "block text-zinc-500 text-xs uppercase mb-1",
+                                                                children: "Genres"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 201,
+                                                                columnNumber: 45
+                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "flex flex-wrap gap-2",
+                                                                children: content.genres.map((g)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                        className: "text-white bg-white/5 px-2 py-1 rounded border border-white/5",
+                                                                        children: g
+                                                                    }, g, false, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 204,
+                                                                        columnNumber: 53
+                                                                    }, ("TURBOPACK compile-time value", void 0)))
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 202,
+                                                                columnNumber: 45
+                                                            }, ("TURBOPACK compile-time value", void 0))
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                        lineNumber: 200,
+                                                        columnNumber: 41
+                                                    }, ("TURBOPACK compile-time value", void 0)),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "block text-zinc-500 text-xs uppercase mb-1",
+                                                                children: "Status"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 209,
+                                                                columnNumber: 45
+                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "text-white",
+                                                                children: content.status
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 210,
+                                                                columnNumber: 45
+                                                            }, ("TURBOPACK compile-time value", void 0))
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                        lineNumber: 208,
+                                                        columnNumber: 41
+                                                    }, ("TURBOPACK compile-time value", void 0))
+                                                ]
+                                            }, void 0, true, {
                                                 fileName: "[project]/src/components/content/ContentModal.tsx",
-                                                lineNumber: 63,
-                                                columnNumber: 33
+                                                lineNumber: 199,
+                                                columnNumber: 37
                                             }, ("TURBOPACK compile-time value", void 0))
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/content/ContentModal.tsx",
-                                        lineNumber: 55,
-                                        columnNumber: 29
+                                        lineNumber: 170,
+                                        columnNumber: 33
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    activeTab === 'episodes' && isTV && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "space-y-6",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center gap-4",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                                        className: "text-white font-semibold text-lg",
+                                                        children: "Seasons"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                        lineNumber: 221,
+                                                        columnNumber: 41
+                                                    }, ("TURBOPACK compile-time value", void 0)),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                                                        value: selectedSeason,
+                                                        onChange: (e)=>setSelectedSeason(Number(e.target.value)),
+                                                        className: "bg-zinc-800 text-white rounded px-3 py-1.5 border border-white/10 outline-none focus:border-white/30",
+                                                        children: content.seasonsList?.filter((s)=>s.season_number > 0).map((s)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                                value: s.season_number,
+                                                                children: [
+                                                                    s.name,
+                                                                    " (",
+                                                                    s.episode_count,
+                                                                    " Episodes)"
+                                                                ]
+                                                            }, s.id, true, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 228,
+                                                                columnNumber: 49
+                                                            }, ("TURBOPACK compile-time value", void 0)))
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                        lineNumber: 222,
+                                                        columnNumber: 41
+                                                    }, ("TURBOPACK compile-time value", void 0))
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                lineNumber: 220,
+                                                columnNumber: 37
+                                            }, ("TURBOPACK compile-time value", void 0)),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "grid grid-cols-1 gap-4",
+                                                children: episodes.length > 0 ? episodes.map((ep)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group border border-transparent hover:border-white/5",
+                                                        onClick: ()=>handleEpisodeClick(selectedSeason, ep.episode_number),
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "w-8 text-center text-zinc-500 font-mono text-lg group-hover:text-white transition-colors",
+                                                                children: ep.episode_number
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 241,
+                                                                columnNumber: 53
+                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "aspect-video w-32 bg-zinc-800 rounded overflow-hidden relative shrink-0",
+                                                                children: [
+                                                                    ep.still_path ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                                                        src: `http://localhost:3000/tmdb-img/w500/${ep.still_path}`,
+                                                                        alt: ep.name,
+                                                                        className: "w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 244,
+                                                                        columnNumber: 61
+                                                                    }, ("TURBOPACK compile-time value", void 0)) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "w-full h-full flex items-center justify-center bg-zinc-900",
+                                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
+                                                                            size: 20,
+                                                                            className: "text-zinc-600"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                            lineNumber: 251,
+                                                                            columnNumber: 65
+                                                                        }, ("TURBOPACK compile-time value", void 0))
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 250,
+                                                                        columnNumber: 61
+                                                                    }, ("TURBOPACK compile-time value", void 0)),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                        className: "absolute inset-0 flex items-center justify-center",
+                                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
+                                                                            size: 20,
+                                                                            className: "text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg"
+                                                                        }, void 0, false, {
+                                                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                            lineNumber: 255,
+                                                                            columnNumber: 61
+                                                                        }, ("TURBOPACK compile-time value", void 0))
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 254,
+                                                                        columnNumber: 57
+                                                                    }, ("TURBOPACK compile-time value", void 0))
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 242,
+                                                                columnNumber: 53
+                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "flex-1 min-w-0",
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h4", {
+                                                                        className: "text-white font-medium group-hover:text-green-400 transition-colors truncate",
+                                                                        children: ep.name
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 259,
+                                                                        columnNumber: 57
+                                                                    }, ("TURBOPACK compile-time value", void 0)),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                        className: "text-sm text-zinc-500 line-clamp-2",
+                                                                        children: ep.overview || "No description available."
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                        lineNumber: 260,
+                                                                        columnNumber: 57
+                                                                    }, ("TURBOPACK compile-time value", void 0))
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 258,
+                                                                columnNumber: 53
+                                                            }, ("TURBOPACK compile-time value", void 0)),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                                className: "text-zinc-500 text-sm whitespace-nowrap",
+                                                                children: ep.runtime ? `${ep.runtime}m` : ''
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 262,
+                                                                columnNumber: 53
+                                                            }, ("TURBOPACK compile-time value", void 0))
+                                                        ]
+                                                    }, ep.id, true, {
+                                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                        lineNumber: 236,
+                                                        columnNumber: 49
+                                                    }, ("TURBOPACK compile-time value", void 0))) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "text-zinc-500 text-center py-8",
+                                                    children: "Loading episodes..."
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 266,
+                                                    columnNumber: 45
+                                                }, ("TURBOPACK compile-time value", void 0))
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                lineNumber: 233,
+                                                columnNumber: 37
+                                            }, ("TURBOPACK compile-time value", void 0))
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                        lineNumber: 219,
+                                        columnNumber: 33
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    activeTab === 'related' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
+                                        children: [
+                                            content.recommendations?.map((item)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "group relative aspect-[2/3] bg-zinc-800 rounded-lg overflow-hidden cursor-pointer",
+                                                    onClick: ()=>{
+                                                        closeModal();
+                                                        setTimeout(()=>__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$store$2f$uiStore$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useUIStore"].getState().openModal(item), 100);
+                                                    },
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                                            src: item.poster,
+                                                            alt: item.title,
+                                                            className: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                            lineNumber: 284,
+                                                            columnNumber: 45
+                                                        }, ("TURBOPACK compile-time value", void 0)),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center",
+                                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
+                                                                className: "text-white fill-white",
+                                                                size: 32
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                lineNumber: 286,
+                                                                columnNumber: 49
+                                                            }, ("TURBOPACK compile-time value", void 0))
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                            lineNumber: 285,
+                                                            columnNumber: 45
+                                                        }, ("TURBOPACK compile-time value", void 0)),
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                            className: "absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent",
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                    className: "text-white text-xs font-bold truncate",
+                                                                    children: item.title
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                    lineNumber: 289,
+                                                                    columnNumber: 49
+                                                                }, ("TURBOPACK compile-time value", void 0)),
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                                    className: "text-zinc-400 text-[10px]",
+                                                                    children: item.releaseDate?.substring(0, 4)
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                                    lineNumber: 290,
+                                                                    columnNumber: 49
+                                                                }, ("TURBOPACK compile-time value", void 0))
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                            lineNumber: 288,
+                                                            columnNumber: 45
+                                                        }, ("TURBOPACK compile-time value", void 0))
+                                                    ]
+                                                }, item.id, true, {
+                                                    fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                    lineNumber: 276,
+                                                    columnNumber: 41
+                                                }, ("TURBOPACK compile-time value", void 0))),
+                                            (!content.recommendations || content.recommendations.length === 0) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "col-span-full text-zinc-500 text-center py-8",
+                                                children: "No specific recommendations found."
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/content/ContentModal.tsx",
+                                                lineNumber: 295,
+                                                columnNumber: 41
+                                            }, ("TURBOPACK compile-time value", void 0))
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/components/content/ContentModal.tsx",
+                                        lineNumber: 274,
+                                        columnNumber: 33
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/content/ContentModal.tsx",
-                                lineNumber: 40,
+                                lineNumber: 142,
                                 columnNumber: 25
                             }, ("TURBOPACK compile-time value", void 0))
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/src/components/content/ContentModal.tsx",
-                        lineNumber: 23,
-                        columnNumber: 21
-                    }, ("TURBOPACK compile-time value", void 0))
-                }, void 0, false, {
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/content/ContentModal.tsx",
+                            lineNumber: 141,
+                            columnNumber: 21
+                        }, ("TURBOPACK compile-time value", void 0))
+                    ]
+                }, void 0, true, {
                     fileName: "[project]/src/components/content/ContentModal.tsx",
-                    lineNumber: 22,
+                    lineNumber: 76,
                     columnNumber: 17
                 }, ("TURBOPACK compile-time value", void 0))
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/content/ContentModal.tsx",
-            lineNumber: 20,
+            lineNumber: 74,
             columnNumber: 13
         }, ("TURBOPACK compile-time value", void 0))
     }, void 0, false, {
         fileName: "[project]/src/components/content/ContentModal.tsx",
-        lineNumber: 19,
+        lineNumber: 73,
         columnNumber: 9
     }, ("TURBOPACK compile-time value", void 0));
 };
-_s(ContentModal, "OXMaTD/Uq1o+riQL0pI0HO+YPjE=", false, function() {
+_s(ContentModal, "Z3x7G4aB2BLENCF5Bvh9MtPsmfc=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$store$2f$uiStore$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useUIStore"],
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]

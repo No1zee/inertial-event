@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { ContentCard } from "./ContentCard";
 import { cn } from "@/lib/utils";
@@ -53,9 +54,12 @@ export function ContentRail({ title, items = [] }: ContentRailProps) {
         <div className="space-y-4 group/rail">
             <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2 group cursor-pointer w-fit px-4 lg:px-0">
                 {title}
-                <div className="text-xs font-normal text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                <Link
+                    href={`/browse/view-all?title=${encodeURIComponent(title)}`}
+                    className="text-xs font-normal text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center hover:text-white"
+                >
                     See All <ChevronRight size={12} className="ml-1" />
-                </div>
+                </Link>
             </h2>
 
             <div className="relative group/scroll">

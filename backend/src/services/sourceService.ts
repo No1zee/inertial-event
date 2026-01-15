@@ -35,6 +35,7 @@ class SourceService {
 
     async getAllSources(
         contentId: string,
+        seasonNumber: number,
         episodeNumber: number,
         title: string,
         type: 'movie' | 'tv'
@@ -42,9 +43,9 @@ class SourceService {
         try {
             // Parallel execution with error boundaries inside each service
             const results = await Promise.allSettled([
-                vidlinkService.getSources(contentId, 1, episodeNumber, type), // Pass type
+                vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type), // Pass type
                 // consumetService.getStreamingLinks(contentId), // Disable strictly to test vidlink, or keep? let's keep.
-                torrentService.getSources(title, episodeNumber)
+                torrentService.getSources(title, episodeNumber, seasonNumber)
             ]);
 
             const aggregated: IProviderResponse = {

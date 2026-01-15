@@ -11,10 +11,10 @@ export default function DashboardLayout({
             <Sidebar />
 
             {/* Main Content Area */}
-            {/* lg:pl-20 matches the collapsed sidebar width */}
-            <div className="lg:pl-20 transition-[padding] duration-300 ease-in-out">
+            {/* Main Content Area */}
+            <div className="transition-[padding] duration-300 ease-in-out lg:pl-20">
                 <Navbar />
-                <main className="p-4 lg:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+                <main className="w-full animate-in fade-in duration-500">
                     {children}
                 </main>
             </div>

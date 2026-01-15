@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ArrowLeft, BookHeart, Heart, Download, ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause, Settings, PictureInPicture, Zap } from "lucide-react";
+import { ArrowLeft, BookHeart, Heart, Download, ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause, PictureInPicture, Zap, Maximize, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -50,6 +50,13 @@ interface PlayerControlsProps {
     onSeasonChange?: (s: number) => void;
     onEpisodeChange?: (e: string) => void;
     onStartOver?: () => void;
+    onToggleFullscreen: () => void;
+
+    // Debug / State
+    providerType?: string;
+    tracks?: any[];
+    audioTracks?: any[];
+    qualities?: any[];
 }
 
 export default function PlayerControls({
@@ -57,7 +64,8 @@ export default function PlayerControls({
     isSeeking, seekValue, type, isTorrent, season, episode, seasons,
     onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute,
     onToggleLibrary, onDownload, onToggleSettings, onTogglePiP,
-    onNext, onPrev, onSeasonChange, onEpisodeChange
+    onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen,
+    ...props // Capture debug props
 }: PlayerControlsProps) {
 
     const router = useRouter();
@@ -116,6 +124,14 @@ export default function PlayerControls({
                 </div>
             </div>
 
+            {/* DEBUG OVERLAY - REMOVE BEFORE PROD */}
+            <div className="absolute top-20 left-6 bg-black/80 p-2 rounded text-[10px] text-green-400 font-mono pointer-events-none z-50">
+                <p>PROV: {props.providerType || 'N/A'}</p>
+                <p>AUD: {props.audioTracks?.length || 0}</p>
+                <p>SUB: {props.tracks?.length || 0}</p>
+                <p>QUAL: {props.qualities?.length || 0}</p>
+            </div>
+
             {/* --- BOTTOM CONTROLS --- */}
             <div className={`pointer-events-auto bg-gradient-to-t from-black via-black/95 to-transparent pt-40 pb-8 px-6 transition-transform duration-300 ${show ? 'translate-y-0' : 'translate-y-full'}`}>
 
@@ -155,8 +171,8 @@ export default function PlayerControls({
                                 <input
                                     type="range"
                                     min={0}
-                                    max={1}
-                                    step={0.05}
+                                    max={2.5}
+                                    step={0.1}
                                     value={isMuted ? 0 : volume}
                                     onChange={(e) => {
                                         const newVolume = parseFloat(e.target.value);
@@ -212,13 +228,14 @@ export default function PlayerControls({
                         )}
                     </div>
 
-                    {/* Right Side Controls (Settings) */}
+                    {/* Right Side Controls (Settings, PiP & Fullscreen) */}
                     <div className="flex items-center gap-4">
-                        {/* Settings Button */}
+                        {/* Settings Button (Languages/Quality) */}
                         <button
                             onClick={onToggleSettings}
-                            aria-label="Open settings"
-                            className={`p-2 rounded-full transition-colors text-white/70 hover:text-white`}
+                            aria-label="Settings"
+                            className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
+                            title="Settings (Audio & Subtitles)"
                         >
                             <Settings size={20} aria-hidden="true" />
                         </button>
@@ -232,9 +249,19 @@ export default function PlayerControls({
                         >
                             <PictureInPicture size={20} aria-hidden="true" />
                         </button>
+
+                        {/* Fullscreen Button */}
+                        <button
+                            onClick={onToggleFullscreen}
+                            aria-label="Toggle Fullscreen"
+                            className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
+                            title="Fullscreen"
+                        >
+                            <Maximize size={20} aria-hidden="true" />
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

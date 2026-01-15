@@ -44,31 +44,34 @@ export function Sidebar() {
             )}
 
             {/* Sidebar Container - Off-canvas by default on all screens */}
+            {/* Sidebar Container */}
             <aside className={cn(
-                "fixed top-0 left-0 z-50 h-screen w-72 bg-zinc-950 border-r border-white/10 transition-transform duration-300 ease-in-out shadow-2xl",
-                sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                "fixed top-0 left-0 z-50 h-screen bg-zinc-950 border-r border-white/10 transition-all duration-300 ease-in-out shadow-2xl",
+                sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full lg:w-20 lg:translate-x-0"
             )}>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full overflow-hidden">
                     {/* Logo Area */}
-                    <div className="h-16 flex items-center px-6 border-b border-white/5 mx-2 justify-between">
+                    <div className="h-16 flex items-center px-6 border-b border-white/5 mx-2 justify-between shrink-0">
                         <div className="flex items-center">
                             <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0">
                                 <span className="font-bold text-white">N</span>
                             </div>
-                            <span className="ml-3 font-bold text-xl tracking-tight">
+                            <span className={cn("ml-3 font-bold text-xl tracking-tight transition-opacity duration-200", !sidebarOpen && "lg:opacity-0 lg:hidden")}>
                                 NovaStream
                             </span>
                         </div>
-                        <button
-                            onClick={() => setSidebarOpen(false)}
-                            className="text-zinc-400 hover:text-white transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
+                        {sidebarOpen && (
+                            <button
+                                onClick={() => setSidebarOpen(false)}
+                                className="text-zinc-400 hover:text-white transition-colors lg:hidden"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+                    <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-1">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;
 
@@ -76,19 +79,21 @@ export function Sidebar() {
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    onClick={() => setSidebarOpen(false)} // Close on click
+                                    onClick={() => setSidebarOpen(false)}
                                     className={cn(
-                                        "flex items-center px-3 py-3 rounded-xl transition-all duration-200 group/item",
+                                        "flex items-center px-3 py-3 rounded-xl transition-all duration-200 group/item whitespace-nowrap",
                                         isActive
                                             ? "bg-red-600/10 text-red-500"
-                                            : "text-zinc-400 hover:text-white hover:bg-white/5"
+                                            : "text-zinc-400 hover:text-white hover:bg-white/5",
+                                        !sidebarOpen && "justify-center px-0"
                                     )}
+                                    title={!sidebarOpen ? item.label : undefined}
                                 >
                                     <item.icon size={22} className={cn(
                                         "shrink-0",
                                         isActive && "fill-current"
                                     )} />
-                                    <span className="ml-4 font-medium text-base">
+                                    <span className={cn("ml-4 font-medium text-base transition-opacity duration-200", !sidebarOpen && "lg:opacity-0 lg:hidden")}>
                                         {item.label}
                                     </span>
                                 </Link>
@@ -97,14 +102,26 @@ export function Sidebar() {
                     </nav>
 
                     {/* Bottom Actions */}
-                    <div className="p-4 border-t border-white/5 mx-2">
+                    <div className="p-4 border-t border-white/5 mx-2 shrink-0">
+                        {/* Toggle Button for Desktop */}
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="hidden lg:flex w-full items-center justify-center px-3 py-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1"
+                        >
+                            {sidebarOpen ? <X size={22} /> : <div className="w-1 h-8 bg-zinc-800 rounded-full group-hover:bg-zinc-600" />}
+                        </button>
+
                         <Link
                             href="/settings"
                             onClick={() => setSidebarOpen(false)}
-                            className="flex items-center px-3 py-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1"
+                            className={cn(
+                                "flex items-center px-3 py-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1 whitespace-nowrap",
+                                !sidebarOpen && "justify-center px-0"
+                            )}
+                            title={!sidebarOpen ? "Settings" : undefined}
                         >
                             <Settings size={22} className="shrink-0" />
-                            <span className="ml-4 font-medium">
+                            <span className={cn("ml-4 font-medium transition-opacity duration-200", !sidebarOpen && "lg:opacity-0 lg:hidden")}>
                                 Settings
                             </span>
                         </Link>
