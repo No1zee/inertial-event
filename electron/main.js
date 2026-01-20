@@ -560,11 +560,15 @@ app.on('ready', async () => {
         // Safety timeout for validation
         let validationResult;
         try {
+            const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+            
             validationResult = await Promise.race([
                 licenseManager.validate(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (15s)')), 15000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout')), 25000))
             ]);
         } catch (err) {
+            const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+            
             if (err.message && err.message.includes('LICENSE_REVOKED')) {
                 log('License revoked. Prompting for new key.');
                 dialog.showMessageBoxSync({
@@ -573,8 +577,10 @@ app.on('ready', async () => {
                     message: 'Your license validation failed.\n\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\n\nPlease enter a new key to continue.',
                     buttons: ['OK']
                 });
-                // Force activation flow
                 validationResult = { requiresActivation: true };
+            } else if (isDev) {
+                log('WARN: Validation error/timeout, but bypassing in DEV mode: ' + err.message);
+                validationResult = { valid: true, source: 'dev-bypass' };
             } else {
                 throw err;
             }

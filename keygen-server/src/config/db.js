@@ -9,7 +9,10 @@ if (!MONGODB_URI) {
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(MONGODB_URI);
+        await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+            socketTimeoutMS: 45000,
+        });
         console.log('✅ Connected to MongoDB (Keygen Server)');
     } catch (err) {
         console.error('❌ MongoDB Connection Error (Keygen Server):', err.message);
