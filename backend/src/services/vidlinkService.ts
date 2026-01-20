@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { ProviderConfig } from '../config/ProviderConfig';
-import { ProviderResponseSchema, IProviderResponse } from './providers/ProviderSchemas';
+import { ProviderConfig } from '../config/ProviderConfig.js';
+import { ProviderResponseSchema, IProviderResponse } from './providers/ProviderSchemas.js';
 
 class VidlinkService {
     private config = ProviderConfig.vidlink;

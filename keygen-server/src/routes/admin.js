@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const License = require('../models/License');
-const AccessRequest = require('../models/AccessRequest');
-const { generateLicenseKey } = require('../utils/crypto');
+import License from '../models/License.js';
+import AccessRequest from '../models/AccessRequest.js';
+import { generateLicenseKey } from '../utils/crypto.js';
 
 // Middleware to check admin access key
 const adminAuth = (req, res, next) => {
@@ -139,5 +139,5 @@ router.post('/revoke', adminAuth, async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
 

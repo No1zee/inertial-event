@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const accessRequestSchema = new mongoose.Schema({
     id: {
@@ -37,4 +37,4 @@ const accessRequestSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('AccessRequest', accessRequestSchema);
+export default mongoose.model('AccessRequest', accessRequestSchema);

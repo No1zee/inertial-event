@@ -1,6 +1,6 @@
-const License = require('../models/License');
+import License from '../models/License.js';
 
-exports.validateLicense = async (req, res) => {
+export const validateLicense = async (req, res) => {
     try {
         const { license_key, device_id } = req.body;
 

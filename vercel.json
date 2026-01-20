@@ -6,11 +6,16 @@
       "use": "@vercel/node"
     },
     {
+      "src": "keygen-server/server.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
+    { "src": "/api/keygen/(.*)", "dest": "keygen-server/server.js" },
     { "src": "/api/(.*)", "dest": "backend/src/index.ts" },
     { "src": "/(.*)", "dest": "/$1" }
   ]

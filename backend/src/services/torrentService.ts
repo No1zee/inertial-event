@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { ProviderConfig } from '../config/ProviderConfig';
-import { IProviderResponse } from './providers/ProviderSchemas';
-import tmdbService from './tmdbService';
+import { ProviderConfig } from '../config/ProviderConfig.js';
+import { IProviderResponse } from './providers/ProviderSchemas.js';
+import tmdbService from './tmdbService.js';
 
 class TorrentService {
     private client: any = null;
@@ -199,7 +199,7 @@ class TorrentService {
                 if (tiers[t] !== undefined) tiers[t]++;
             });
 
-            this.log(`\n=== SOURCE ANALYSIS FOR "${query}" ===`);
+            this.log(`\n=== SOURCE ANALYSIS FOR "${tmdbId}" ===`);
             this.log(`Total Raw Sources: ${sources.length}`);
             this.log(`Tier 1 (Native MP4/YTS): ${tiers[1]} (Permitted)`);
             this.log(`Tier 2 (MKV x264):       ${tiers[2]} (DROPPED - No Seek)`);

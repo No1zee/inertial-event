@@ -25,10 +25,10 @@ interface StreamResult {
     subtitles: Array<{ lang: string; url: string }>;
 }
 
-import vidlinkService from './vidlinkService';
-import consumetService from './consumetService';
-import torrentService from './torrentService';
-import { IProviderResponse } from './providers/ProviderSchemas';
+import vidlinkService from './vidlinkService.js';
+import consumetService from './consumetService.js';
+import torrentService from './torrentService.js';
+import { IProviderResponse } from './providers/ProviderSchemas.js';
 
 class SourceService {
     private cacheExpiry = 3600; // 1 hour

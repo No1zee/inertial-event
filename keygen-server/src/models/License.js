@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const licenseSchema = new mongoose.Schema({
     license_key: {
@@ -35,4 +35,4 @@ const licenseSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('License', licenseSchema);
+export default mongoose.model('License', licenseSchema);

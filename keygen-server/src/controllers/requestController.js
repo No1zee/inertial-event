@@ -1,8 +1,8 @@
-const { v4: uuidv4 } = require('uuid');
-const AccessRequest = require('../models/AccessRequest');
-const License = require('../models/License');
+import { v4 as uuidv4 } from 'uuid';
+import AccessRequest from '../models/AccessRequest.js';
+import License from '../models/License.js';
 
-exports.requestAccess = async (req, res) => {
+export const requestAccess = async (req, res) => {
     try {
         const { device_id, machine_name, machine_fingerprint, user_email } = req.body;
 
@@ -43,7 +43,7 @@ exports.requestAccess = async (req, res) => {
     }
 };
 
-exports.checkStatus = async (req, res) => {
+export const checkStatus = async (req, res) => {
     try {
         const { device_id } = req.body;
         

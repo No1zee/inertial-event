@@ -1,14 +1,15 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const requestController = require('../controllers/requestController');
-const licenseController = require('../controllers/licenseController');
+import * as requestController from '../controllers/requestController.js';
+import * as licenseController from '../controllers/licenseController.js';
+import License from '../models/License.js';
 
 router.post('/request-access', requestController.requestAccess);
 router.post('/check-status', requestController.checkStatus);
 router.post('/validate', licenseController.validateLicense);
 
 // ACTIVATE - First-time device binding
-router.post('/activate', (req, res) => {
+router.post('/activate', async (req, res) => {
     try {
         const { license_key, device_id, machine_fingerprint, machine_name } = req.body;
 
@@ -16,10 +17,8 @@ router.post('/activate', (req, res) => {
             return res.status(400).json({ success: false, error: 'License key and device ID required' });
         }
 
-        const db = require('../config/db');
-        
         // Find the license
-        const license = db.prepare('SELECT * FROM licenses WHERE license_key = ?').get(license_key);
+        const license = await License.findOne({ license_key });
         
         if (!license) {
             return res.status(404).json({ success: false, error: 'Invalid license key' });
@@ -34,23 +33,11 @@ router.post('/activate', (req, res) => {
             return res.json({ success: false, error: 'License already activated on another device' });
         }
 
-        // Check expiry
-        if (license.expires_at) {
-            const now = new Date();
-            const expires = new Date(license.expires_at);
-            if (now > expires) {
-                return res.json({ success: false, error: 'License has expired' });
-            }
-        }
+        // Bind device to license
+        license.device_id = device_id;
+        license.status = 'active';
+        await license.save();
 
-        // Bind device to license (first activation or re-activation on same device)
-        db.prepare(`
-            UPDATE licenses 
-            SET device_id = ?, status = 'active'
-            WHERE license_key = ?
-        `).run(device_id, license_key);
-
-        // Log activation
         console.log(`[Activate] Key ${license_key.substring(0, 8)}... bound to device ${device_id.substring(0, 8)}...`);
 
         res.json({ 

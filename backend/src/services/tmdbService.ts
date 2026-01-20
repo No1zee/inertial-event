@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { MOCK_CONTENT } from '../data/MockContent';
+import { MOCK_CONTENT } from '../data/MockContent.js';
 
 class TmdbService {
     private readonly baseUrl = 'https://api.themoviedb.org/3';

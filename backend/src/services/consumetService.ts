@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { ProviderConfig } from '../config/ProviderConfig';
-import { ProviderResponseSchema, IProviderResponse } from './providers/ProviderSchemas';
+import { ProviderConfig } from '../config/ProviderConfig.js';
+import { ProviderResponseSchema, IProviderResponse } from './providers/ProviderSchemas.js';
 
 class ConsumetService {
     private config = ProviderConfig.consumet;
@@ -26,7 +26,7 @@ class ConsumetService {
             });
 
             if (!parsed.success) {
-                console.warn('Consumet schema validation failed:', parsed.error);
+                console.warn('Consumet schema validation failed:', (parsed as any).error);
                 return null;
             }
 

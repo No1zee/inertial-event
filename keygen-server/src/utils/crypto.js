@@ -1,10 +1,10 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 // Master key - Ensure exactly 32 bytes using SHA256 of the env secret
 const MASTER_KEY = crypto.createHash('sha256').update(process.env.MASTER_KEY || 'default-insecure-key').digest();
 
 // AES-256-GCM Encryption
-const encrypt = (text) => {
+export const encrypt = (text) => {
     const iv = crypto.randomBytes(12); // GCM standard IV size
     const cipher = crypto.createCipheriv('aes-256-gcm', MASTER_KEY, iv);
     
@@ -15,7 +15,7 @@ const encrypt = (text) => {
     return `${iv.toString('hex')}:${authTag}:${encrypted}`;
 };
 
-const decrypt = (encryptedText) => {
+export const decrypt = (encryptedText) => {
     try {
         const [ivHex, authTagHex, contentHex] = encryptedText.split(':');
         
@@ -34,7 +34,7 @@ const decrypt = (encryptedText) => {
     }
 };
 
-const generateLicenseKey = (data) => {
+export const generateLicenseKey = (data) => {
     // Basic implementation - can be enhanced with Base32
     // Format: NVS-<RANDOM>-<SIG>
     const payload = JSON.stringify(data);
@@ -50,10 +50,4 @@ const generateLicenseKey = (data) => {
     // A key looks like: NVS-7A2B-9C1D-E4F5
     const key = `NVS-${crypto.randomBytes(2).toString('hex').toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     return key;
-};
-
-module.exports = {
-    encrypt,
-    decrypt,
-    generateLicenseKey
 };
