@@ -16,7 +16,6 @@ const connectDB = async () => {
         console.log('✅ Connected to MongoDB (Keygen Server)');
     } catch (err) {
         console.error('❌ MongoDB Connection Error (Keygen Server):', err.message);
-        process.exit(1);
     }
 };
 

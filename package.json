@@ -49,7 +49,7 @@
         "electron-dev": "concurrently -k \"npm run dev\" \"npm run server\" \"wait-on http://localhost:3000 http://localhost:5000/api/health && electron .\"",
         "server": "cross-env BACKEND_PORT=5000 npx tsx backend/src/index.ts",
         "build:server": "node scripts/build-backend.cjs",
-        "electron-build": "npm run build:server && npm run encrypt-env && next build && electron-builder",
+        "electron-build": "npm run build:keygen && npm run build:server && npm run encrypt-env && next build && electron-builder",
         "encrypt-env": "tsx scripts/encrypt-env.ts",
         "electron": "electron ."
     },
