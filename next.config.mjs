@@ -1,3 +1,9 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
@@ -58,8 +64,6 @@ const nextConfig = {
   ],
   swcMinify: true,
   webpack: (config, options) => {
-    const path = require('path');
-    
     // Force react-hook-form to use CJS via absolute path alias
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -92,4 +96,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
