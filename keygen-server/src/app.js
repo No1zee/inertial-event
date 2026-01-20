@@ -20,10 +20,12 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Routes - Adjust for Vercel sub-routing if needed
-const apiPrefix = process.env.VERCEL ? '/api/keygen/api' : '/api';
-app.use(apiPrefix, apiRoutes);
-app.use(apiPrefix + '/admin', adminRoutes);
+// Routes - Adjust for Vercel sub-routing
+// On Vercel, requests are already routed to this function via /api/keygen
+// So we should mount routes at the ROOT or the expected subpath
+const apiPrefix = process.env.VERCEL ? '/' : '/api/keygen/api';
+app.use(apiPrefix === '/' ? '/api' : apiPrefix, apiRoutes);
+app.use((apiPrefix === '/' ? '/api' : apiPrefix) + '/admin', adminRoutes);
 
 app.get('/admin-panel', (req, res) => {
     // On Vercel, we serve this as a static route from the public folder

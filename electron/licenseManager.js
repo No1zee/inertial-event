@@ -185,7 +185,19 @@ class LicenseManager {
                 license_key: licenseKey,
                 device_id: deviceId,
                 machine_info: machineInfo
-            }, { timeout: 8000 });
+            }, { 
+                timeout: 5000,
+                validateStatus: (status) => status < 500 // Don't throw for 404, handle manually
+            });
+
+            if (response.status === 404) {
+                console.error('[LicenseManager] Server returned 404. Is the Keygen server deployed correctly?');
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('[LicenseManager] DEV MODE: Allowing boot despite 404.');
+                    return { valid: true, source: 'development-bypass' };
+                }
+                throw new Error('License Verification Server unreachable (404).');
+            }
 
             if (response.data.valid) {
                 // Update Cache
