@@ -1,4 +1,4 @@
-import License from '../models/License.js';
+import { License } from '../models/License.js';
 
 export const validateLicense = async (req, res) => {
     try {

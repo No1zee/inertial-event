@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
-import License from '../models/License.js';
-import AccessRequest from '../models/AccessRequest.js';
+import { License } from '../models/License.js';
+import { AccessRequest } from '../models/AccessRequest.js';
 import { generateLicenseKey } from '../utils/crypto.js';
 
 // Middleware to check admin access key

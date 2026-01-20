@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import AccessRequest from '../models/AccessRequest.js';
-import License from '../models/License.js';
+import { AccessRequest } from '../models/AccessRequest.js';
+import { License } from '../models/License.js';
 
 export const requestAccess = async (req, res) => {
     try {

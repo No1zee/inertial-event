@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import * as requestController from '../controllers/requestController.js';
 import * as licenseController from '../controllers/licenseController.js';
-import License from '../models/License.js';
+import { License } from '../models/License.js';
 
 router.post('/request-access', requestController.requestAccess);
 router.post('/check-status', requestController.checkStatus);
