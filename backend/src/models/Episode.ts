@@ -25,4 +25,5 @@ const EpisodeSchema: Schema = new Schema({
 // Compound index for quick episode lookups
 EpisodeSchema.index({ contentId: 1, season: 1, episodeNumber: 1 }, { unique: true });
 
-export default mongoose.models.Episode || mongoose.model<IEpisode>('Episode', EpisodeSchema);
+const EpisodeModel: mongoose.Model<IEpisode> = mongoose.models.Episode || mongoose.model<IEpisode>('Episode', EpisodeSchema);
+export default EpisodeModel;

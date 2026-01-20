@@ -45,4 +45,5 @@ UserSchema.methods.comparePassword = function (password: string): Promise<boolea
     return bcrypt.compare(password, this.passwordHash);
 };
 
-export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+const UserModel: mongoose.Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+export default UserModel;

@@ -56,8 +56,10 @@ export const getEpisodeWithSources = async (req: Request, res: Response) => {
         // Get fresh sources
         const sources = await sourceService.getAllSources(
             episode.contentId._id.toString(),
+            episode.season || 1,
             episode.episodeNumber,
-            episode.contentId.title
+            episode.contentId.title,
+            'tv'
         );
 
         res.json({
@@ -81,8 +83,10 @@ export const refreshEpisodeSources = async (req: Request, res: Response) => {
 
         const sources = await sourceService.getAllSources(
             episode.contentId._id.toString(),
+            episode.season || 1,
             episode.episodeNumber,
-            episode.contentId.title
+            episode.contentId.title,
+            'tv'
         );
 
         // Update sources in database

@@ -17,7 +17,7 @@ export const getTrending = async (req: Request, res: Response) => {
             return res.json(MOCK_CONTENT);
         }
 
-        const content = await Content.find()
+        const content = await (Content as any).find()
             .sort({ trendingScore: -1 })
             .limit(20);
         res.json(content);
@@ -36,7 +36,7 @@ export const getRecentlyAdded = async (req: Request, res: Response) => {
             return res.json(MOCK_CONTENT);
         }
 
-        const content = await Content.find()
+        const content = await (Content as any).find()
             .sort({ createdAt: -1 })
             .limit(20);
         res.json(content);
@@ -50,7 +50,7 @@ export const getByGenre = async (req: Request, res: Response) => {
         if (!isDbConnected()) return res.json(MOCK_CONTENT.filter(c => c.genres.includes(req.params.genre as string)));
 
         const { genre } = req.params;
-        const content = await Content.find({ genres: { $in: [genre] } })
+        const content = await (Content as any).find({ genres: { $in: [genre] } })
             .sort({ rating: -1 })
             .limit(20);
         res.json(content);
@@ -66,7 +66,7 @@ export const getFeatured = async (req: Request, res: Response) => {
             return res.json(featured || MOCK_CONTENT[0]);
         }
 
-        const featured = await Content.findOne({ trendingScore: { $gt: 0 } }).sort({ trendingScore: -1 });
+        const featured = await (Content as any).findOne({ trendingScore: { $gt: 0 } }).sort({ trendingScore: -1 });
         res.json(featured || MOCK_CONTENT[0]);
     } catch (error: any) {
         res.json(MOCK_CONTENT[0]);
@@ -85,7 +85,7 @@ export const getContentById = async (req: Request, res: Response) => {
             return mock ? res.json(mock) : res.status(404).json({ error: 'Content not found' });
         }
 
-        const content = await Content.findById(id).populate('seasons.episodes');
+        const content = await (Content as any).findById(id).populate('seasons.episodes');
         if (!content) return res.status(404).json({ error: 'Content not found' });
         res.json(content);
     } catch (error: any) {
@@ -109,12 +109,18 @@ export const getWatchMetadata = async (req: Request, res: Response) => {
 
             if (!content) return res.status(404).json({ error: 'Content not found' });
         } else {
-            content = await Content.findById(id);
+            content = await (Content as any).findById(id);
             if (!content) return res.status(404).json({ error: 'Content not found' });
         }
 
         // Fetch sources from sourceService
-        const sourcesResult = await sourceService.getAllSources(id, episodeNum, content.title);
+        const sourcesResult = await sourceService.getAllSources(
+            id, 
+            1, // Season number fallback
+            episodeNum, 
+            content.title,
+            (content as any).type === 'movie' ? 'movie' : 'tv'
+        );
 
         // If mock and no real sources found, inject mock source
         if (!isDbConnected() && sourcesResult.sources.length === 0 && (content as any).sources) {
@@ -151,7 +157,7 @@ export const searchContent = async (req: Request, res: Response) => {
             return res.json({ local: [...local, ...tmdbResults], external: [] });
         }
 
-        const localResults = await Content.find({ title: { $regex: q as string, $options: 'i' } });
+        const localResults = await (Content as any).find({ title: { $regex: q as string, $options: 'i' } });
         const externalResults = await (consumetService as any).search(q);
         res.json({ local: localResults, external: externalResults });
     } catch (error: any) {

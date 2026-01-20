@@ -16,7 +16,7 @@ export const addToLibrary = async (req: Request, res: Response) => {
         const { contentId } = req.body;
         const userId = (req as any).user.id;
 
-        const user = await User.findById(userId);
+        const user = await (User as any).findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         if (!user.library.includes(contentId)) {
@@ -39,7 +39,7 @@ export const removeFromLibrary = async (req: Request, res: Response) => {
         const { contentId } = req.body;
         const userId = (req as any).user.id;
 
-        const user = await User.findById(userId);
+        const user = await (User as any).findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         user.library = user.library.filter((id: any) => id.toString() !== contentId);
@@ -58,7 +58,7 @@ export const getLibrary = async (req: Request, res: Response) => {
         }
 
         const userId = (req as any).user.id;
-        const user = await User.findById(userId).populate('library');
+        const user = await (User as any).findById(userId).populate('library');
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         res.json(user.library);
@@ -76,7 +76,7 @@ export const updatePreferences = async (req: Request, res: Response) => {
         const { preferences } = req.body;
         const userId = (req as any).user.id;
 
-        const user = await User.findByIdAndUpdate(userId, { preferences }, { new: true });
+        const user = await (User as any).findByIdAndUpdate(userId, { preferences }, { new: true });
         res.json(user?.preferences);
     } catch (error: any) {
         res.status(500).json({ error: error.message });

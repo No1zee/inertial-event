@@ -38,4 +38,5 @@ const ContentSchema: Schema = new Schema({
     }]
 }, { timestamps: true });
 
-export default mongoose.models.Content || mongoose.model<IContent>('Content', ContentSchema);
+const ContentModel: mongoose.Model<IContent> = mongoose.models.Content || mongoose.model<IContent>('Content', ContentSchema);
+export default ContentModel;

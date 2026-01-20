@@ -2,12 +2,12 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
 interface AuthRequest extends Request {
-    user?: { userId: string; email: string };
+    user?: any; // Using any for decoded JWT to simplify type compatibility
 }
 
 export const verifyToken = (
-    req: AuthRequest,
-    res: Response,
+    req: any,
+    res: any,
     next: NextFunction
 ) => {
     try {
@@ -30,8 +30,8 @@ export const verifyToken = (
 };
 
 export const optionalAuth = (
-    req: AuthRequest,
-    res: Response,
+    req: any,
+    res: any,
     next: NextFunction
 ) => {
     try {
