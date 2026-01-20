@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import sourceService from '../services/sourceService.js';
+import { sourceService } from '../services/sourceService.js';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -50,7 +50,4 @@ export const verifyHealth = async (req: Request, res: Response) => {
     }
 };
 
-export default {
-    getSources,
-    verifyHealth
-};
+

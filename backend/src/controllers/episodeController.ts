@@ -1,4 +1,4 @@
-import sourceService from '../services/sourceService.js';
+import { sourceService } from '../services/sourceService.js';
 import { Request, Response } from 'express';
 
 // Mock Episode model for now

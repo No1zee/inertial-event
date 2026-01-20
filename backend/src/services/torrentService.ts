@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ProviderConfig } from '../config/ProviderConfig.js';
 import { IProviderResponse } from './providers/ProviderSchemas.js';
-import tmdbService from './tmdbService.js';
+import { tmdbService } from './tmdbService.js';
 
 class TorrentService {
     private client: any = null;
@@ -236,4 +236,5 @@ class TorrentService {
     }
 }
 
-export default new TorrentService();
+const torrentService = new TorrentService();
+export { torrentService };

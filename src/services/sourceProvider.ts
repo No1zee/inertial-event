@@ -22,7 +22,8 @@ class SourceProvider {
             console.log(`[SourceProvider] Fetching: ${API_URL}/api/sources?id=${contentId}&type=${type}&title=${title}`);
             const response = await fetch(`${API_URL}/api/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`);
             if (!response.ok) {
-                console.error("[SourceProvider] API error:", response.status, response.statusText);
+                const errorBody = await response.text();
+                console.error("[SourceProvider] API error:", response.status, response.statusText, "Body:", errorBody);
                 return [];
             }
             const data = await response.json();
@@ -56,7 +57,8 @@ class SourceProvider {
         try {
             const response = await fetch(url);
             if (!response.ok) {
-                console.error("[SourceProvider] API error:", response.status, response.statusText);
+                const errorBody = await response.text();
+                console.error("[SourceProvider] API error:", response.status, response.statusText, "Body:", errorBody);
                 return sources;
             }
             console.log("[SourceProvider] Response Status:", response.status);

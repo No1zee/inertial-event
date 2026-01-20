@@ -25,9 +25,9 @@ interface StreamResult {
     subtitles: Array<{ lang: string; url: string }>;
 }
 
-import vidlinkService from './vidlinkService.js';
-import consumetService from './consumetService.js';
-import torrentService from './torrentService.js';
+import { vidlinkService } from './vidlinkService.js';
+import { consumetService } from './consumetService.js';
+import { torrentService } from './torrentService.js';
 import { IProviderResponse } from './providers/ProviderSchemas.js';
 
 class SourceService {
@@ -120,4 +120,5 @@ class SourceService {
     }
 }
 
-export default new SourceService();
+const sourceService = new SourceService();
+export { sourceService };

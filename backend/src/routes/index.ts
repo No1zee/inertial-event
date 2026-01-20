@@ -32,4 +32,4 @@ router.get('/episodes/content/:contentId', episodeController.getEpisodesByConten
 router.get('/episodes/:id/sources', episodeController.getEpisodeWithSources);
 router.post('/episodes/:id/refresh', verifyToken, episodeController.refreshEpisodeSources);
 
-export default router;
+export { router };

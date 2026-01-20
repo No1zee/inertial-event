@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import Content from '../models/Content.js';
-import consumetService from '../services/consumetService.js';
-import sourceService from '../services/sourceService.js';
-import tmdbService from '../services/tmdbService.js'; // NEW Import
+import { Content } from '../models/Content.js';
+import { consumetService } from '../services/consumetService.js';
+import { sourceService } from '../services/sourceService.js';
+import { tmdbService } from '../services/tmdbService.js';
 import { MOCK_CONTENT } from '../data/MockContent.js';
 
 // Helper to check DB status
@@ -165,12 +165,4 @@ export const searchContent = async (req: Request, res: Response) => {
     }
 };
 
-export default {
-    getTrending,
-    getRecentlyAdded,
-    getByGenre,
-    getFeatured,
-    getContentById,
-    getWatchMetadata,
-    searchContent
-};
+// Individual exports are already present via 'export const ...'

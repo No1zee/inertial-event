@@ -3,8 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import apiRoutes from './routes/api.js';
-import adminRoutes from './routes/admin.js';
+import { apiRoutes } from './routes/api.js';
+import { adminRoutes } from './routes/admin.js';
 
 const app = express();
 
@@ -29,4 +29,4 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal Server Error' });
 });
 
-export default app;
+export { app };

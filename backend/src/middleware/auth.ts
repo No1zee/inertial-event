@@ -51,4 +51,4 @@ export const optionalAuth = (
     }
 };
 
-export default verifyToken;
+

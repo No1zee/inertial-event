@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import User from '../models/User.js';
+import { User } from '../models/User.js';
 import { MOCK_USER_LIBRARY } from '../data/MockContent.js';
 
 // Helper to check DB status

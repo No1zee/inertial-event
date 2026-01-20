@@ -23,4 +23,5 @@ const WatchedSchema: Schema = new Schema({
 // Index for getting a user's progress on a specific item
 WatchedSchema.index({ userId: 1, contentId: 1, episodeId: 1 }, { unique: true });
 
-export default mongoose.models.Watched || mongoose.model<IWatched>('Watched', WatchedSchema);
+const Watched = mongoose.models.Watched || mongoose.model<IWatched>('Watched', WatchedSchema);
+export { Watched };

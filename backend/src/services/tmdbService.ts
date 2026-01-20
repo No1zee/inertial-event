@@ -140,4 +140,5 @@ class TmdbService {
     }
 }
 
-export default new TmdbService();
+const tmdbService = new TmdbService();
+export { tmdbService };

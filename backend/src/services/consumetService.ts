@@ -52,4 +52,5 @@ class ConsumetService {
     }
 }
 
-export default new ConsumetService();
+const consumetService = new ConsumetService();
+export { consumetService };

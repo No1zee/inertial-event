@@ -81,4 +81,5 @@ class VidlinkService {
     }
 }
 
-export default new VidlinkService();
+const vidlinkService = new VidlinkService();
+export { vidlinkService };

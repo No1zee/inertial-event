@@ -139,5 +139,5 @@ router.post('/revoke', adminAuth, async (req, res) => {
     }
 });
 
-export default router;
+export { router as adminRoutes };
 

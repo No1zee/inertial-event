@@ -185,7 +185,7 @@ export const contentApi = {
             // For Anime, we treat it as TV for TMDB queries usually
             const queryType = type === 'anime' ? 'tv' : type;
             const cleanId = id.replace('tmdb_', '');
-            const res = await axios.get(`/tmdb-api/${queryType}/${cleanId}/recommendations?language=en-US&page=1`);
+            const res = await axios.get(getTmdbUrl(`/${queryType}/${cleanId}/recommendations`, 'language=en-US&page=1'));
             return (res.data.results || []).map((item: any) => transformToContent({ ...item, type }));
         } catch (error) {
             return [];
@@ -197,7 +197,7 @@ export const contentApi = {
     getAnimeByGenre: async (genreQuery: string, page?: number): Promise<Content[]> => {
         try {
             const randomPage = page || 1;
-            const res = await axios.get(`/tmdb-api/discover/tv?${genreQuery}&with_keywords=210024&language=en-US&sort_by=popularity.desc&page=${randomPage}`);
+            const res = await axios.get(getTmdbUrl('/discover/tv', `${genreQuery}&with_keywords=210024&language=en-US&sort_by=popularity.desc&page=${randomPage}`));
             return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'anime' }));
         } catch (error) {
             return [];
@@ -208,7 +208,7 @@ export const contentApi = {
         try {
             const randomPage = page || 1;
             // Bias towards English original language OR specific English-market keywords
-            const res = await axios.get(`/tmdb-api/discover/tv?with_genres=16&with_keywords=210024&with_original_language=en&sort_by=popularity.desc&page=${randomPage}`);
+            const res = await axios.get(getTmdbUrl('/discover/tv', `with_genres=16&with_keywords=210024&with_original_language=en&sort_by=popularity.desc&page=${randomPage}`));
             return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'anime' }));
         } catch (error) {
             console.error("Failed to fetch english anime:", error);
@@ -270,8 +270,8 @@ export const contentApi = {
                 ...params
             } as any);
 
-            const endpoint = type === 'movie' ? '/tmdb-api/discover/movie' : '/tmdb-api/discover/tv';
-            const res = await axios.get(`${endpoint}?${queryParams.toString()}`);
+            const endpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
+            const res = await axios.get(getTmdbUrl(endpoint, queryParams.toString()));
             return (res.data.results || []).map((item: any) => transformToContent({ ...item, type }));
         } catch (error) {
             console.error("Failed to discover content:", error);
@@ -282,9 +282,7 @@ export const contentApi = {
     searchContent: async (query: string, page: number = 1): Promise<Content[]> => {
         try {
             if (!query) return [];
-            // Search multi implies searching movies, tv, and people. We focus on movies/tv.
-            // We can search multi or make parallel calls. Multi is easiest.
-            const res = await axios.get(`/tmdb-api/search/multi?query=${encodeURIComponent(query)}&page=${page}&language=en-US&include_adult=false`);
+            const res = await axios.get(getTmdbUrl('/search/multi', `query=${encodeURIComponent(query)}&page=${page}&language=en-US&include_adult=false`));
 
             // Filter out 'person' results
             const results = (res.data.results || []).filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv');
@@ -299,7 +297,7 @@ export const contentApi = {
     getTrailer: async (id: string, type: 'movie' | 'tv' = 'movie'): Promise<string | null> => {
         try {
             const cleanId = id.replace('tmdb_', '');
-            const res = await axios.get(`/tmdb-api/${type}/${cleanId}/videos?language=en-US`);
+            const res = await axios.get(getTmdbUrl(`/${type}/${cleanId}/videos`, 'language=en-US'));
             const videos = res.data.results || [];
             const trailer = videos.find((v: any) => v.type === "Trailer" && v.site === "YouTube") || videos[0];
             return trailer ? trailer.key : null;

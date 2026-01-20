@@ -30,4 +30,5 @@ class ManifestService {
     }
 }
 
-export default new ManifestService();
+const manifestService = new ManifestService();
+export { manifestService };
