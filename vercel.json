@@ -10,6 +10,18 @@
       "destination": "/api/main"
     }
   ],
+  "redirects": [
+    {
+      "source": "/admin-panel",
+      "destination": "/keygen-admin/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/keygen-dashboard",
+      "destination": "/keygen-admin/index.html",
+      "permanent": false
+    }
+  ],
   "cleanUrls": true,
   "trailingSlash": false
 }

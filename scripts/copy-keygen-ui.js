@@ -19,7 +19,16 @@ function copyRecursiveSync(src, dest) {
 }
 
 const src = path.join(__dirname, '../keygen-server/admin-dashboard/dist');
-const dest = path.join(__dirname, '../public/keygen-admin');
+const dest = process.argv[2] 
+    ? path.resolve(__dirname, '..', process.argv[2]) 
+    : path.join(__dirname, '../out/keygen-admin');
+
+// Ensure public folder copy for dev as well if not specified
+if (!process.argv[2]) {
+    const publicDest = path.join(__dirname, '../public/keygen-admin');
+    console.log(`Ensuring dev copy in ${publicDest}...`);
+    copyRecursiveSync(src, publicDest);
+}
 
 console.log(`Copying from ${src} to ${dest}...`);
 try {
