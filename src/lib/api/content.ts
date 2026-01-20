@@ -3,9 +3,13 @@ import { Content } from "@/lib/types/content";
 import { Capacitor } from "@capacitor/core";
 import { generateMockContent, MOCK_MOVIES, MOCK_TV_SHOWS } from "./mockData";
 
-const API_URL = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_API_URL) || "http://localhost:5000/api";
+const API_URL = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
+    ? process.env.NEXT_PUBLIC_API_URL 
+    : "/api";
 // Hardcoded for static export - TMDB keys are meant to be public anyway
-const TMDB_KEY = "6594af88c7e3a157c33d352d5efc74ba";
+const TMDB_KEY = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_TMDB_API_KEY && process.env.NEXT_PUBLIC_TMDB_API_KEY !== 'your_tmdb_key_here')
+    ? process.env.NEXT_PUBLIC_TMDB_API_KEY
+    : "6594af88c7e3a157c33d352d5efc74ba";
 const BASE_URL = "https://api.themoviedb.org/3";
 
 // Helper to handle URL switching between Proxy (Dev) and Direct (Prod/Android)

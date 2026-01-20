@@ -66,6 +66,7 @@ export const useTorrentEngine = () => {
     }, []);
 
     const stopTorrent = useCallback(async () => {
+        if (!window.electron || !window.electron.ipcRenderer) return;
         try {
             await window.electron.ipcRenderer.invoke('torrent:stop-stream');
             setStatus(null);

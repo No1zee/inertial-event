@@ -31,7 +31,9 @@ export function FileExplorer() {
             // Using the full URL to ensure we hit the backend port 5000 if not proxying
             // Assuming Next.js rewrites or direct call. Using default localhost:5000 for now based on context.
             // In layout we have NEXT_PUBLIC_API_URL but let's be robust.
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const apiUrl = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
+                ? process.env.NEXT_PUBLIC_API_URL 
+                : "/api";
 
             const encodedPath = encodeURIComponent(path);
             const res = await fetch(`${apiUrl}/tunnel/list?path=${encodedPath}`);
