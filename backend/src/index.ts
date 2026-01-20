@@ -30,8 +30,9 @@ app.use((req, res, next) => {
 
 
 // API Routes
-app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
-app.use('/api', routes);
+const apiPrefix = process.env.VERCEL ? '/' : '/api';
+app.get(apiPrefix + (apiPrefix === '/' ? 'health' : '/health'), (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.use(apiPrefix, routes);
 
 // DB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
