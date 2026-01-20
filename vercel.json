@@ -8,20 +8,14 @@
     {
       "source": "/api/:path*",
       "destination": "/api/main"
-    }
-  ],
-  "redirects": [
+    },
     {
       "source": "/admin-panel",
-      "destination": "/keygen-admin/index.html",
-      "permanent": false
+      "destination": "/keygen-admin/index.html"
     },
     {
       "source": "/keygen-dashboard",
-      "destination": "/keygen-admin/index.html",
-      "permanent": false
+      "destination": "/keygen-admin/index.html"
     }
-  ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  ]
 }
