@@ -25,18 +25,19 @@ const apiPrefix = process.env.VERCEL ? '/api/keygen/api' : '/api';
 app.use(apiPrefix, apiRoutes);
 app.use(apiPrefix + '/admin', adminRoutes);
 
-// Admin Dashboard UI
-const distPath = path.join(__dirname, '../admin-dashboard/dist');
-app.use(express.static(distPath));
-
 app.get('/admin-panel', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    // On Vercel, we serve this as a static route from the public folder
+    if (process.env.VERCEL) {
+        return res.redirect('/keygen-admin/index.html');
+    }
+    // Locally, we can still serve it if needed or redirect
+    res.redirect('/keygen-admin/index.html');
 });
 
 app.get('/', (req, res) => {
     res.json({ 
         message: 'NovaStream Keygen Server',
-        admin_panel: '/api/keygen/admin-panel'
+        admin_panel: '/keygen-admin/index.html'
     });
 });
 
