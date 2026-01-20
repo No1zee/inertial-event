@@ -1,13 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "keygen-server/server.js": {
-      "runtime": "@vercel/node"
-    },
-    "backend/src/index.ts": {
-      "runtime": "@vercel/node"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/keygen/:path*",
@@ -16,6 +8,10 @@
     {
       "source": "/api/:path*",
       "destination": "/backend/src/index.ts"
+    },
+    {
+       "source": "/keygen-admin/:path*",
+       "destination": "/keygen-admin/:path*"
     }
   ]
 }
