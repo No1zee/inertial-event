@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: './' // Required for Electron relative paths
+  base: '/keygen-admin/' // Ensure absolute paths for Vercel sub-directory
 })
