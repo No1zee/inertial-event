@@ -175,7 +175,7 @@ class LicenseManager {
             let baseUrl = process.env.KEYGEN_SERVER_URL || KEYGEN_SERVER_URL;
             if (!baseUrl.startsWith('http')) {
                 console.warn('[LicenseManager] Invalid KEYGEN_SERVER_URL (missing protocol):', baseUrl);
-                baseUrl = 'http://localhost:4000/api';
+                baseUrl = 'http://localhost:4000/api/keygen/api';
             }
             const targetUrl = `${baseUrl}/validate`;
             console.log(`[LicenseManager] Validating against: ${targetUrl}`);

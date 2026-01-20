@@ -1,7 +1,7 @@
 const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 const API_BASE = isVercel 
     ? '/api/keygen/api/admin' 
-    : 'http://localhost:4000/api/admin';
+    : 'http://localhost:4000/api/keygen/api/admin';
 
 // Prompt for master key if missing (for web version security)
 const getAdminConfig = () => {

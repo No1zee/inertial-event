@@ -3,15 +3,13 @@
   "rewrites": [
     {
       "source": "/api/keygen/:path*",
-      "destination": "/keygen-server/server.js"
+      "destination": "/api/keygen"
     },
     {
       "source": "/api/:path*",
-      "destination": "/backend/src/index.ts"
-    },
-    {
-       "source": "/keygen-admin/:path*",
-       "destination": "/keygen-admin/:path*"
+      "destination": "/api/main"
     }
-  ]
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }

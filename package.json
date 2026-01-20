@@ -37,6 +37,7 @@
     "scripts": {
         "dev": "cross-env PORT=3000 next dev -H 0.0.0.0",
         "build:keygen": "cd keygen-server && npm run build-ui && cd .. && node scripts/copy-keygen-ui.js",
+        "vercel-build": "npm run build:keygen && next build",
         "build": "npm run build:keygen && next build && node fix_html.cjs",
         "start": "next start",
         "lint": "next lint",
