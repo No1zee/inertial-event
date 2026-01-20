@@ -1,8 +1,4 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,7 +6,6 @@ const nextConfig = {
   reactStrictMode: false,
   compress: true,
   productionBrowserSourceMaps: true,
-
 
   images: {
     unoptimized: true,
@@ -32,7 +27,6 @@ const nextConfig = {
         hostname: '**.consumet.org',
       },
     ],
-    // formats: ['image/webp', 'image/avif'], // Disabled for compatibility
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
@@ -96,4 +90,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
