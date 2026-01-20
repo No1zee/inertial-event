@@ -33,7 +33,7 @@ export function FileExplorer() {
             // In layout we have NEXT_PUBLIC_API_URL but let's be robust.
             const apiUrl = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
                 ? process.env.NEXT_PUBLIC_API_URL 
-                : "/api";
+                : "";
 
             const encodedPath = encodeURIComponent(path);
             const res = await fetch(`${apiUrl}/tunnel/list?path=${encodedPath}`);

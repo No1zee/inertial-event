@@ -5,7 +5,7 @@ import { generateMockContent, MOCK_MOVIES, MOCK_TV_SHOWS } from "./mockData";
 
 const API_URL = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
     ? process.env.NEXT_PUBLIC_API_URL 
-    : "/api";
+    : "";
 // Hardcoded for static export - TMDB keys are meant to be public anyway
 const TMDB_KEY = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_TMDB_API_KEY && process.env.NEXT_PUBLIC_TMDB_API_KEY !== 'your_tmdb_key_here')
     ? process.env.NEXT_PUBLIC_TMDB_API_KEY

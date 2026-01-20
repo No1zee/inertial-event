@@ -17,7 +17,7 @@ class SourceProvider {
     async getSources(contentId: string, type: 'movie' | 'series' | 'anime', title: string): Promise<StreamSource[]> {
         const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
             ? process.env.NEXT_PUBLIC_API_URL 
-            : "/api";
+            : "";
         try {
             console.log(`[SourceProvider] Fetching: ${API_URL}/api/sources?id=${contentId}&type=${type}&title=${title}`);
             const response = await fetch(`${API_URL}/api/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`);
@@ -47,7 +47,7 @@ class SourceProvider {
         const sources = new Map<string, StreamSource[]>();
         const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
             ? process.env.NEXT_PUBLIC_API_URL 
-            : "/api";
+            : "";
 
         // Single call to backend which handles aggregator logic (Vidlink + Torrent + etc)
         const url = `${API_URL}/api/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;

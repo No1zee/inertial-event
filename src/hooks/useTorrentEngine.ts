@@ -20,6 +20,10 @@ export const useTorrentEngine = () => {
     const MAX_RETRIES = 3;
 
     const startTorrent = useCallback(async (magnet: string) => {
+        if (!window.electron || !window.electron.ipcRenderer) {
+            console.warn('[AG] Torrent playback is only available in the Desktop App.');
+            return null;
+        }
         setLoading(true);
         setError(null);
         let lastError = null;
