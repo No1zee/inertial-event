@@ -55,12 +55,15 @@ class SourceService {
 
             results.forEach((result, index) => {
                 if (result.status === 'fulfilled' && result.value) {
-                    console.log(`[SourceService] Provider ${index} returned items:`, result.value.sources ? result.value.sources.length : 0);
-                    if (result.value.sources) {
-                        result.value.sources.forEach((s: any) => console.log(`   - [${s.type}] ${s.url}`));
+                    const value = result.value as IProviderResponse;
+                    console.log(`[SourceService] Provider ${index} returned items:`, (value.sources || []).length);
+                    if (value.sources) {
+                        value.sources.forEach((s: any) => console.log(`   - [${s.type}] ${s.url}`));
+                        aggregated.sources.push(...value.sources);
                     }
-                    aggregated.sources.push(...result.value.sources);
-                    aggregated.subtitles.push(...result.value.subtitles);
+                    if (value.subtitles) {
+                        aggregated.subtitles.push(...value.subtitles);
+                    }
                 } else {
                     console.warn(`[SourceService] Provider ${index} rejected or empty:`, result.status);
                 }

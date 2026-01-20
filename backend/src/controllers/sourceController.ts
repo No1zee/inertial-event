@@ -31,9 +31,12 @@ export const getSources = async (req: Request, res: Response) => {
         debugLog('Got result from service. Sending JSON.');
         res.json(result);
     } catch (error: any) {
-        debugLog(`ERROR CAUGHT: ${error.message}`);
-        debugLog(`STACK: ${error.stack}`);
-        res.status(500).json({ error: error.message });
+        console.error(`[SourceController] ERROR: ${error.message}`, error.stack);
+        res.status(500).json({ 
+            error: error.message, 
+            stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+            context: 'SourceController.getSources'
+        });
     }
 };
 

@@ -22,7 +22,9 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-    console.error(`[REQUEST] ${req.method} ${req.url}`);
+    if (process.env.DEBUG_REQUESTS || process.env.NODE_ENV !== 'production') {
+        console.log(`[REQUEST] ${req.method} ${req.url}`);
+    }
     next();
 });
 

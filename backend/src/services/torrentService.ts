@@ -11,14 +11,11 @@ class TorrentService {
     // Base URL for YTS
     private readonly YTS_API_URL = 'https://yts.mx/api/v2/list_movies.json';
 
-    // Debug Helper
+    // Debug Helper (Safely logs to stdout in serverless)
     private log(msg: string) {
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            const logPath = path.join(process.cwd(), 'debug_torrents.log');
-            fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`);
-        } catch (e) { /* ignore */ }
+        if (process.env.DEBUG_TORRENTS || process.env.NODE_ENV !== 'production') {
+            console.log(`[TorrentService] ${msg}`);
+        }
     }
 
     // Helper to initialize WebTorrent client (only if needed for local streaming features later)
