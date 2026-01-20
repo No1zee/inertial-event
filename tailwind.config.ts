@@ -9,22 +9,38 @@ const config: Config = {
     theme: {
         extend: {
             colors: {
-                'nova': {
-                    '50': '#f9f5ff',
-                    '100': '#f4ebff',
-                    '200': '#e9d5ff',
-                    '300': '#d8a6ff',
-                    '400': '#c26aff',
-                    '500': '#a838ff',
-                    '600': '#8c1dff',
-                    '700': '#6e0fb9',
-                    '800': '#5c0694',
-                    '900': '#3f036b',
-                    '950': '#2a0149',
+                border: "hsl(var(--border))",
+                input: "hsl(var(--input))",
+                ring: "hsl(var(--ring))",
+                background: "hsl(var(--background))",
+                foreground: "hsl(var(--foreground))",
+                primary: {
+                    DEFAULT: "hsl(var(--primary))",
+                    foreground: "hsl(var(--primary-foreground))",
                 },
-                'slate': {
-                    '950': '#0f172a',
-                    '900': '#0f172a',
+                secondary: {
+                    DEFAULT: "hsl(var(--secondary))",
+                    foreground: "hsl(var(--secondary-foreground))",
+                },
+                destructive: {
+                    DEFAULT: "hsl(var(--destructive))",
+                    foreground: "hsl(var(--destructive-foreground))",
+                },
+                muted: {
+                    DEFAULT: "hsl(var(--muted))",
+                    foreground: "hsl(var(--muted-foreground))",
+                },
+                accent: {
+                    DEFAULT: "hsl(var(--accent))",
+                    foreground: "hsl(var(--accent-foreground))",
+                },
+                popover: {
+                    DEFAULT: "hsl(var(--popover))",
+                    foreground: "hsl(var(--popover-foreground))",
+                },
+                card: {
+                    DEFAULT: "hsl(var(--card))",
+                    foreground: "hsl(var(--card-foreground))",
                 },
             },
             backgroundImage: {

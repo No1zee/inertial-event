@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ArrowLeft, BookHeart, Heart, Download, ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause, PictureInPicture, Zap, Maximize, Settings } from "lucide-react";
+import { ArrowLeft, HeartHandshake, Heart, Download, ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause, PictureInPicture, Zap, Maximize, Settings, Cast } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -45,6 +45,7 @@ interface PlayerControlsProps {
     onDownload: () => void;
     onToggleSettings: () => void;
     onTogglePiP: () => void;
+    onToggleCast: () => void;
     onNext?: () => void;
     onPrev?: () => void;
     onSeasonChange?: (s: number) => void;
@@ -57,13 +58,15 @@ interface PlayerControlsProps {
     tracks?: any[];
     audioTracks?: any[];
     qualities?: any[];
+    skipParams?: { type: 'intro' | 'credits'; to: number } | null;
+    onSkip?: (time: number) => void;
 }
 
 export default function PlayerControls({
     show, title, subTitle, backUrl, currentTime, duration, isPaused, volume, isMuted, isSaved, downloadUrl,
     isSeeking, seekValue, type, isTorrent, season, episode, seasons,
     onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute,
-    onToggleLibrary, onDownload, onToggleSettings, onTogglePiP,
+    onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onToggleCast,
     onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen,
     ...props // Capture debug props
 }: PlayerControlsProps) {
@@ -85,7 +88,7 @@ export default function PlayerControls({
     };
 
     return (
-        <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-300 pointer-events-none ${show ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`absolute inset-0 z-[100] flex flex-col justify-between transition-opacity duration-300 pointer-events-none ${show ? 'opacity-100' : 'opacity-0'}`}>
 
             {/* --- TOP BAR --- */}
             <div className={`pointer-events-auto bg-gradient-to-b from-black via-black/90 to-transparent p-6 pb-20 flex justify-between items-start transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
@@ -109,7 +112,7 @@ export default function PlayerControls({
                     )}
 
                     <button onClick={onToggleLibrary} aria-label={isSaved ? "Remove from Library" : "Add to Library"} className={`p-2.5 rounded-full backdrop-blur-md transition-all ${isSaved ? 'bg-purple-600/80 text-white' : 'bg-white/10 text-white/60 hover:text-white'}`}>
-                        {isSaved ? <BookHeart size={20} aria-hidden="true" /> : <Heart size={20} aria-hidden="true" />}
+                        {isSaved ? <HeartHandshake size={20} aria-hidden="true" /> : <Heart size={20} aria-hidden="true" />}
                     </button>
                     {/* Download Button */}
                     <button
@@ -124,16 +127,33 @@ export default function PlayerControls({
                 </div>
             </div>
 
-            {/* DEBUG OVERLAY - REMOVE BEFORE PROD */}
-            <div className="absolute top-20 left-6 bg-black/80 p-2 rounded text-[10px] text-green-400 font-mono pointer-events-none z-50">
-                <p>PROV: {props.providerType || 'N/A'}</p>
-                <p>AUD: {props.audioTracks?.length || 0}</p>
-                <p>SUB: {props.tracks?.length || 0}</p>
-                <p>QUAL: {props.qualities?.length || 0}</p>
-            </div>
 
             {/* --- BOTTOM CONTROLS --- */}
             <div className={`pointer-events-auto bg-gradient-to-t from-black via-black/95 to-transparent pt-40 pb-8 px-6 transition-transform duration-300 ${show ? 'translate-y-0' : 'translate-y-full'}`}>
+                
+                {/* Skip Button (Intro/Credits) */}
+                {props.skipParams && (
+                    <div className="absolute -top-12 left-6 animate-fade-in-up">
+                        <button
+                            onClick={() => {
+                                // Calculate seek target
+                                if (props.skipParams?.to) {
+                                  // Seek to end of intro
+                                  const target = props.skipParams.to + 0.5;
+                                  // We need to trigger the seek via prop, but onChange handles slider event.
+                                  // We can fake an event or use a new prop. For now, use onSeekCommit hacks or expose a direct seek method.
+                                  // Actually, the parent handles commands. We should lift this up or use onSeekChange directly?
+                                  // Better: add onSkip prop.
+                                  if (props.onSkip) props.onSkip(target);
+                                }
+                            }}
+                            className="flex items-center gap-2 bg-white/90 hover:bg-white text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-transform hover:scale-105"
+                        >
+                            <Zap size={16} fill="currentColor" />
+                            {props.skipParams.type === 'intro' ? 'SKIP INTRO' : 'SKIP CREDITS'}
+                        </button>
+                    </div>
+                )}
 
                 {/* Progress Bar */}
                 <div className="flex items-center gap-3 mb-4 group/progress">
@@ -238,6 +258,16 @@ export default function PlayerControls({
                             title="Settings (Audio & Subtitles)"
                         >
                             <Settings size={20} aria-hidden="true" />
+                        </button>
+
+                        {/* Cast Button */}
+                        <button
+                            onClick={onToggleCast}
+                            aria-label="Cast to TV"
+                            className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
+                            title="Cast to TV"
+                        >
+                            <Cast size={20} aria-hidden="true" />
                         </button>
 
                         {/* PiP Button */}

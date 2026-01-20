@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Info, Volume2, VolumeX } from "lucide-react";
+import { Play, Info, Volume2, VolumeX, Star } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/UI/button";
 import { Content } from "@/lib/types/content";
 import { contentApi } from "@/lib/api/content";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface HeroProps {
     items?: Content[];
@@ -15,58 +16,50 @@ interface HeroProps {
 
 export function Hero({ items = [] }: HeroProps) {
     const [index, setIndex] = useState(0);
-    const [trailerKey, setTrailerKey] = useState<string | null>(null);
-    const [isMuted, setIsMuted] = useState(true);
-    const [showVideo, setShowVideo] = useState(false);
+    const [uiVisible, setUiVisible] = useState(true);
+    const queryClient = useQueryClient();
 
     const currentItem = items && items.length > 0 ? items[index % items.length] : null;
 
     // Auto-advance carousel
+    // Auto-advance carousel
     useEffect(() => {
         if (!items || items.length === 0) return;
 
-        // Dynamic Duration: 12s default, extended to 90s if trailer is playing (~3/5 of avg trailer)
-        const duration = trailerKey ? 90000 : 12000;
-
         const timer = setTimeout(() => {
             setIndex((prev) => (prev + 1) % items.length);
-            setShowVideo(false);
-            setTrailerKey(null);
-        }, duration);
+        }, 12000);
 
         return () => clearTimeout(timer);
-    }, [index, trailerKey, items.length]);
+    }, [index, items.length]);
 
-    // Fetch trailer when slide changes
-    useEffect(() => {
-        if (!currentItem) return;
+    // Handle UI Fade on Video Play
+    // Check for "In Theaters" status
+    const isTheatrical = currentItem?.type === 'movie' && currentItem.releaseDate && (() => {
+        const release = new Date(currentItem.releaseDate);
+        const now = new Date();
+        const diff = Math.ceil(Math.abs(now.getTime() - release.getTime()) / (1000 * 3600 * 24));
+        return diff <= 60 && release <= now;
+    })();
 
-        let mounted = true;
-        const fetchTrailer = async () => {
-            // Delay slightly to let animation finish and user to settle
-            await new Promise(r => setTimeout(r, 1000));
-            if (!mounted) return;
 
-            // Only fetch for movies for now? or TV too if API supports
-            const safeId = String(currentItem.id);
-            const key = await contentApi.getTrailer(safeId, currentItem.type);
-            if (mounted && key) {
-                setTrailerKey(key);
-                // Delay showing video slightly to allow buffering
-                setTimeout(() => {
-                    if (mounted) setShowVideo(true);
-                }, 1500);
-            }
-        };
-        fetchTrailer();
-        return () => { mounted = false; };
-    }, [currentItem?.id, currentItem?.type]);
+
+    // Show UI on interaction
+    const handleInteraction = () => {
+        if (!uiVisible) setUiVisible(true);
+    };
+
+
 
     // Safety check: if no items, show a basic skeleton
     if (!currentItem) return <HeroSkeleton />;
 
     return (
-        <section className="relative h-[75vh] w-full group mx-auto overflow-hidden">
+        <section
+            className="relative h-[50vh] sm:h-[70vh] lg:h-[85vh] w-full group mx-auto overflow-hidden"
+            onMouseMove={handleInteraction}
+            onClick={handleInteraction}
+        >
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentItem.id}
@@ -77,93 +70,118 @@ export function Hero({ items = [] }: HeroProps) {
                     className="absolute inset-0"
                 >
                     {/* Background Image (Base Layer) */}
-                    <div
-                        className="absolute inset-0 bg-cover bg-center"
+                    <motion.div
+                        className="absolute inset-0 bg-cover bg-[center_20%] sm:bg-center"
                         style={{ backgroundImage: `url(${currentItem.backdrop || "/images/hero_placeholder.jpg"})` }}
+                        initial={{ scale: 1 }}
+                        animate={{ scale: 1.1 }}
+                        transition={{ duration: 15, ease: "linear" }}
                     >
                         {/* Gradients for readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/40 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/60 to-transparent" />
-                    </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
+                    </motion.div>
 
-                    {/* YouTube Video Layer (Fade In) */}
-                    {showVideo && trailerKey && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 1 }}
-                            className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
-                        >
-                            <iframe
-                                className="w-[300%] h-[300%] -ml-[100%] -mt-[40%] opacity-60"
-                                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&showinfo=0&rel=0&loop=1&playlist=${trailerKey}`}
-                                allow="autoplay; encrypted-media"
-                                title="Background Trailer"
-                            />
-                        </motion.div>
-                    )}
+
                 </motion.div>
             </AnimatePresence>
 
             {/* Content Overlay */}
-            <div className="absolute bottom-0 left-0 z-20 p-8 lg:p-16 w-full max-w-4xl space-y-6">
+            <div className="absolute bottom-0 left-0 z-20 p-6 pb-24 md:p-12 md:pb-32 lg:p-16 lg:pb-40 w-full max-w-4xl space-y-4 md:space-y-6 pointer-events-none">
                 <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentItem.id + "-text"}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="space-y-4"
-                    >
-                        <span className="inline-flex items-center px-3 py-1 bg-red-600/90 backdrop-blur text-white text-xs font-bold rounded uppercase tracking-wider shadow-lg">
-                            Trending Now
-                        </span>
+                    {uiVisible && (
+                        <motion.div
+                            key={currentItem.id + "-text"}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 30 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="space-y-6 pointer-events-auto"
+                        >
+                            <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left duration-700">
+                                <div className="h-1 w-12 bg-red-600 rounded-full" />
+                                <span className="text-red-500 font-bold tracking-[0.3em] text-xs uppercase">Trending Now</span>
+                            </div>
 
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tighter leading-tight drop-shadow-2xl">
-                            {currentItem.title}
-                        </h1>
-
-                        <p className="text-zinc-200 text-lg md:text-xl font-medium leading-relaxed max-w-2xl drop-shadow-md line-clamp-3">
-                            {currentItem.description}
-                        </p>
-
-                        <div className="flex items-center gap-4 pt-4">
-                            <Link href={`/watch/${String(currentItem.id).replace('tmdb_', '')}?type=${currentItem.type}`}>
-                                <Button size="lg" className="pl-6 pr-8 h-14 text-lg font-bold bg-white text-black hover:bg-zinc-200 transition-all rounded-lg shadow-xl shadow-white/10 hover:shadow-white/20 hover:scale-105 active:scale-95">
-                                    <Play size={24} fill="currentColor" className="mr-3" />
-                                    Play Now
-                                </Button>
-                            </Link>
-
-                            <Button
-                                variant="outline"
-                                size="lg"
-                                className="h-14 px-8 text-lg font-medium bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/20 text-white rounded-lg hover:scale-105 transition-all"
+                            <motion.h1
+                                className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter leading-[0.9] drop-shadow-2xl max-w-5xl"
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2, duration: 0.8 }}
                             >
-                                <Info size={24} className="mr-3" />
-                                More Info
-                            </Button>
+                                {currentItem.title}
+                            </motion.h1>
 
-                            {trailerKey && showVideo && (
-                                <button
-                                    onClick={() => setIsMuted(!isMuted)}
-                                    className="h-14 w-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur border border-white/10 hover:bg-white/10 transition-all ml-auto md:ml-0"
+                            <div className="flex items-center gap-3 text-sm md:text-base font-medium text-zinc-300">
+                                <span className="flex items-center gap-1 text-green-400 font-bold">
+                                    <Star size={14} fill="currentColor" />
+                                    {Math.round((currentItem.rating || 0) * 10)}% Match
+                                </span>
+                                <span>•</span>
+                                <span>{currentItem.releaseDate?.substring(0, 4)}</span>
+                                <span>•</span>
+                                <span className="uppercase tracking-widest text-xs border border-zinc-600 px-2 py-0.5 rounded text-zinc-400 bg-zinc-900/40">
+                                    {currentItem.type === 'tv' ? 'Series' : 'Movie'}
+                                </span>
+                            </div>
+
+                            <motion.p
+                                className="hidden sm:block text-zinc-100 text-base md:text-xl font-medium leading-relaxed max-w-2xl drop-shadow-lg line-clamp-3 text-shadow-sm opacity-90"
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4, duration: 0.8 }}
+                            >
+                                {currentItem.description}
+                            </motion.p>
+
+                            <motion.div
+                                className="flex items-center gap-4 pt-8"
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.6, duration: 0.8 }}
+                            >
+                                <Link 
+                                    href={`/watch?id=${String(currentItem.id).replace('tmdb_', '')}&type=${currentItem.type}`}
+                                    onMouseEnter={() => {
+                                         queryClient.prefetchQuery({
+                                            queryKey: ['content', 'details', String(currentItem.id), currentItem.type],
+                                            queryFn: () => contentApi.getDetails(currentItem.id, currentItem.type),
+                                            staleTime: 10 * 60 * 1000
+                                        });
+                                    }}
                                 >
-                                    {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-                                </button>
-                            )}
-                        </div>
-                    </motion.div>
+                                    <Button size="lg" className="pl-6 sm:pl-10 pr-8 sm:pr-12 h-12 sm:h-14 md:h-16 text-sm sm:text-lg md:text-xl font-bold bg-white text-black hover:bg-zinc-200 transition-all rounded-xl shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-95 duration-300">
+                                        <Play size={20} fill="currentColor" className="sm:mr-3" />
+                                        Watch Now
+                                    </Button>
+                                </Link>
+
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 text-sm sm:text-lg md:text-xl font-medium bg-zinc-800/20 backdrop-blur-xl border border-white/10 hover:bg-white/10 hover:border-white/30 text-white rounded-xl hover:scale-105 transition-all duration-300 shadow-2xl"
+                                >
+                                    <Info size={20} className="sm:mr-3" />
+                                    Details
+                                </Button>
+                            </motion.div>
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </div>
 
             {/* Carousel Indicators */}
-            <div className="absolute right-8 bottom-48 flex flex-col gap-2 z-30">
+            <div className={cn(
+                "absolute right-4 sm:right-8 bottom-24 sm:bottom-48 flex flex-col gap-1.5 sm:gap-2 z-30 transition-opacity duration-1000",
+                uiVisible ? "opacity-100" : "opacity-0"
+            )}>
                 {items.map((_, i) => (
                     <button
                         key={i}
-                        onClick={() => setIndex(i)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIndex(i);
+                        }}
                         className={cn(
                             "w-1.5 h-1.5 rounded-full transition-all duration-300 shadow shadow-black/50",
                             i === index ? "h-6 bg-white" : "bg-white/30 hover:bg-white/60"

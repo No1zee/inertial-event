@@ -3,21 +3,72 @@
 @tailwind utilities;
 
 :root {
-  /* Enterprise Depth System */
+  /* Default Theme: "Type Nova" (Red/Dark) */
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+ 
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+ 
+  --primary: 346 87% 43%; /* Rose 600 - #e11d48 */
+  --primary-foreground: 0 0% 98%;
+ 
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+ 
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+ 
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+ 
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 346 87% 43%;
+
+  /* Enterprise Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  /* Boosted for dark mode */
+  --glass: rgba(255, 255, 255, 0.05);
+}
 
-  --glow-nova: 0 0 20px rgba(168, 56, 255, 0.3);
-  --glow-nova-intense: 0 0 40px rgba(168, 56, 255, 0.5);
-  --glass: rgba(255, 255, 255, 0.1);
+/* Theme: "Ocean" (Blue/Teal) */
+.theme-ocean {
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --primary: 199 89% 48%; /* Sky Blue */
+  --primary-foreground: 222 47% 11%;
+  --ring: 199 89% 48%;
+}
 
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
+/* Theme: "Cyberpunk" (Yellow/Purple) */
+.theme-cyberpunk {
+  --background: 280 50% 5%; /* Deep Purple */
+  --foreground: 60 100% 97%;
+  --primary: 60 100% 50%; /* Neon Yellow */
+  --primary-foreground: 280 50% 5%;
+  --secondary: 280 50% 20%;
+  --muted: 280 50% 20%;
+  --ring: 60 100% 50%;
+}
+
+/* Theme: "OLED" (True Black) */
+.theme-oled {
+  --background: 0 0% 0%;
+  --card: 0 0% 0%;
+  --border: 0 0% 20%;
+}
+
+@layer base {
+  :focus-visible {
+    @apply outline-none ring-2 ring-red-500 ring-offset-2 ring-offset-zinc-950;
+  }
 }
 
 @layer utilities {
@@ -27,8 +78,8 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: #000000;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
   overflow-x: hidden;
 }
 

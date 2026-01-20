@@ -1,0 +1,299 @@
+[2026-01-19T06:14:18.786Z] START getSources: 224372 (tv)
+[2026-01-19T06:14:19.663Z] Resolved IMDB ID: tt27497448
+[2026-01-19T06:14:19.746Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt27497448:1:1.json
+[2026-01-19T06:14:20.102Z] Torrentio streams raw: 12
+[2026-01-19T06:14:20.129Z] Torrentio streams parsed: 12
+[2026-01-19T06:14:20.142Z] FINAL Return Count: 12
+[2026-01-19T06:18:34.126Z] START getSources: 224372 (tv)
+[2026-01-19T06:18:34.982Z] Resolved IMDB ID: tt27497448
+[2026-01-19T06:18:35.084Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt27497448:1:1.json
+[2026-01-19T06:18:35.148Z] Torrentio streams raw: 12
+[2026-01-19T06:18:35.190Z] Torrentio streams parsed: 12
+[2026-01-19T06:18:35.215Z] FINAL Return Count: 12
+[2026-01-19T06:18:49.136Z] START getSources: 1306368 (movie)
+[2026-01-19T06:18:50.007Z] Resolved IMDB ID: tt32642706
+[2026-01-19T06:18:50.129Z] YTS found: 0
+[2026-01-19T06:18:50.149Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T06:18:50.479Z] Torrentio streams raw: 61
+[2026-01-19T06:18:50.494Z] Torrentio streams parsed: 61
+[2026-01-19T06:18:50.503Z] FINAL Return Count: 61
+[2026-01-19T06:23:30.976Z] START getSources: 224372 (tv)
+[2026-01-19T06:23:31.827Z] Resolved IMDB ID: tt27497448
+[2026-01-19T06:23:31.893Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt27497448:1:1.json
+[2026-01-19T06:23:32.029Z] Torrentio streams raw: 12
+[2026-01-19T06:23:32.070Z] Torrentio streams parsed: 12
+[2026-01-19T06:23:32.104Z] FINAL Return Count: 12
+[2026-01-19T06:23:46.603Z] START getSources: 1306368 (movie)
+[2026-01-19T06:23:47.319Z] Resolved IMDB ID: tt32642706
+[2026-01-19T06:23:47.429Z] YTS found: 0
+[2026-01-19T06:23:47.474Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T06:23:47.544Z] Torrentio streams raw: 61
+[2026-01-19T06:23:47.568Z] Torrentio streams parsed: 61
+[2026-01-19T06:23:47.603Z] FINAL Return Count: 61
+[2026-01-19T06:25:17.051Z] START getSources: 224372 (tv)
+[2026-01-19T06:25:17.958Z] Resolved IMDB ID: tt27497448
+[2026-01-19T06:25:18.003Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt27497448:1:1.json
+[2026-01-19T06:25:18.064Z] Torrentio streams raw: 12
+[2026-01-19T06:25:18.094Z] Torrentio streams parsed: 12
+[2026-01-19T06:25:18.136Z] FINAL Return Count: 12
+[2026-01-19T06:25:28.042Z] START getSources: 634649 (movie)
+[2026-01-19T06:25:28.868Z] Resolved IMDB ID: tt10872600
+[2026-01-19T06:25:29.006Z] YTS found: 0
+[2026-01-19T06:25:29.135Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt10872600.json
+[2026-01-19T06:25:29.565Z] Torrentio streams raw: 50
+[2026-01-19T06:25:29.663Z] Torrentio streams parsed: 50
+[2026-01-19T06:25:29.761Z] FINAL Return Count: 50
+[2026-01-19T06:28:59.187Z] START getSources: 1306368 (movie)
+[2026-01-19T06:28:59.881Z] Resolved IMDB ID: tt32642706
+[2026-01-19T06:28:59.955Z] YTS found: 0
+[2026-01-19T06:28:59.987Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T06:29:00.102Z] Torrentio streams raw: 61
+[2026-01-19T06:29:00.136Z] Torrentio streams parsed: 61
+[2026-01-19T06:29:00.260Z] FINAL Return Count: 61
+[2026-01-19T06:32:27.835Z] START getSources: 315635 (movie)
+[2026-01-19T06:32:28.842Z] Resolved IMDB ID: tt2250912
+[2026-01-19T06:32:29.098Z] YTS found: 0
+[2026-01-19T06:32:29.235Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt2250912.json
+[2026-01-19T06:32:29.672Z] Torrentio streams raw: 50
+[2026-01-19T06:32:29.896Z] Torrentio streams parsed: 50
+[2026-01-19T06:32:29.925Z] FINAL Return Count: 50
+[2026-01-19T06:32:57.475Z] START getSources: 429617 (movie)
+[2026-01-19T06:32:58.197Z] Resolved IMDB ID: tt6320628
+[2026-01-19T06:32:58.231Z] YTS found: 0
+[2026-01-19T06:32:58.257Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt6320628.json
+[2026-01-19T06:32:58.567Z] Torrentio streams raw: 50
+[2026-01-19T06:32:58.593Z] Torrentio streams parsed: 50
+[2026-01-19T06:32:58.634Z] FINAL Return Count: 50
+[2026-01-19T06:36:32.266Z] START getSources: 1306368 (movie)
+[2026-01-19T06:36:32.954Z] Resolved IMDB ID: tt32642706
+[2026-01-19T06:36:33.050Z] YTS found: 0
+[2026-01-19T06:36:33.093Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T06:36:33.310Z] Torrentio streams raw: 61
+[2026-01-19T06:36:33.331Z] Torrentio streams parsed: 61
+[2026-01-19T06:36:33.410Z] FINAL Return Count: 61
+[2026-01-19T06:40:24.436Z] START getSources: 224372 (tv)
+[2026-01-19T06:40:25.355Z] Resolved IMDB ID: tt27497448
+[2026-01-19T06:40:25.384Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt27497448:1:1.json
+[2026-01-19T06:40:25.542Z] Torrentio streams raw: 12
+[2026-01-19T06:40:25.651Z] Torrentio streams parsed: 12
+[2026-01-19T06:40:25.914Z] FINAL Return Count: 12
+[2026-01-19T06:47:13.402Z] START getSources: 127235 (tv)
+[2026-01-19T06:47:14.389Z] Resolved IMDB ID: tt9737326
+[2026-01-19T06:47:14.478Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt9737326:1:1.json
+[2026-01-19T06:47:14.924Z] Torrentio streams raw: 29
+[2026-01-19T06:47:14.989Z] Torrentio streams parsed: 29
+[2026-01-19T06:47:15.011Z] FINAL Return Count: 29
+[2026-01-19T06:48:35.647Z] START getSources: 1218925 (movie)
+[2026-01-19T06:48:36.353Z] Resolved IMDB ID: tt30472557
+[2026-01-19T06:48:36.428Z] YTS found: 0
+[2026-01-19T06:48:36.489Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt30472557.json
+[2026-01-19T06:48:36.885Z] Torrentio streams raw: 66
+[2026-01-19T06:48:36.900Z] Torrentio streams parsed: 66
+[2026-01-19T06:48:36.913Z] FINAL Return Count: 66
+[2026-01-19T06:55:51.129Z] START getSources: 628847 (movie)
+[2026-01-19T06:55:52.034Z] Resolved IMDB ID: tt10799690
+[2026-01-19T06:55:52.216Z] YTS found: 0
+[2026-01-19T06:55:52.240Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt10799690.json
+[2026-01-19T06:55:52.852Z] Torrentio streams raw: 50
+[2026-01-19T06:55:52.887Z] Torrentio streams parsed: 50
+[2026-01-19T06:55:52.904Z] FINAL Return Count: 50
+[2026-01-19T06:59:38.835Z] START getSources: 224372 (tv)
+[2026-01-19T06:59:40.655Z] Resolved IMDB ID: tt27497448
+[2026-01-19T06:59:40.682Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt27497448:1:1.json
+[2026-01-19T06:59:40.898Z] Torrentio streams raw: 24
+[2026-01-19T06:59:41.124Z] Torrentio streams parsed: 24
+[2026-01-19T06:59:41.154Z] FINAL Return Count: 24
+[2026-01-19T07:05:11.358Z] START getSources: 1306368 (movie)
+[2026-01-19T07:05:12.144Z] Resolved IMDB ID: tt32642706
+[2026-01-19T07:05:12.243Z] YTS found: 0
+[2026-01-19T07:05:12.308Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T07:05:12.445Z] Torrentio streams raw: 61
+[2026-01-19T07:05:12.476Z] Torrentio streams parsed: 61
+[2026-01-19T07:05:12.509Z] FINAL Return Count: 61
+[2026-01-19T07:23:06.258Z] START getSources: 61859 (tv)
+[2026-01-19T07:23:10.182Z] Resolved IMDB ID: tt1399664
+[2026-01-19T07:23:10.301Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt1399664:1:1.json
+[2026-01-19T07:23:14.113Z] Torrentio streams raw: 38
+[2026-01-19T07:23:14.148Z] Torrentio streams parsed: 38
+[2026-01-19T07:23:14.199Z] FINAL Return Count: 38
+[2026-01-19T07:31:59.315Z] START getSources: 533533 (movie)
+[2026-01-19T07:32:00.320Z] Resolved IMDB ID: tt6604188
+[2026-01-19T07:32:00.418Z] YTS found: 0
+[2026-01-19T07:32:00.485Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt6604188.json
+[2026-01-19T07:32:00.937Z] Torrentio streams raw: 119
+[2026-01-19T07:32:01.129Z] Torrentio streams parsed: 119
+[2026-01-19T07:32:01.234Z] FINAL Return Count: 119
+[2026-01-19T07:34:21.899Z] START getSources: 760329 (movie)
+[2026-01-19T07:34:23.724Z] Resolved IMDB ID: tt11214558
+[2026-01-19T07:34:23.801Z] YTS found: 0
+[2026-01-19T07:34:23.838Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt11214558.json
+[2026-01-19T07:34:24.214Z] Torrentio streams raw: 50
+[2026-01-19T07:34:24.254Z] Torrentio streams parsed: 50
+[2026-01-19T07:34:24.290Z] FINAL Return Count: 50
+[2026-01-19T07:37:42.633Z] START getSources: 1242898 (movie)
+[2026-01-19T07:37:43.507Z] Resolved IMDB ID: tt31227572
+[2026-01-19T07:37:43.583Z] YTS found: 0
+[2026-01-19T07:37:43.632Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt31227572.json
+[2026-01-19T07:37:43.999Z] Torrentio streams raw: 119
+[2026-01-19T07:37:44.030Z] Torrentio streams parsed: 119
+[2026-01-19T07:37:44.061Z] FINAL Return Count: 119
+[2026-01-19T07:40:02.997Z] START getSources: 755898 (movie)
+[2026-01-19T07:40:03.705Z] Resolved IMDB ID: tt13186306
+[2026-01-19T07:40:03.866Z] YTS found: 0
+[2026-01-19T07:40:03.977Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt13186306.json
+[2026-01-19T07:40:04.380Z] Torrentio streams raw: 25
+[2026-01-19T07:40:04.445Z] Torrentio streams parsed: 25
+[2026-01-19T07:40:04.488Z] FINAL Return Count: 25
+[2026-01-19T07:44:23.937Z] START getSources: 250505 (tv)
+[2026-01-19T07:44:25.722Z] Resolved IMDB ID: tt31974288
+[2026-01-19T07:44:25.761Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt31974288:1:1.json
+[2026-01-19T07:44:26.091Z] Torrentio streams raw: 39
+[2026-01-19T07:44:26.125Z] Torrentio streams parsed: 39
+[2026-01-19T07:44:26.156Z] FINAL Return Count: 39
+[2026-01-19T07:46:03.708Z] START getSources: 141052 (movie)
+[2026-01-19T07:46:05.546Z] Resolved IMDB ID: tt0974015
+[2026-01-19T07:46:05.625Z] YTS found: 0
+[2026-01-19T07:46:05.660Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt0974015.json
+[2026-01-19T07:46:06.285Z] Torrentio streams raw: 37
+[2026-01-19T07:46:06.320Z] Torrentio streams parsed: 37
+[2026-01-19T07:46:06.354Z] FINAL Return Count: 37
+[2026-01-19T07:49:28.778Z] START getSources: 634649 (movie)
+[2026-01-19T07:49:30.699Z] Resolved IMDB ID: tt10872600
+[2026-01-19T07:49:30.865Z] YTS found: 0
+[2026-01-19T07:49:30.930Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt10872600.json
+[2026-01-19T07:49:31.151Z] Torrentio streams raw: 50
+[2026-01-19T07:49:31.274Z] Torrentio streams parsed: 50
+[2026-01-19T07:49:31.355Z] FINAL Return Count: 50
+[2026-01-19T07:51:43.186Z] START getSources: 1084242 (movie)
+[2026-01-19T07:51:44.100Z] Resolved IMDB ID: tt26443597
+[2026-01-19T07:51:44.224Z] YTS found: 0
+[2026-01-19T07:51:44.246Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt26443597.json
+[2026-01-19T07:51:44.591Z] Torrentio streams raw: 32
+[2026-01-19T07:51:44.618Z] Torrentio streams parsed: 32
+[2026-01-19T07:51:44.651Z] FINAL Return Count: 32
+[2026-01-19T07:56:18.138Z] START getSources: 1084242 (movie)
+[2026-01-19T07:56:19.907Z] Resolved IMDB ID: tt26443597
+[2026-01-19T07:56:19.970Z] YTS found: 0
+[2026-01-19T07:56:20.044Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt26443597.json
+[2026-01-19T07:56:20.136Z] Torrentio streams raw: 32
+[2026-01-19T07:56:20.190Z] Torrentio streams parsed: 32
+[2026-01-19T07:56:20.223Z] FINAL Return Count: 32
+[2026-01-19T07:58:16.828Z] START getSources: 1252037 (movie)
+[2026-01-19T07:58:17.617Z] Resolved IMDB ID: tt31495504
+[2026-01-19T07:58:17.681Z] YTS found: 0
+[2026-01-19T07:58:17.713Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt31495504.json
+[2026-01-19T07:58:18.074Z] Torrentio streams raw: 50
+[2026-01-19T07:58:18.090Z] Torrentio streams parsed: 50
+[2026-01-19T07:58:18.120Z] FINAL Return Count: 50
+[2026-01-19T08:00:51.582Z] START getSources: 1491902 (movie)
+[2026-01-19T08:00:53.380Z] Resolved IMDB ID: tt29538620
+[2026-01-19T08:00:53.482Z] YTS found: 0
+[2026-01-19T08:00:53.569Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt29538620.json
+[2026-01-19T08:00:54.044Z] Torrentio streams raw: 10
+[2026-01-19T08:00:54.081Z] Torrentio streams parsed: 10
+[2026-01-19T08:00:54.107Z] FINAL Return Count: 10
+[2026-01-19T08:03:08.138Z] START getSources: 1196067 (movie)
+[2026-01-19T08:03:08.903Z] Resolved IMDB ID: tt14264694
+[2026-01-19T08:03:08.973Z] YTS found: 0
+[2026-01-19T08:03:09.006Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt14264694.json
+[2026-01-19T08:03:09.334Z] Torrentio streams raw: 13
+[2026-01-19T08:03:09.373Z] Torrentio streams parsed: 13
+[2026-01-19T08:03:09.419Z] FINAL Return Count: 13
+[2026-01-19T08:05:38.292Z] START getSources: 76338 (movie)
+[2026-01-19T08:05:39.341Z] Resolved IMDB ID: tt1981115
+[2026-01-19T08:05:39.494Z] YTS found: 0
+[2026-01-19T08:05:39.543Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt1981115.json
+[2026-01-19T08:05:39.897Z] Torrentio streams raw: 50
+[2026-01-19T08:05:39.926Z] Torrentio streams parsed: 50
+[2026-01-19T08:05:40.016Z] FINAL Return Count: 50
+[2026-01-19T08:06:19.583Z] START getSources: 9806 (movie)
+[2026-01-19T08:06:20.275Z] Resolved IMDB ID: tt0317705
+[2026-01-19T08:06:20.345Z] YTS found: 0
+[2026-01-19T08:06:20.367Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt0317705.json
+[2026-01-19T08:06:20.652Z] Torrentio streams raw: 50
+[2026-01-19T08:06:20.668Z] Torrentio streams parsed: 50
+[2026-01-19T08:06:20.682Z] FINAL Return Count: 50
+[2026-01-19T08:13:37.368Z] START getSources: 106379 (tv)
+[2026-01-19T08:13:38.242Z] Resolved IMDB ID: tt12637874
+[2026-01-19T08:13:38.274Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt12637874:1:1.json
+[2026-01-19T08:13:39.202Z] Torrentio streams raw: 50
+[2026-01-19T08:13:39.369Z] Torrentio streams parsed: 50
+[2026-01-19T08:13:39.406Z] FINAL Return Count: 50
+[2026-01-19T08:23:39.359Z] START getSources: 967941 (movie)
+[2026-01-19T08:23:40.143Z] Resolved IMDB ID: tt19847976
+[2026-01-19T08:23:40.235Z] YTS found: 0
+[2026-01-19T08:23:40.250Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt19847976.json
+[2026-01-19T08:23:40.681Z] Torrentio streams raw: 71
+[2026-01-19T08:23:40.714Z] Torrentio streams parsed: 71
+[2026-01-19T08:23:40.744Z] Filtered Count (Tier 1 Only): 0 (Dropped 71)
+[2026-01-19T08:23:40.777Z] FINAL Return Count: 0
+[2026-01-19T08:23:45.534Z] START getSources: 106379 (tv)
+[2026-01-19T08:23:46.297Z] Resolved IMDB ID: tt12637874
+[2026-01-19T08:23:46.453Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt12637874:1:1.json
+[2026-01-19T08:23:46.732Z] Torrentio streams raw: 50
+[2026-01-19T08:23:46.845Z] Torrentio streams parsed: 50
+[2026-01-19T08:23:47.141Z] Filtered Count (Tier 1 Only): 0 (Dropped 50)
+[2026-01-19T08:23:47.299Z] FINAL Return Count: 0
+[2026-01-19T08:35:28.516Z] START getSources: 157194 (tv)
+[2026-01-19T08:35:29.462Z] Resolved IMDB ID: tt18069218
+[2026-01-19T08:35:29.534Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt18069218:1:1.json
+[2026-01-19T08:35:30.046Z] Torrentio streams raw: 21
+[2026-01-19T08:35:30.132Z] Torrentio streams parsed: 21
+[2026-01-19T08:35:30.312Z] Filtered Count (Tier 1 Only): 0 (Dropped 21)
+[2026-01-19T08:35:30.357Z] FINAL Return Count: 0
+[2026-01-19T08:35:38.211Z] START getSources: 1306368 (movie)
+[2026-01-19T08:35:39.123Z] Resolved IMDB ID: tt32642706
+[2026-01-19T08:35:39.277Z] YTS found: 0
+[2026-01-19T08:35:39.323Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T08:35:39.551Z] Torrentio streams raw: 61
+[2026-01-19T08:35:39.731Z] Torrentio streams parsed: 61
+[2026-01-19T08:35:39.858Z] Filtered Count (Tier 1 Only): 0 (Dropped 61)
+[2026-01-19T08:35:39.884Z] FINAL Return Count: 0
+[2026-01-19T08:36:27.392Z] START getSources: 1242898 (movie)
+[2026-01-19T08:36:28.266Z] Resolved IMDB ID: tt31227572
+[2026-01-19T08:36:28.368Z] YTS found: 0
+[2026-01-19T08:36:28.406Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt31227572.json
+[2026-01-19T08:36:28.607Z] Torrentio streams raw: 119
+[2026-01-19T08:36:28.776Z] Torrentio streams parsed: 119
+[2026-01-19T08:36:28.880Z] CRITICAL ERROR: query is not defined
+[2026-01-19T08:39:25.949Z] START getSources: 896 (movie)
+[2026-01-19T08:39:26.835Z] Resolved IMDB ID: tt0052572
+[2026-01-19T08:39:26.887Z] YTS found: 0
+[2026-01-19T08:39:26.933Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt0052572.json
+[2026-01-19T08:39:28.647Z] Torrentio streams raw: 6
+[2026-01-19T08:39:28.706Z] Torrentio streams parsed: 6
+[2026-01-19T08:39:28.816Z] CRITICAL ERROR: query is not defined
+[2026-01-19T08:40:59.339Z] START getSources: 250505 (tv)
+[2026-01-19T08:41:00.097Z] Resolved IMDB ID: tt31974288
+[2026-01-19T08:41:00.127Z] Querying Torrentio: https://torrentio.strem.fun/stream/series/tt31974288:1:1.json
+[2026-01-19T08:41:00.300Z] Torrentio streams raw: 39
+[2026-01-19T08:41:00.325Z] Torrentio streams parsed: 39
+[2026-01-19T08:41:00.337Z] CRITICAL ERROR: query is not defined
+[2026-01-19T08:45:11.309Z] START getSources: 755898 (movie)
+[2026-01-19T08:45:11.998Z] Resolved IMDB ID: tt13186306
+[2026-01-19T08:45:12.133Z] YTS found: 0
+[2026-01-19T08:45:12.164Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt13186306.json
+[2026-01-19T08:45:12.234Z] Torrentio streams raw: 25
+[2026-01-19T08:45:12.289Z] Torrentio streams parsed: 25
+[2026-01-19T08:45:12.333Z] CRITICAL ERROR: query is not defined
+[2026-01-19T08:46:17.898Z] START getSources: 755898 (movie)
+[2026-01-19T08:46:18.627Z] Resolved IMDB ID: tt13186306
+[2026-01-19T08:46:18.651Z] YTS found: 0
+[2026-01-19T08:46:18.666Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt13186306.json
+[2026-01-19T08:46:18.749Z] Torrentio streams raw: 25
+[2026-01-19T08:46:18.774Z] Torrentio streams parsed: 25
+[2026-01-19T08:46:18.787Z] CRITICAL ERROR: query is not defined
+[2026-01-19T08:47:54.914Z] START getSources: 1306368 (movie)
+[2026-01-19T08:47:55.596Z] Resolved IMDB ID: tt32642706
+[2026-01-19T08:47:55.760Z] YTS found: 0
+[2026-01-19T08:47:55.821Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt32642706.json
+[2026-01-19T08:47:55.931Z] Torrentio streams raw: 67
+[2026-01-19T08:47:55.959Z] Torrentio streams parsed: 67
+[2026-01-19T08:47:55.996Z] CRITICAL ERROR: query is not defined
+[2026-01-19T08:48:13.662Z] START getSources: 76600 (movie)
+[2026-01-19T08:48:14.568Z] Resolved IMDB ID: tt1630029
+[2026-01-19T08:48:14.623Z] YTS found: 0
+[2026-01-19T08:48:14.664Z] Querying Torrentio: https://torrentio.strem.fun/stream/movie/tt1630029.json
+[2026-01-19T08:48:15.091Z] Torrentio streams raw: 70
+[2026-01-19T08:48:15.124Z] Torrentio streams parsed: 70
+[2026-01-19T08:48:15.154Z] CRITICAL ERROR: query is not defined

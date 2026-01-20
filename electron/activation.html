@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Activate NovaStream</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            -webkit-app-region: drag;
+            overflow: hidden;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            /* backdrop-filter removed for stability */
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            width: 440px;
+            text-align: center;
+            -webkit-app-region: no-drag;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #e63946, #f4a261);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 18px;
+            font-family: monospace;
+            text-align: center;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            border-color: #e63946;
+        }
+        input::placeholder {
+            color: #555;
+            letter-spacing: normal;
+            text-transform: none;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #e63946, #d62839);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .error {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 16px;
+            min-height: 20px;
+        }
+        .loading {
+            display: none;
+        }
+        .loading.show {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            color: #666;
+            -webkit-app-region: no-drag;
+        }
+        .close-btn:hover { color: white; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="close-btn" onclick="window.electronAPI.closeActivation()">&#x2715;</div>
+        <div class="logo">NovaStream</div>
+        <div class="subtitle">Enter your license key to activate</div>
+        
+        <div class="input-group">
+            <input type="text" id="keyInput" placeholder="NVS-XXXX-XXXX-XXXX" maxlength="18" />
+        </div>
+        
+        <button id="activateBtn" onclick="activate()">
+            <span class="loading" id="loader"></span>
+            <span id="btnText">Activate License</span>
+        </button>
+        
+        <div class="error" id="errorMsg"></div>
+    </div>
+    
+    <script>
+        const input = document.getElementById('keyInput');
+        const btn = document.getElementById('activateBtn');
+        const loader = document.getElementById('loader');
+        const btnText = document.getElementById('btnText');
+        const errorMsg = document.getElementById('errorMsg');
+        
+        // Ensure API availability
+        if (!window.electronAPI) {
+            errorMsg.textContent = 'Error: Electron API unavailable';
+        }
+
+        // Auto-format key input
+        input.addEventListener('input', (e) => {
+            let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (val.length > 3) val = val.slice(0,3) + '-' + val.slice(3);
+            if (val.length > 8) val = val.slice(0,8) + '-' + val.slice(8);
+            if (val.length > 13) val = val.slice(0,13) + '-' + val.slice(13);
+            e.target.value = val.slice(0, 18);
+        });
+        
+        async function activate() {
+            const key = input.value.trim();
+            if (!key || key.length < 14) {
+                errorMsg.textContent = 'Please enter a valid license key';
+                return;
+            }
+            
+            btn.disabled = true;
+            loader.classList.add('show');
+            btnText.textContent = 'Activating...';
+            errorMsg.textContent = '';
+            
+            try {
+                const result = await window.electronAPI.activateLicense(key);
+                if (result.success) {
+                    btnText.textContent = 'Success! Launching...';
+                    setTimeout(() => {
+                        window.electronAPI.activationSuccess();
+                    }, 1000);
+                } else {
+                    throw new Error(result.error || 'Activation failed');
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                btn.disabled = false;
+                loader.classList.remove('show');
+                btnText.textContent = 'Activate License';
+            }
+        }
+        
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') activate();
+        });
+        
+        // Focus with slight delay to ensure window is ready
+        setTimeout(() => input.focus(), 100);
+    </script>
+</body>
+</html>

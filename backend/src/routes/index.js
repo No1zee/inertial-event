@@ -35,4 +35,8 @@ const fileController = require('../controllers/fileController');
 router.get('/tunnel/stream', fileController.streamFile);
 router.get('/tunnel/list', fileController.listFiles);
 
+// Image Proxy Routes
+const proxyController = require('../controllers/proxyController');
+router.get('/proxy/image', proxyController.proxyImage);
+
 module.exports = router;

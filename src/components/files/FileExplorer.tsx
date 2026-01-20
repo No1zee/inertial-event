@@ -73,7 +73,7 @@ export function FileExplorer() {
         // Navigate to watch page with special local file ID
         // We'll need to handle this in /watch/[id] page to recognize "local:" prefix or query param
         const encodedPath = encodeURIComponent(item.path);
-        router.push(`/watch/local?path=${encodedPath}&name=${encodeURIComponent(item.name)}`);
+        router.push(`/watch?id=local&path=${encodedPath}&name=${encodeURIComponent(item.name)}`);
     };
 
     return (

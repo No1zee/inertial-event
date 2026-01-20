@@ -1,19 +1,19 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-let WebTorrent;
-try {
-    WebTorrent = require('webtorrent');
-} catch (e) {
-    console.warn("⚠️ WebTorrent dependency not installed. Torrent features will be disabled.");
-}
+const WebTorrent = require('webtorrent');
+const path = require('path');
+const http = require('http');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+// Verify ffmpeg path
+console.log('[TorrentService] FFmpeg path set to:', ffmpegPath);
 
 // Import VideoMetadataService for extracting track metadata from filenames
-// Note: VideoMetadataService is in src/services, TorrentService is in root services/
-const path = require('path');
+
 let videoMetadataService;
 try {
-    // Try to load from compiled output or use direct path
-    const servicePath = path.join(__dirname, '../src/services/VideoMetadataService');
-    videoMetadataService = require(servicePath).videoMetadataService;
+    // Load from sibling file
+    videoMetadataService = require('./VideoMetadataService');
     console.log('✅ VideoMetadataService loaded');
 } catch (e) {
     console.warn("⚠️ VideoMetadataService not available:", e.message);
@@ -37,11 +37,12 @@ class TorrentService {
             return Promise.reject(new Error("Stream initialization already in progress"));
         }
 
-        this.isStarting = true;
-
         try {
             // Cleanup existing
             await this.stopStream();
+            
+            // P0: Re-assert lock AFTER stopStream cleanup (which sets it to false)
+            this.isStarting = true;
 
             return await new Promise((resolve, reject) => {
                 console.log('Using WebTorrent to stream:', magnetLink);
@@ -83,7 +84,12 @@ class TorrentService {
                     let file = null;
 
                     // Simple selection strategy: Largest video file
-                    if (videoFiles.length > 0) {
+                    // P0: Prefer MP4 over MKV because Electron/Chromium doesn't support MKV natively
+                    const mp4Files = videoFiles.filter(f => f.name.toLowerCase().endsWith('.mp4'));
+                    
+                    if (mp4Files.length > 0) {
+                        file = mp4Files.reduce((a, b) => a.length > b.length ? a : b);
+                    } else if (videoFiles.length > 0) {
                         file = videoFiles.reduce((a, b) => a.length > b.length ? a : b);
                     } else if (torrent.files.length > 0) {
                         // Fallback to absolute largest file if no extension match
@@ -102,13 +108,17 @@ class TorrentService {
 
                     // Create Server
                     this.server = torrent.createServer();
-                    this.server.listen(0, () => {
+                    
+                    console.log('Main: Starting internal WebTorrent server...');
+                    this.server.listen(0, async () => { // Made async to await startTranscodeServer
+                        console.log('Main: Internal server callback triggered');
                         const port = this.server.address().port;
                         // WebTorrent server creates routes based on file index
                         const fileIndex = torrent.files.indexOf(file);
-                        const url = `http://localhost:${port}/${fileIndex}`;
+                        const mp4Url = `http://localhost:${port}/${fileIndex}`;
+                        console.log('Main: Native MP4 URL generated:', mp4Url);
 
-                        console.log('Torrent Server Running:', url);
+                        console.log('Torrent Server Running:', mp4Url);
 
                         // Scan for subtitles
                         const subtitles = [];
@@ -127,17 +137,37 @@ class TorrentService {
                         // Extract audio/subtitle metadata from filename
                         let audioTracks = [];
                         if (videoMetadataService) {
+                            console.log('Main: Extracting metadata...');
                             const metadata = videoMetadataService.extractFromFilename(file.name);
                             audioTracks = metadata.audioTracks;
                             console.log('📀 Extracted Audio Tracks from filename:', audioTracks);
                         }
 
+                        // 4. Check if Transcoding is needed (MKV)
+                        console.log('Main: Checking if transcoding needed for:', file.name);
+                        const isMkv = file.name.toLowerCase().endsWith('.mkv');
+                        let finalUrl = mp4Url;
+
+                        if (isMkv) {
+                            console.log('⚠️ MKV detected. Starting Transcode Server...');
+                            try {
+                                finalUrl = await this.startTranscodeServer(file);
+                                console.log('✅ Transcode Server Ready:', finalUrl);
+                            } catch (err) {
+                                console.error('Failed to start transcoder:', err);
+                                // Fallback to raw file (might fail but better than nothing)
+                                finalUrl = mp4Url; 
+                            }
+                        } else {
+                            console.log('✅ Native format detected. Streaming direct.');
+                        }
+
                         resolve({
-                            url,
-                            filename: file.name,
-                            infoHash: torrent.infoHash,
-                            subtitles, // External subtitle files
-                            audioTracks // Extracted from filename
+                            url: finalUrl,
+                            filename: file.name
+                            // infoHash: torrent.infoHash,
+                            // subtitles, 
+                            // audioTracks 
                         });
                     });
 
@@ -165,6 +195,90 @@ class TorrentService {
         }
     }
 
+
+    /**
+     * Spawns a local HTTP server that transmuxes the file stream to fragmented MP4
+     */
+    startTranscodeServer(file) {
+        return new Promise((resolve, reject) => {
+            const server = http.createServer((req, res) => {
+                console.log(`[Transcode] Request: ${req.url}`);
+                console.log(`[Transcode] Headers:`, JSON.stringify(req.headers));
+                
+                // Set headers for MP4 streaming
+                res.writeHead(200, {
+                    'Content-Type': 'video/mp4',
+                    'Access-Control-Allow-Origin': '*',
+                    'Connection': 'keep-alive',
+                    'Accept-Ranges': 'none' // Disable seeking to prevent restart-on-pause loops
+                });
+
+                // Create FFMPEG command
+                // Input: Read stream from WebTorrent file
+                const stream = file.createReadStream();
+
+                // Check if file is HEVC/x265 (requires transcoding to h264 for Electron/Chromium)
+                const isHevc = file.name.toLowerCase().match(/(x265|h265|hevc)/);
+                
+                // Prepare FFmpeg command
+                const command = ffmpeg(stream);
+
+                const outputOptions = [
+                    '-movflags frag_keyframe+empty_moov', // Fragmented MP4 for streaming
+                    '-c:a aac',                           // Convert audio to AAC
+                    '-b:a 192k',
+                    '-f mp4'
+                ];
+
+                if (isHevc) {
+                    console.log(`[Transcode] HEVC/x265 detected (${file.name}). Transcoding to H.264 (CPU intensive)...`);
+                    outputOptions.push('-c:v libx264');
+                    outputOptions.push('-preset ultrafast'); // Critical for real-time
+                    outputOptions.push('-tune zerolatency');
+                    outputOptions.push('-crf 23');
+                } else {
+                    console.log(`[Transcode] Standard codec detected. Copying video stream...`);
+                    outputOptions.push('-c:v copy'); // Fast copy for H.264
+                }
+
+                command
+                    .outputOptions(outputOptions)
+                    .on('start', (commandLine) => {
+                        console.log('[Transcode] Spawned Ffmpeg with command: ' + commandLine);
+                    })
+                    .on('progress', (progress) => {
+                       // Log progress every ~10% or just periodically to prove it's alive
+                       // progress object usually has 'timemark' or 'percent'
+                       // console.log(`[Transcode] Progress: ${progress.timemark}`);
+                    }) 
+                    .on('stderr', (stderrLine) => {
+                        // Log first few lines of stderr to diagnose ffmpeg startup issues
+                        if (!this._stderrLogCount) this._stderrLogCount = 0;
+                        if (this._stderrLogCount < 10) {
+                            console.log('[Transcode FFMPEG STDERR]: ' + stderrLine);
+                            this._stderrLogCount++;
+                        }
+                    })
+                    .on('error', (err, stdout, stderr) => {
+                        if (err.message.includes('Output stream closed')) return;
+                        console.error('[Transcode] Error:', err.message);
+                    })
+                    .pipe(res, { end: true });
+            });
+
+            // Listen on random port (all interfaces)
+            server.listen(0, () => {
+                const port = server.address().port;
+                this.transcodeServer = server;
+                // Return localhost URL which handles dual-stack better in Electron
+                resolve(`http://localhost:${port}/stream.mp4`);
+            });
+
+            server.on('error', (err) => {
+                reject(err);
+            });
+        });
+    }
 
     async stopStream() {
         this.isStarting = false; // Force release lock

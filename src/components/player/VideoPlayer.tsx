@@ -27,6 +27,8 @@ export function VideoPlayer({ src, poster, title, subtitles, onEnded }: VideoPla
         setFullscreen
     } = usePlayerStore();
 
+    console.log('[VideoPlayer] Mounting with src:', src);
+
     useEffect(() => {
         // Sync state with store
         const instance = player.current;
@@ -40,7 +42,12 @@ export function VideoPlayer({ src, poster, title, subtitles, onEnded }: VideoPla
             setMuted(state.muted);
             setFullscreen(state.fullscreen);
 
-            if (state.ended) onEnded?.();
+            // Guard against immediate end (transcode failure/boot loop)
+            // Only end if we've actually played something (e.g. > 30s or > 5% of duration?)
+            // Using 15s to be safe for shorter testing clips.
+            if (state.ended && state.currentTime > 15) {
+                onEnded?.();
+            }
         });
     }, [src, onEnded, setPlaying, setDuration, setCurrentTime, setVolume, setMuted, setFullscreen]);
 
@@ -54,6 +61,16 @@ export function VideoPlayer({ src, poster, title, subtitles, onEnded }: VideoPla
                 aspectRatio="16/9"
                 load="eager"
                 poster={poster}
+                crossOrigin="anonymous" // Helpful for local servers
+                onCanPlay={() => console.log('[VideoPlayer] Event: can-play')}
+                onWaiting={() => console.log('[VideoPlayer] Event: waiting')}
+                onLoadStart={() => console.log('[VideoPlayer] Event: load-start', src)}
+                onError={(e) => {
+                     console.error('[VideoPlayer] Event: error', e);
+                     if (window.electron && window.electron.ipcRenderer.log) {
+                         window.electron.ipcRenderer.log(`[VideoPlayer Error] ${JSON.stringify(e)}`);
+                     }
+                }}
             >
                 <MediaProvider>
                     <Poster className="vds-poster" />

@@ -7,14 +7,19 @@ contextBridge.exposeInMainWorld('electron', {
         on: (channel, func) => {
             const subscription = (_event, ...args) => func(...args);
             ipcRenderer.on(channel, subscription);
-            return subscription; // Return to allow removal if needed (though tricky with wrapper)
+            return subscription;
         },
         off: (channel, func) => {
-            // Note: This requires the exact function reference, which is hard with the wrapper above. 
-            // In a simple reload scenario, this might be fine, but for strict cleanup, we'd need a map.
-            // For now, we expose removeListener directly or just rely on 'on' for one-way events.
             ipcRenderer.removeListener(channel, func);
         },
-        removeListener: (channel, func) => ipcRenderer.removeListener(channel, func)
+        removeListener: (channel, func) => ipcRenderer.removeListener(channel, func),
+        log: (msg) => ipcRenderer.send('frontend-log', msg)
     }
+});
+
+// Activation Window API
+contextBridge.exposeInMainWorld('electronAPI', {
+    activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
+    activationSuccess: () => ipcRenderer.send('activation-success'),
+    closeActivation: () => ipcRenderer.send('close-activation')
 });

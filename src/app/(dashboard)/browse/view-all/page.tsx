@@ -1,120 +1,116 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useInView } from "framer-motion";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { ContentCard } from "@/components/content/ContentCard";
+import { useSearchParams } from "next/navigation";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { contentApi } from "@/lib/api/content";
+import { ContentCard } from "@/components/content/ContentCard";
+import { ContentModal } from "@/components/content/ContentModal";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { Content } from "@/lib/types/content";
 
 export default function ViewAllPage() {
-    const router = useRouter();
     const searchParams = useSearchParams();
-    const title = searchParams.get("title") || "Content";
+    const railId = searchParams.get("id");
+    const title = searchParams.get("title") || "Explore";
+    const { ref, inView } = useInView({
+        threshold: 0
+    });
 
-    // Heuristic to determine fetcher based on title
-    // This is a simple implementation, a robust one would pass a 'source' param
+    // Map rail IDs to fetchers
+    const fetchContent = async ({ pageParam = 1 }) => {
+        if (!railId) return [];
 
-    const [items, setItems] = useState<Content[]>([]);
-    const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
+        switch (railId) {
+            case "trending": return contentApi.getTrending();
+            case "popular_tv": return contentApi.getPopularTV();
+            case "scifi": return contentApi.getByGenre(878, 'movie', pageParam);
+            case "action": return contentApi.getByGenre(28, 'movie', pageParam);
+            case "cbm": return contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc', page: pageParam }, 'movie');
+            case "a24": return contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc', page: pageParam }, 'movie');
+            case "romcom": return contentApi.discover({ with_genres: '10749,35', sort_by: 'popularity.desc', page: pageParam }, 'movie');
+            case "short": return contentApi.getShortAndSweet(pageParam);
+            case "feelgood": return contentApi.getFeelGood(pageParam);
+            case "horror": return contentApi.getByGenre(27, 'movie', pageParam);
+            case "anime": return contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc', page: pageParam }, 'tv');
+            case "docu": return contentApi.getByGenre(99, 'movie', pageParam);
 
-    const sentinelRef = useRef(null);
-    const isInView = useInView(sentinelRef);
+            // TV Mappings
+            case "day1": return contentApi.getDayOneDrops('tv');
+            case "fresh": return contentApi.getFresh('tv', pageParam);
+            case "bangers": return contentApi.getBangers('tv', pageParam);
+            case "underrated": return contentApi.getUnderrated('tv', pageParam);
+            case "classics": return contentApi.getClassics('tv', pageParam);
+            case "drama": return contentApi.getByGenre(18, 'tv', pageParam);
+            case "comedy": return contentApi.getByGenre(35, 'tv', pageParam);
+            case "crime": return contentApi.getByGenre(80, 'tv', pageParam);
+            case "bg_scifi": return contentApi.getByGenre(10765, 'tv', pageParam);
+            case "reality": return contentApi.getByGenre(10764, 'tv', pageParam);
 
-    const loadMore = async () => {
-        if (loading || !hasMore) return;
-        setLoading(true);
+            // Movie Mappings (if duplicate IDs exist, we need smarter mapping, but current IDs are unique enough)
+            case "popular_movies": return contentApi.discover({ sort_by: 'popularity.desc', page: pageParam }, 'movie');
+            case "top_rated_movies": return contentApi.discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 1000, page: pageParam }, 'movie');
 
-        try {
-            let newItems: Content[] = [];
-            const isMovie = title.toLowerCase().includes("movie") || title.toLowerCase().includes("film");
-            const isAnime = title.toLowerCase().includes("anime");
-            const type = isAnime ? 'anime' : (isMovie ? 'movie' : 'tv');
+            // Add Anime page specific mappings if needed (e.g. shonen, seinen)
+            // For now 'anime' covers the main one.
 
-            if (title.includes("Trending") || title.includes("Hot")) {
-                newItems = await contentApi.getTrending(); // Trending doesn't always support pagination in the simple wrapper, depends on API update
-            } else if (title.includes("Popular Series")) {
-                newItems = await contentApi.getPopularTV();
-            } else if (title.includes("Bangers")) {
-                newItems = await contentApi.getBangers(type as any, page);
-            } else if (title.includes("Classics")) {
-                newItems = await contentApi.getClassics(type as any, page);
-            } else if (title.includes("Underrated") || title.includes("Gems")) {
-                newItems = await contentApi.getUnderrated(type as any, page);
-            } else if (title.includes("Fresh") || title.includes("New")) {
-                newItems = await contentApi.getFresh(type as any, page);
-            } else if (title.includes("Day 1")) {
-                newItems = await contentApi.getDayOneDrops(type as any); // Usually just 1 page
-                setHasMore(false);
-            } else if (isAnime) {
-                newItems = await contentApi.getAnime(page);
-            } else {
-                // Fallback to trending or genre based logic if needed
-                newItems = await contentApi.getTrending();
-            }
-
-            if (newItems.length === 0) {
-                setHasMore(false);
-            } else {
-                // Deduplicate
-                setItems(prev => {
-                    const existingIds = new Set(prev.map(i => i.id));
-                    const uniqueNew = newItems.filter(i => !existingIds.has(i.id));
-                    return [...prev, ...uniqueNew];
-                });
-                setPage(prev => prev + 1);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
+            default: return [];
         }
     };
 
-    useEffect(() => {
-        loadMore();
-    }, []); // Initial load
+    const {
+        data,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        status
+    } = useInfiniteQuery({
+        queryKey: ["view-all", railId],
+        queryFn: fetchContent,
+        getNextPageParam: (lastPage, allPages) => {
+            return lastPage.length > 0 ? allPages.length + 1 : undefined;
+        },
+        initialPageParam: 1,
+        staleTime: 1000 * 60 * 5 // 5 mins
+    });
 
     useEffect(() => {
-        if (isInView) {
-            loadMore();
+        if (inView && hasNextPage) {
+            fetchNextPage();
         }
-    }, [isInView]);
+    }, [inView, hasNextPage, fetchNextPage]);
+
+    const items = data?.pages.flat() || [];
 
     return (
-        <div className="min-h-screen pt-24 px-4 lg:px-12 pb-20">
+        <div className="min-h-screen bg-[#141414] pt-24 px-4 md:px-12 pb-20">
             <div className="flex items-center gap-4 mb-8">
-                <button
-                    onClick={() => router.back()}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                >
-                    <ArrowLeft className="text-white" />
-                </button>
-                <h1 className="text-3xl font-bold text-white tracking-tight">{title}</h1>
+                <Link href="/browse" className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 transition">
+                    <ChevronLeft size={24} className="text-white" />
+                </Link>
+                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{title}</h1>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {items.map((item) => (
-                    <div key={item.id} className="aspect-[2/3]">
-                        <ContentCard item={item} />
-                    </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+                {items.map((item: Content, i: number) => (
+                    <ContentCard key={`${item.id}-${i}`} item={item} />
                 ))}
             </div>
 
-            {loading && (
-                <div className="w-full py-12 flex justify-center">
-                    <Loader2 className="animate-spin text-red-500" size={32} />
-                </div>
-            )}
-
-            {!loading && hasMore && <div ref={sentinelRef} className="h-20" />}
-
-            {!loading && !hasMore && items.length > 0 && (
-                <p className="text-zinc-500 text-center py-12">You've reached the end of the line.</p>
-            )}
+            {/* Spinner or End Message */}
+            <div ref={ref} className="h-24 flex items-center justify-center mt-12">
+                {isFetchingNextPage ? (
+                    <div className="h-8 w-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                ) : hasNextPage ? (
+                    <span className="text-zinc-500 text-sm">Scroll for more</span>
+                ) : items.length > 0 ? (
+                    <span className="text-zinc-600 text-sm">End of list</span>
+                ) : (
+                    status !== 'pending' && <span className="text-zinc-500">No content found.</span>
+                )}
+            </div>
         </div>
     );
 }

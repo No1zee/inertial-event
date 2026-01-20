@@ -1,5 +1,9 @@
-import { Navbar } from "@/components/layout/Navbar"; // New Navbar was likely created in lowercase 'layout' or 'Layout' depending on order. Check later.
+"use client";
+
+import { Suspense } from "react";
+import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ErrorBoundary } from "@/components/UI/ErrorBoundary";
 
 export default function DashboardLayout({
     children,
@@ -7,16 +11,20 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="min-h-screen bg-zinc-950 text-white selection:bg-red-500/30">
+        <div className="min-h-screen bg-zinc-950 text-white">
             <Sidebar />
-
-            {/* Main Content Area */}
-            {/* Main Content Area */}
-            <div className="transition-[padding] duration-300 ease-in-out lg:pl-20">
+            <div className="">
                 <Navbar />
-                <main className="w-full animate-in fade-in duration-500">
-                    {children}
+                <main className="w-full">
+                    <Suspense fallback={
+                        <div className="min-h-screen flex items-center justify-center">
+                            <div className="text-white text-xl">Loading...</div>
+                        </div>
+                    }>
+                        {children}
+                    </Suspense>
                 </main>
+                {/* <ContentModal /> */}
             </div>
         </div>
     );

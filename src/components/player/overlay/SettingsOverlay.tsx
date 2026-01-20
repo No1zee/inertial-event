@@ -98,7 +98,7 @@ export default function SettingsOverlay({
     );
 
     return (
-        <div className="absolute inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="absolute inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="bg-zinc-900 border border-white/10 p-4 rounded-xl shadow-2xl animate-in fade-in zoom-in duration-200">
                 {activeTab === 'main' && renderMain()}
                 {activeTab === 'quality' && renderList("Quality", qualities, onQualityChange, (q) => q.label, (q) => q.active)}

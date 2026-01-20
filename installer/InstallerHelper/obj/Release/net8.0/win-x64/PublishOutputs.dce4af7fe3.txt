@@ -1,0 +1,2 @@
+C:\Users\Edward Magejo\.gemini\antigravity\playground\inertial-event\installer\InstallerHelper\bin\Release\net8.0\win-x64\publish\InstallerHelper.pdb
+C:\Users\Edward Magejo\.gemini\antigravity\playground\inertial-event\installer\InstallerHelper\bin\Release\net8.0\win-x64\publish\InstallerHelper.exe

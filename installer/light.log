@@ -1,0 +1,231 @@
+Windows Installer XML Toolset Linker version 3.14.1.8722
+Copyright (c) .NET Foundation and contributors. All rights reserved.
+
+Updating file information.
+Creating cabinet files.
+There will be '12' threads used to produce CAB files.
+Creating cabinet 'C:\Users\Edward Magejo\AppData\Local\Temp\emqyyc05\#cab1.cab'.
+Generating database.
+Merging modules.
+Validating database.
+ICE01: ICE01 - Simple ICE that doesn't test anything
+ICE01: Created 04/29/1998. Last Modified 08/17/1998.
+ICE01: Called at 13:45:17.
+ICE02: ICE02 - ICE to test circular references in File and Component tables
+ICE02: Created 05/18/1998. Last Modified 10/12/1998.
+ICE03: ICE03 - ICE to perform data validation and foreign key references
+ICE03: Created 05/19/1998. Last Modified 10/03/2001.
+ICE04: ICE04 - ICE to validate File table sequences according to Media table
+ICE04: Created 05/19/1998. Last Modified 09/24/1998.
+ICE04: Max Sequence in Media Table is 1
+ICE05: ICE05 - ICE to validate that required data exists in certain tables.
+ICE05: Created 05/20/1998. Last Modified 01/26/1999.
+ICE06: ICE06 - ICE that looks for missing columns in database tables
+ICE06: Created 05/20/1998. Last Modified 02/18/1999.
+ICE07: ICE07 - ICE that ensures that fonts are installed to the fonts folder. Only checked if you have a Font table
+ICE07: Created 05/21/1998. Last Modified 02/18/1999.
+ICE09: ICE09 - Checks for components whose Directory is the System directory but aren't set as system components 
+ICE09: Created 05/21/98. Last Modified 10/09/2000.
+ICE10: ICE10 - ICE that ensures that advertise states of feature childs and parents match
+ICE10: Created 05/22/1998. Last Modified 10/02/2000.
+ICE11: ICE11 - ICE that validates the Product Code of a nested install (advertised MSI) custom action type
+ICE11: Created 05/22/1998. Last Modified 08/17/1998.
+ICE12: ICE12 - ICE that validates the Property type custom actions
+ICE12: Created 05/29/1998. Last Modified 01/14/2000.
+ICE13: ICE13 - ICE that validates that no dialogs are listed in the *ExecuteSequence tables
+ICE13: Created 06/08/1998. Last Modified 08/17/1998.
+ICE14: ICE14 - ICE that ensures that Feature_Parents do not have the ifrsFavorParent attribute set
+ICE14: Created 06/08/1998. Last Modified 01/27/1999.
+ICE15: ICE15 - ICE that ensures that a circular reference exists between the Mime and Extension tables
+ICE15: Created 06/11/1998. Last Modified 01/05/1999.
+ICE16: ICE16 - ICE that ensures that the ProductName in the Property table is less than 64 characters for downlevel targeting packages (schema 200) and less than 260 characters for uplevel targeting packages (schema >= 300)
+ICE16: Created 06/11/1998. Last Modified 04/11/2007.
+ICE17: ICE17 - ICE that validates foreign key dependencies based upon control types in the Control table.
+ICE17: Created 06/16/1998. Last Modified 12/21/2004.
+ICE18: ICE18 - ICE that validates the nulled KeyPath columns of the Component table.
+ICE18: Created 06/18/1998. Last Modified 03/24/1999.
+ICE19: ICE19 - ICE that validates that ComponentIDs and KeyPaths for advertising.
+ICE19: Created 06/18/1998. Last Modified 01/21/1999.
+ICE20: ICE20 - ICE that validates for Standard Dialogs if UI is authored.
+ICE20: Created 06/25/1998. Last Modified 10/04/1998.
+ICE21: ICE21 - ICE that validates that all components reference a feature.
+ICE21: Created 06/29/1998. Last Modified 03/02/1999.
+ICE22: ICE22 - ICE that validates that the feature and component referenced by a PublishedComponent actually map.
+ICE22: Created 06/29/1998. Last Modified 03/02/1999.
+ICE23: ICE23 - ICE that validates the tab order of all dialogs.
+ICE23: Created 07/02/1998. Last Modified 01/17/2000.
+ICE24: ICE24 - ICE that validates specific properties in the Property table.
+ICE24: Created 07/15/1998. Last Modified 01/15/2004.
+ICE25: ICE25 - ICE that validates module dependencies/exclusions.
+ICE25: Created 07/20/1998. Last Modified 08/31/1998.
+ICE26: ICE26 - ICE that validates required and prohibited actions in the Sequence tables.
+ICE26: Created 08/13/1998. Last Modified 04/06/1999.
+ICE27: ICE27 - ICE that validates sequence table organization and sequence table dependencies.
+ICE27: Created 08/04/1998. Last Modified 04/22/1999.
+ICE27: AdminExecuteSequence TABLE: Validating organization. . .
+ICE27: AdminExecuteSequence TABLE: Validating sequence of actions and dependencies. . .
+ICE27: AdminUISequence TABLE: Validating organization. . .
+ICE27: AdminUISequence TABLE: Validating sequence of actions and dependencies. . .
+ICE27: AdvtExecuteSequence TABLE: Validating organization. . .
+ICE27: AdvtExecuteSequence TABLE: Validating sequence of actions and dependencies. . .
+ICE27: AdvtUISequence table not found, skipping. . .
+ICE27: InstallExecuteSequence TABLE: Validating organization. . .
+ICE27: InstallExecuteSequence TABLE: Validating sequence of actions and dependencies. . .
+ICE27: InstallUISequence TABLE: Validating organization. . .
+ICE27: InstallUISequence TABLE: Validating sequence of actions and dependencies. . .
+ICE28: ICE28 - ICE that validates actions that can't be separated by ForceReboot.
+ICE28: Created 08/13/1998. Last Modified 10/27/1998.
+ICE29: ICE29 - ICE that validates stream names.
+ICE29: Created 08/11/1998. Last Modified 10/27/1998.
+ICE29: Stream Column Found In Binary Table
+ICE30: ICE30 - ICE that detects cross-component file collisions.
+ICE30: Create 08/25/1998. Last Modified 06/26/2001.
+ICE30: Resolving Component Paths...
+ICE30: Checking for colliding files...
+ICE31: ICE31 - ICE to verify that controls use valid text styles.
+ICE31: Created 07/24/1998. Last Modified 01/21/2005.
+ICE32: ICE32 - Confirms that keys and foreign keys are the same type/size
+ICE32: Created 07/30/98. Last Modified 10/08/98.
+ICE32: ODBCDataSource table is not in database, but is listed in the _Validation table as a foreign key of Component.KeyPath
+ICE32: Differences found = 
+ICE34: ICE34 - ICE to verify that all radio groups have a default.
+ICE34: Created 08/06/1998. Last Modified 10/27/1998.
+ICE35: ICE35 - ICE that validates that compressed files are not set RFS, and ensures they have CABs.
+ICE35: Created 08/18/1998. Last Modified 10/17/2000.
+ICE36: ICE36 - ICE that flags unused icons in the icon table, increasing performance.
+ICE36: Created 08/17/1998. Last Modified 01/17/2000.
+ICE38: ICE38 - ICE that verifes that components in the user profile use HKCU reg entries as KeyPaths.
+ICE38: Created 08/28/1998. Last Modified 01/17/2000.
+ICE39: ICE39 - ICE that validates summary information stream properties.
+ICE39: Created 09/03/1998. Last Modified 02/09/2006.
+ICE40: ICE40 - ICE that checks various miscellaneous problems.
+ICE40: Created 09/07/1998. Last Modified 12/02/2000.
+ICE41: ICE41 - ICE that verifes that Feature/Component references are valid in advertising tables.
+ICE41: Created 09/08/1998. Last Modified 09/11/1998.
+ICE42: ICE42 - ICE that verifes arguments and context values in the Class Table.
+ICE42: Created 09/10/1998. Last Modified 07/21/1999.
+ICE43: ICE43 - ICE that verifes non-advertised shortucts are in components with HKCU keypaths.
+ICE43: Created 09/27/1998. Last Modified 01/17/2000.
+ICE44: ICE44 - ICE that verifes Dialog events refer to valid Dialog entries.
+ICE44: Created 09/28/1998. Last Modified 09/30/1998.
+ICE45: ICE45 - ICE that verifes reserved bits are not set in attributes columns.
+ICE45: Created 10/01/1998. Last Modified 03/03/2008.
+ICE46: ICE46 - ICE that checks for property usage where the property differs only by case from a defined property.
+ICE46: Created 10/14/1998. Last Modified 10/02/2000.
+ICE48: ICE48 - ICE that checks for directories that are hardcoded to local drives.
+ICE48: Created 10/26/1998. Last Modified 10/26/1998.
+ICE50: ICE50 - ICE that verifies the icon extension matches the shortcut target extension.
+ICE50: Created 10/27/1998. Last Modified 10/29/1998.
+ICE51: ICE51 - ICE to verify that only TTC/TTF/OTF fonts are missing titles.
+ICE51: Created 10/28/1998. Last Modified 04/30/2008.
+ICE52: ICE52 - ICE to verify that APPSearch properties are public properties.
+ICE52: Created 11/16/1998. Last Modified 11/16/1998.
+ICE53: ICE53 - ICE to verify that registry entries do not overwrite private installer data.
+ICE53: Created 11/19/1998. Last Modified 07/21/1999.
+ICE54: ICE54 - ICE to check that Component KeyPaths are not companion files.
+ICE54: Created 12/07/1998. Last Modified 12/07/1998.
+ICE55: ICE55 - ICE to check that LockPermission objects exist and have valid permissions.
+ICE55: Created 12/14/1998. Last Modified 12/14/1998.
+ICE56: ICE56 - ICE to check that the Directory structure has a single, valid, root.
+ICE56: Created 12/15/1998. Last Modified 03/29/1999.
+ICE57: ICE57 - Checks that components contain per-machine or per-user data, but not both.
+ICE57: Created 02/11/1999. Last Modified 01/17/2000.
+ICE58: ICE58 - ICE to ensure that you have fewer than 80 entries in the Media table.
+ICE58: Created 04/08/1999. Last Modified 12/02/2000.
+ICE59: ICE59 - ICE to ensure that advertised shortcut targets install the component of the shortcut.
+ICE59: Created 04/08/1999. Last Modified 04/08/1999.
+ICE60: ICE60 - Verifies that files in the file table which are not fonts have a valid version/language.
+ICE60: Created 04/13/1999. Last Modified 10/26/2000.
+ICE61: Created 05/03/1999. Last Modified 04/19/2001
+ICE61: Verifies various elements of the Upgrade table
+ICE62: ICE62 - Performs a wide variety of IsolatedComponent checks.
+ICE62: Created 06/03/1999. Last Modified 06/21/1999.
+ICE63: ICE63 - Validates sequence restrictions on RemoveExistingProducts
+ICE63: Created 06/04/1999. Last Modified 07/21/1999.
+ICE64: ICE64 - Checks that Profile directories are listed in the RemoveFile table.
+ICE64: Created 06/07/1999. Last Modified 01/17/2000.
+ICE65: ICE65 - Checks that the Environment table does not have invalid prefix or append values.
+ICE65: Created 06/11/1999. Last Modified 06/21/1999.
+ICE67: ICE67 - Validates that shortcuts are installed by the component of their target.
+ICE67: Created 06/17/1999. Last Modified 06/21/1999.
+ICE68: ICE68 - Checks that all custom actions are of a valid type.
+ICE68: Created 06/22/1999. Last Modified 04/19/2001.
+ICE69: ICE69 - Checks for possible cross-component references with [$component] and [#filekey] literals in formatted string that could result in error
+ICE69: Created 06/22/1999. Last Modified 01/24/2006.
+ICE70: ICE70 - Checks that the characters following a # in a registry value are numeric
+ICE70: Created 07/14/1999. Last Modified 07/21/1999.
+ICE71: ICE71 - Verifies that the first media table entry starts with 1
+ICE71: Created 08/02/1999. Last Modified 08/02/1999.
+ICE72: ICE72 - Verifies that only built-in custom actions are used in the AdvtExecuteSequence table
+ICE72: Created 10/11/1999. Last Modified 10/11/1999.
+ICE73: ICE73 - Verifies that the package does not reuse package and product codes of Windows Installer SDK packages
+ICE73: Created 10/28/1999. Last Modified 11/13/2002.
+ICE74: ICE74 - ICE to ensure that the FASTOEM property does not exist in the database.
+ICE74: Created 01/14/2000. Last Modified 01/14/2000.
+ICE75: ICE75 - ICE to ensure that custom actions whose source is an installed file are sequenced after CostFinalize.
+ICE75: Created 02/08/2000. Last Modified 02/08/2000.
+ICE76: ICE76 - ICE to ensure that files associated with SFP catalogs are not in the BindImage table.
+ICE76: Created 02/25/2000. Last modified 04/11/2000.
+ICE77: ICE77 - ICE to ensure that inscript custom actions are scheduled between InstallInitialize and InstallFinalize.
+ICE77: Created 07/05/2000. Last modified 07/05/2000.
+ICE78: ICE78 - Verifies that AdvtUISequence table either does not exist or is empty.
+ICE78: Created 8/29/2000. Last Modified 8/29/2000.
+ICE79: ICE79 - Verifies that references to component and feature in conditions are valid.
+ICE79: Created 10/24/2000. Last Modified 05/22/2001.
+ICE80: ICE80 - Verifies that various Template Summary Properties are correct.
+ICE80: Created 01/17/2001. Last Modified 06/26/2001.
+ICE81: ICE81 - MsiDigitalCertificate, MsiDigitalSignature, MsiPackageCertificate and MsiPatchCertificate table validator.
+ICE81: Created 04/04/2001. Last Modified 11/20/2008.
+ICE82: ICE82 - InstallExecuteSequence validator and warns if the executeSequence tables found to use a sequence number more than once.`
+ICE82: Created 04/10/2001. Last Modified 04/10/2001.
+ICE83: ICE83 - MsiAssembly table and MsiAssemblyName table validator.
+ICE83: Created 04/10/2001. Last Modified 04/10/2001.
+ICE84: ICE84 - Verify that all required actions in sequence tables are condition-less.
+ICE84: Created 05/04/2001. Last Modified 05/04/2001.
+ICE85: ICE85 - Verify that the SourceName column of MoveFile table is a valid LFN WildCardFilename.
+ICE85: Created 05/14/2001. Last Modified 05/14/2001.
+ICE86: ICE86 - Post warning for the use of AdminUser instead of Privileged property in conditions.
+ICE86: Created 05/18/2001. Last Modified 05/22/2001.
+ICE87: ICE87 - Verifies that some properties that shouldn't be authored into the Property table are not.
+ICE87: Created 05/29/2001. Last Modified 05/29/2001.
+ICE88: ICE88 - Verifies that some properties that shouldn't be authored into the Property table are not.
+ICE88: Created 05/29/2001. Last Modified 05/29/2001.
+ICE89: ICE89 - Verifies that the Progid_Parent column in ProgId table is a valid foreign key into the ProgId column.
+ICE89: Created 06/06/2001. Last Modified 06/06/2001.
+ICE90: ICE90 - Warns user of cases where a shortcut's directory is a public property (ALL CAPS) that is under a profile directory. This results in a problem if the value of the ALLUSERS property changes in the UI sequence.
+ICE90: Created 06/08/2001. Last Modified 06/08/2001.
+ICE91: ICE91 - Warns user of cases where a file (or INI entry, shortcut) is explicitly installed into a per-user profile directory that doesn't vary based on the ALLUSERS value. These files will not be copied into each user's profile.
+ICE91: Created 06/11/2001. Last Modified 06/11/2001.
+ICE92: ICE92 - Verifies that a component marked permanent has a GUID and does not have supersedence attribute marked.
+ICE92: Created 06/12/2001. Last Modified 04/23/2007.
+ICE93: ICE93 - Verifies that a custom action doesn't use the same name as a standard action.
+ICE93: Created 06/13/2001. Last Modified 06/13/2001.
+ICE94: ICE94 - Verifies that there are no non-advertised shortcuts to assembly files in the global assembly cache.
+ICE94: Created 06/18/2001. Last Modified 06/18/2001.
+ICE95: ICE95 - Verifies that Billboard control items fit into all the Billboards.
+ICE95: Created 06/19/2001. Last Modified 06/19/2001.
+ICE96: ICE96 - Verifies that PublishFeatures and PublishProduct actions are authored in AdvtExecuteSequence table.
+ICE96: Created 07/20/2001. Last Modified 07/20/2001.
+ICE97: ICE97 - Verifies that 2 components do not isolate a shared component to the same directory
+ICE97: Created 09/26/2002. Last Modified 09/26/2002.
+ICE98: ICE98 - Verifies that DSNs using the ODBCDataSource table do not contain invalid characters nor do they exceed the maximum length.
+ICE98: Created 06/02/2004. Last Modified 06/02/2004.
+ICE99: ICE99 - Verifies that names in the Directory table are not part of the set of MSI Public Properties
+ICE99: Created 06/18/2004. Last Modified 06/18/2004.
+ICE100: ICE100 - Validates the MsiEmbeddedUI Table, checking for duplicate filenames and validity of order values, attributes, etc.
+ICE100: Created 04/02/2007. Last Modified 04/02/2007.
+ICE101: ICE101 - Verifies that feature names are limited to 38 characters
+ICE101: Created 03/06/2007. Last Modified 03/06/2007.
+ICE102: ICE102 - Validates the MsiServiceConfig and MsiServiceConfigFailureActions tables
+ICE102: Created 10/25/2007. Last Modified 10/26/2007.
+ICE103: ICE103 - Validates the MsiPrint and MsiLaunchApp control events
+ICE103: Created 01/14/2008. Last Modified 01/14/2008.
+ICE104: ICE104 - Validates the MsiLockPermissionsEx table
+ICE104: Created 02/14/2008. Last Modified 02/16/2008.
+ICE105: ICE105 - Validates the package to make sure that it can be installed in true Per-User mode
+ICE105: Created 05/01/2008. Last Modified 05/21/2008.
+Validation complete: 13,964ms elapsed.
+Laying out media.
+Moving file 'C:\Users\Edward Magejo\AppData\Local\Temp\emqyyc05\NovaStream_Setup.msi' to 'C:\Users\Edward Magejo\.gemini\antigravity\playground\inertial-event\installer\NovaStream_Setup.msi'.
+The destination file 'C:\Users\Edward Magejo\.gemini\antigravity\playground\inertial-event\installer\NovaStream_Setup.msi' already exists, attempting to remove it.
+Moving file 'C:\Users\Edward Magejo\AppData\Local\Temp\emqyyc05\NovaStream_Setup.msi' to 'C:\Users\Edward Magejo\.gemini\antigravity\playground\inertial-event\installer\NovaStream_Setup.msi'.

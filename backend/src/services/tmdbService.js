@@ -15,10 +15,13 @@ class TmdbService {
     }
 
     get headers() {
-        return {
-            Authorization: `Bearer ${this.readToken}`,
+        const h = {
             accept: 'application/json'
         };
+        if (this.readToken) {
+            h.Authorization = `Bearer ${this.readToken}`;
+        }
+        return h;
     }
 
     async getTrending() {
@@ -28,7 +31,12 @@ class TmdbService {
                 throw new Error('TMDB API Key missing');
             }
 
-            const response = await axios.get(`${this.baseUrl}/trending/all/day?language=en-US`, {
+            let url = `${this.baseUrl}/trending/all/day?language=en-US`;
+            if (!this.readToken && this.apiKey) {
+                url += `&api_key=${this.apiKey}`;
+            }
+
+            const response = await axios.get(url, {
                 headers: this.headers
             });
 
@@ -53,13 +61,19 @@ class TmdbService {
             const cleanId = id.replace('tmdb_', '');
             // Try movie first
             try {
-                const response = await axios.get(`${this.baseUrl}/movie/${cleanId}?language=en-US`, {
+                let movieUrl = `${this.baseUrl}/movie/${cleanId}?language=en-US`;
+                if (!this.readToken && this.apiKey) movieUrl += `&api_key=${this.apiKey}`;
+                
+                const response = await axios.get(movieUrl, {
                     headers: this.headers
                 });
                 return this.transformTmdbItem({ ...response.data, media_type: 'movie' });
             } catch (movieError) {
                 // If 404, try TV
-                const response = await axios.get(`${this.baseUrl}/tv/${cleanId}?language=en-US`, {
+                let tvUrl = `${this.baseUrl}/tv/${cleanId}?language=en-US`;
+                if (!this.readToken && this.apiKey) tvUrl += `&api_key=${this.apiKey}`;
+                
+                const response = await axios.get(tvUrl, {
                     headers: this.headers
                 });
                 return this.transformTmdbItem({ ...response.data, media_type: 'tv' });
@@ -72,7 +86,10 @@ class TmdbService {
 
     async search(query) {
         try {
-            const response = await axios.get(`${this.baseUrl}/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`, {
+            let searchUrl = `${this.baseUrl}/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`;
+            if (!this.readToken && this.apiKey) searchUrl += `&api_key=${this.apiKey}`;
+            
+            const response = await axios.get(searchUrl, {
                 headers: this.headers
             });
             return response.data.results

@@ -45,7 +45,7 @@ class SourceService {
             const results = await Promise.allSettled([
                 vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type), // Pass type
                 // consumetService.getStreamingLinks(contentId), // Disable strictly to test vidlink, or keep? let's keep.
-                torrentService.getSources(title, episodeNumber, seasonNumber)
+                // torrentService.getSources(contentId, episodeNumber, seasonNumber, type) // DISABLED via User Request ("Scrap torrenting")
             ]);
 
             const aggregated: IProviderResponse = {
@@ -110,6 +110,10 @@ class SourceService {
                 subtitles: []
             };
         }
+    }
+
+    async verifySourceHealth(url: string): Promise<boolean> {
+        return true; // Simple mock for now
     }
 }
 

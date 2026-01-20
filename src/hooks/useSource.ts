@@ -4,7 +4,7 @@ import sourceProvider from '../services/sourceProvider';
 interface StreamSource {
     url: string;
     quality: string;
-    type: 'hls' | 'mp4' | 'torrent';
+    type: 'hls' | 'mp4' | 'torrent' | 'embed';
 }
 
 export const useSource = (content: { id: string; title: string; type: 'movie' | 'tv' | 'anime' | 'series' } | null) => {

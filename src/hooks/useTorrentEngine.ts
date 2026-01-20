@@ -6,6 +6,7 @@ declare global {
             ipcRenderer: {
                 invoke: (channel: string, data?: any) => Promise<any>;
                 on: (channel: string, func: (...args: any[]) => void) => void;
+                log: (msg: string) => void;
             }
         }
     }
@@ -23,10 +24,23 @@ export const useTorrentEngine = () => {
         setError(null);
         let lastError = null;
 
+        if (window.electron && window.electron.ipcRenderer.log) {
+            window.electron.ipcRenderer.log(`Hooks: Starting torrent request...`);
+        }
+
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
                 console.log(`[AG] Torrent Attempt ${attempt}/${MAX_RETRIES}`);
+                if (window.electron && window.electron.ipcRenderer.log) {
+                    window.electron.ipcRenderer.log(`Hooks: Invoke torrent:start-stream (Attempt ${attempt})`);
+                }
+                
                 const res = await window.electron.ipcRenderer.invoke('torrent:start-stream', { magnetUri: magnet });
+                
+                if (window.electron && window.electron.ipcRenderer.log) {
+                    window.electron.ipcRenderer.log(`Hooks: Response received. Success: ${res.success}, URL: ${res.streamUrl}`);
+                }
+
                 if (res.success) {
                     setRetryCount(0);
                     setLoading(false);
@@ -35,6 +49,9 @@ export const useTorrentEngine = () => {
             } catch (err: any) {
                 lastError = err.message || 'IPC Timeout';
                 console.warn(`[AG] Torrent Attempt ${attempt} failed:`, lastError);
+                if (window.electron && window.electron.ipcRenderer.log) {
+                    window.electron.ipcRenderer.log(`Hooks: Error on attempt ${attempt}: ${lastError}`);
+                }
             }
 
             if (attempt < MAX_RETRIES) {

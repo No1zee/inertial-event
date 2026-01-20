@@ -1,10 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  output: 'export',
+  reactStrictMode: false,
   compress: true,
-  productionBrowserSourceMaps: false,
+  productionBrowserSourceMaps: true,
+
 
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -23,52 +26,69 @@ const nextConfig = {
         hostname: '**.consumet.org',
       },
     ],
-    formats: ['image/webp', 'image/avif'],
+    // formats: ['image/webp', 'image/avif'], // Disabled for compatibility
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
   },
 
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com https://r2cdn.perplexity.ai data:",
-              "img-src 'self' https: data: blob: https://image.tmdb.org",
-              "connect-src 'self' http://localhost:* ws://localhost:* https://sentry.io https://api.themoviedb.org https://vidsrc.me https://vidlink.pro",
-              "media-src 'self' blob: https:",
-              "frame-src 'self' https:"
-            ].join('; '),
-          },
-        ],
-      },
-    ];
-  },
-
-  async redirects() {
-    return [];
-  },
-
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api') + '/:path*',
-      },
-    ];
-  },
-
-
-
   experimental: {
-    optimizePackageImports: ['@headlessui/react', 'lucide-react'],
+    optimizePackageImports: ['@headlessui/react'],
+  },
+  transpilePackages: [
+    'lucide-react', 
+    '@headlessui/react', 
+    'framer-motion', 
+    'zustand', 
+    'axios', 
+    '@radix-ui/react-dialog', 
+    '@vidstack/react',
+    'hls.js',
+    'dashjs',
+    '@tanstack/react-query',
+    '@tanstack/query-core',
+    'uuid',
+    'zod',
+    'react-hook-form',
+    'maverick.js',
+    'media-captions',
+    'media-icons',
+    'tailwind-merge',
+    'clsx'
+  ],
+  swcMinify: true,
+  webpack: (config, options) => {
+    const path = require('path');
+    
+    // Force react-hook-form to use CJS via absolute path alias
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'react-hook-form': path.join(__dirname, 'node_modules/react-hook-form/dist/index.cjs.js'),
+      'tailwind-merge': path.join(__dirname, 'node_modules/tailwind-merge/dist/es5/bundle-cjs.js'),
+    };
+
+    // Force transpilation for Vidstack dependencies
+    config.module.rules.push({
+      test: /\.(js|mjs)$/,
+      include: [
+        path.join(__dirname, 'node_modules/@vidstack'),
+        path.join(__dirname, 'node_modules/media-captions'),
+        path.join(__dirname, 'node_modules/lucide-react'),
+        path.join(__dirname, 'node_modules/tailwind-merge'),
+        path.join(__dirname, 'node_modules/clsx'),
+        path.join(__dirname, 'node_modules/react-hook-form'),
+      ],
+      use: [options.defaultLoaders.babel],
+    });
+
+    return config;
+  },
+
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

@@ -39,7 +39,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
     }, [content]);
 
     const handlePlay = () => {
-        router.push(`/watch/${content.id || content._id}`);
+        router.push(`/watch?id=${content.id || content._id}&type=${content.type || 'movie'}`);
     };
 
     if (!items.length) return null;

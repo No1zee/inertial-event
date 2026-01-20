@@ -62,20 +62,29 @@ export default function TVShowsPage() {
                     <AsyncRail key={config.id} config={config} />
                 ))}
             </div>
-            <ContentModal />
         </div>
     );
 }
 
-function AsyncRail({ config }: { config: any }) {
-    const { data, isLoading } = useQuery({
+import { Content } from "@/lib/types/content";
+
+// ... existing code ...
+
+interface RailConfig {
+    id: string;
+    title: string;
+    fetcher: () => Promise<Content[]>;
+}
+
+function AsyncRail({ config }: { config: RailConfig }) {
+    const { data, isLoading } = useQuery<Content[]>({
         queryKey: ["rail", "tv", config.id],
-        queryFn: config.fetcher,
+        queryFn: () => config.fetcher(),
         staleTime: 1000 * 60 * 30
     });
 
     if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-    if (!data || data.length === 0) return null;
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
 
-    return <ContentRail title={config.title} items={data} />;
+    return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

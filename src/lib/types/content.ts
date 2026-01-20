@@ -8,7 +8,11 @@ export interface Content {
     releaseDate: string;
     type: 'movie' | 'tv' | 'anime';
     genres: string[];
-    duration?: number; // in minutes
+    lastAirDate?: string;
+    progress?: number; // Current playback time in seconds
+    lastWatched?: number; // Timestamp
+    addedAt?: number; // Timestamp
+    duration?: number; // Total duration in seconds (already exists, verify type)
     seasons?: number;
     episodes?: number;
     status: 'ongoing' | 'completed';
@@ -19,6 +23,18 @@ export interface Content {
     cast?: CastMember[];
     recommendations?: Content[];
     trailer?: string;
+    popularity?: number;
+    belongsToCollection?: {
+        id: number;
+        name: string;
+        poster_path: string;
+        backdrop_path: string;
+    };
+    ratings?: {
+        imdb?: { score: number; votes?: number };
+        rottenTomatoes?: { score: number; state: 'fresh' | 'rotten' | 'certified' };
+        metacritic?: number;
+    };
 }
 
 export interface CastMember {

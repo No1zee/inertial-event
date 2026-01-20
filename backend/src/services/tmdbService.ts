@@ -13,21 +13,35 @@ class TmdbService {
     }
 
     private get headers() {
+        if (this.readToken) {
+            return {
+                Authorization: `Bearer ${this.readToken}`,
+                accept: 'application/json'
+            };
+        }
         return {
-            Authorization: `Bearer ${this.readToken}`,
             accept: 'application/json'
         };
     }
 
+    private get params() {
+        const p: any = { language: 'en-US' };
+        if (!this.readToken && this.apiKey) {
+            p.api_key = this.apiKey;
+        }
+        return p;
+    }
+
     async getTrending(): Promise<any[]> {
         try {
-            if (!this.apiKey) {
+            if (!this.apiKey && !this.readToken) {
                 console.warn('TMDB API Key missing in process.env');
                 throw new Error('TMDB API Key missing');
             }
 
-            const response = await axios.get(`${this.baseUrl}/trending/all/day?language=en-US`, {
-                headers: this.headers
+            const response = await axios.get(`${this.baseUrl}/trending/all/day`, {
+                headers: this.headers,
+                params: this.params
             });
 
             return response.data.results.map(this.transformTmdbItem);
@@ -49,20 +63,19 @@ class TmdbService {
     async getDetails(id: string): Promise<any | null> {
         try {
             const cleanId = id.replace('tmdb_', '');
-            // Determine type by some heuristic or just try movie first then tv?
-            // For simplicity, we'll assume movie for now or pass type if possible.
-            // Actually, in a robust app we'd store type. For this "rescue" mode, try movie.
-
-            const response = await axios.get(`${this.baseUrl}/movie/${cleanId}?language=en-US`, {
-                headers: this.headers
+            
+            const response = await axios.get(`${this.baseUrl}/movie/${cleanId}`, {
+                headers: this.headers,
+                params: this.params
             });
             return this.transformTmdbItem({ ...response.data, media_type: 'movie' });
         } catch (error) {
             console.warn('TMDB Details Fetch Error (Movie), trying TV:', id);
             try {
                 const cleanId = id.replace('tmdb_', '');
-                const response = await axios.get(`${this.baseUrl}/tv/${cleanId}?language=en-US`, {
-                    headers: this.headers
+                const response = await axios.get(`${this.baseUrl}/tv/${cleanId}`, {
+                    headers: this.headers,
+                    params: this.params
                 });
                 return this.transformTmdbItem({ ...response.data, media_type: 'tv' });
             } catch (tvError) {
@@ -73,8 +86,14 @@ class TmdbService {
 
     async search(query: string): Promise<any[]> {
         try {
-            const response = await axios.get(`${this.baseUrl}/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`, {
-                headers: this.headers
+            const response = await axios.get(`${this.baseUrl}/search/multi`, {
+                headers: this.headers,
+                params: {
+                    ...this.params,
+                    query: encodeURIComponent(query),
+                    include_adult: false,
+                    page: 1
+                }
             });
             return response.data.results
                 .filter((i: any) => i.media_type === 'movie' || i.media_type === 'tv')
@@ -100,6 +119,24 @@ class TmdbService {
             genres: item.genre_ids, // Would need mapping, effectively raw for now
             sources: [] // TMDB doesn't provide stream links
         };
+    }
+    // Helper to get external IDs (IMDB) for Torrentio
+    async getExternalIds(tmdbId: string, type: 'movie' | 'tv'): Promise<string | null> {
+        try {
+            const cleanId = tmdbId.replace('tmdb_', '');
+            const response = await axios.get(`${this.baseUrl}/${type}/${cleanId}/external_ids`, {
+                headers: this.headers,
+                params: this.params
+            });
+            return response.data.imdb_id || null;
+        } catch (error: any) {
+            // Enhanced logging for this specific failure
+            console.warn(`Failed to get External IDs for ${tmdbId}: ${error.message}`);
+            if (error.response) {
+                console.warn('TMDB Response:', error.response.data);
+            }
+            return null;
+        }
     }
 }
 

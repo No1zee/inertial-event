@@ -1,0 +1,15 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.novastream.keygen
+productName: NovaStream Keygen
+files:
+  - filter:
+      - '**/*'
+      - '!admin-dashboard/node_modules'
+      - '!admin-dashboard/src'
+      - '!admin-dashboard/public'
+      - '!test-flow.js'
+win:
+  target: nsis
+electronVersion: 40.0.0

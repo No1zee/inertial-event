@@ -6,39 +6,58 @@ import routes from './routes/index.js';
 
 dotenv.config();
 
+
+process.on('uncaughtException', (err) => {
+    console.error('FATAL: Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('FATAL: Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const app = express();
 const PORT = process.env.BACKEND_PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
+app.use((req, res, next) => {
+    console.error(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
+
+
 // API Routes
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.use('/api', routes);
 
 // DB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/novastream';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const connectDB = async () => {
+    if (!MONGODB_URI) {
+        console.warn('⚠️ No MONGODB_URI set. Starting in MOCK DB mode (Stateless).');
+        return;
+    }
+
     try {
         await mongoose.connect(MONGODB_URI);
         console.log('✅ Connected to MongoDB');
     } catch (err: any) {
         console.error('❌ MongoDB Connection Error:', err.message);
         if (process.env.NODE_ENV !== 'production') {
-            console.warn('⚠️ Starting in MOCK DB mode. Data will NOT persist between restarts.');
-            // Monkeypatch Mongoose or handle gracefully at controller level
-            // For now, we just log and proceed, but in a real app we'd swap the provider.
-        } else {
-            process.exit(1);
+            console.warn('⚠️ Falling back to MOCK DB mode.');
         }
     }
 };
 
 connectDB();
 
-app.listen(PORT, () => {
-    console.log(`🚀 Backend server running on http://localhost:${PORT}`);
-});
+// Handle local server start (Vercel will ignore this and use the exported app)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(Number(PORT), '0.0.0.0', () => {
+        console.log(`🚀 Backend server running on http://localhost:${PORT}`);
+    });
+}
 
 export default app;

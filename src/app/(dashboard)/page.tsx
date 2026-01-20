@@ -7,27 +7,26 @@ import { Hero } from "@/components/content/Hero";
 import { ContentRail } from "@/components/content/ContentRail";
 import { contentApi } from "@/lib/api/content";
 import { useUIStore } from "@/lib/store/uiStore";
-import { ContentModal } from "@/components/content/ContentModal";
+import { useHistoryStore } from "@/lib/store/historyStore";
+import { useWatchlistStore } from "@/lib/store/watchlistStore";
 import { Content } from "@/lib/types/content";
+import { useTrending, useSimilar } from "@/hooks/queries/useContent";
 
 // Rails Configuration
 const RAIL_CONFIGS = [
     { id: "trending", title: "Trending Now", fetcher: contentApi.getTrending },
-    { id: "popular_tv", title: "Popular Series", fetcher: contentApi.getPopularTV },
-    { id: "scifi", title: "Sci-Fi & Fantasy", fetcher: () => contentApi.getByGenre(878, 'movie') },
-    { id: "action", title: "Top Rated Action", fetcher: () => contentApi.getByGenre(28, 'movie') },
-
+    { id: "popular_tv", title: "Most Popular Series", fetcher: contentApi.getPopularTV },
+    { id: "scifi", title: "Sci-Fi & Fantasy Worlds", fetcher: () => contentApi.getByGenre(878, 'movie') },
+    { id: "action", title: "High Octane Action", fetcher: () => contentApi.getByGenre(28, 'movie') },
     // New Dynamic Collections
-    { id: "cbm", title: "Comic Book Movies", fetcher: () => contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc' }, 'movie') }, // Superhero keyword
-    { id: "a24", title: "Kinda A24", fetcher: () => contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc' }, 'movie') },
-    { id: "romcom", title: "Rom Coms", fetcher: () => contentApi.discover({ with_genres: '10749,35', sort_by: 'popularity.desc' }, 'movie') },
+    { id: "cbm", title: "Superheroes & Villains", fetcher: () => contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc' }, 'movie') },
+    { id: "a24", title: "Indie Gems", fetcher: () => contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc' }, 'movie') },
+    { id: "romcom", title: "Rom-Com Favorites", fetcher: () => contentApi.discover({ with_genres: '10749,35', sort_by: 'popularity.desc' }, 'movie') },
+    { id: "short", title: "Quick Watch (< 100m)", fetcher: contentApi.getShortAndSweet },
+    { id: "feelgood", title: "Feel Good Movies", fetcher: contentApi.getFeelGood },
     { id: "horror", title: "Late Night Horror", fetcher: () => contentApi.getByGenre(27, 'movie') },
-    { id: "anime", title: "Anime Hits", fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv') }, // Anime keyword
-    { id: "comedy", title: "Comedy Specials", fetcher: () => contentApi.getByGenre(35, 'movie') },
+    { id: "anime", title: "Anime Hits", fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv') },
     { id: "docu", title: "Mind-Blowing Docs", fetcher: () => contentApi.getByGenre(99, 'movie') },
-    { id: "drama", title: "Award Winning Dramas", fetcher: () => contentApi.getByGenre(18, 'movie') },
-    { id: "thriller", title: "Psychological Thrillers", fetcher: () => contentApi.getByGenre(53, 'movie') },
-    { id: "family", title: "Watch Together", fetcher: () => contentApi.getByGenre(10751, 'movie') },
 ];
 
 export default function DashboardPage() {
@@ -49,11 +48,7 @@ export default function DashboardPage() {
     }, [isInView, visibleCount]);
 
     // Fetch Heading Data (Trending) for Hero
-    const { data: trending } = useQuery({
-        queryKey: ["trending", "hero"],
-        queryFn: contentApi.getTrending,
-        staleTime: 1000 * 60 * 10
-    });
+    const { data: trending } = useTrending();
 
     const [heroItems, setHeroItems] = useState<Content[]>([]);
 
@@ -70,7 +65,14 @@ export default function DashboardPage() {
             <Hero items={heroItems} />
 
             {/* Content Rails */}
-            <div className="relative z-10 -mt-20 space-y-12 pl-4 lg:pl-12 opacity-95">
+            <div className="relative z-10 -mt-12 sm:-mt-24 space-y-8 md:space-y-10 pb-24">
+
+                {/* Continue Watching Rail */}
+                <ContinueWatchingRail />
+
+                {/* Because You Watched Rail */}
+                <BecauseYouWatchedRail />
+
                 {RAIL_CONFIGS.slice(0, visibleCount).map((config) => (
                     <AsyncRail key={config.id} config={config} />
                 ))}
@@ -82,35 +84,59 @@ export default function DashboardPage() {
                     </div>
                 )}
             </div>
-
-            <ContentModal />
         </div>
     );
 }
 
-// Wrapper for individual rails to handle their own data fetching
-function AsyncRail({ config }: { config: any }) {
+interface RailConfig {
+    id: string;
+    title: string;
+    fetcher: () => Promise<Content[]>;
+}
+
+function AsyncRail({ config }: { config: RailConfig }) {
     const { data, isLoading } = useQuery<Content[]>({
         queryKey: ["rail", config.id],
-        queryFn: config.fetcher,
+        queryFn: () => config.fetcher(),
         staleTime: 1000 * 60 * 30, // Cache for 30 mins
-        refetchOnWindowFocus: false
+        refetchOnWindowFocus: false,
+        retry: 1
     });
 
     if (isLoading) {
-        return (
-            <div className="space-y-4">
-                <div className="h-6 w-48 bg-zinc-800 rounded animate-pulse" />
-                <div className="flex gap-4 overflow-hidden">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-[300px] w-[200px] bg-zinc-800 rounded-xl shrink-0 animate-pulse" />
-                    ))}
-                </div>
-            </div>
-        );
+        return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
     }
 
-    if (!data || data.length === 0) return null;
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
 
-    return <ContentRail title={config.title} items={data} />;
+    return <ContentRail title={config.title} items={data} railId={config.id} />;
+}
+
+function ContinueWatchingRail() {
+    // Subscribe to history to trigger re-renders
+    const history = useHistoryStore(state => state.history);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => setMounted(true), []);
+
+    // Derive items directly from the fresh store state
+    const items = useHistoryStore.getState().getContinueWatching();
+
+    if (!mounted || items.length === 0) return null;
+
+    return <ContentRail title="Continue Watching" items={items} />;
+}
+
+function BecauseYouWatchedRail() {
+    const history = useHistoryStore(state => state.history);
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => setMounted(true), []);
+
+    const last = history[0];
+    const { data: similarItems } = useSimilar(last?.id || '', last?.type);
+
+    if (!mounted || !last || !similarItems || similarItems.length === 0) return null;
+
+    return <ContentRail title={`Because you watched ${last.title}`} items={similarItems} />;
 }

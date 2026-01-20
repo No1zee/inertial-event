@@ -1,14 +1,14 @@
-"use client";
-
-import { QueryProvider } from "./QueryProvider";
-// import { ZustandProvider } from "./ZustandProvider"; // Will implement later if needed, mostly Zustand is global hook
+import { QueryProvider } from '@/components/providers/QueryProvider';
+import { ShortcutProvider } from '@/components/providers/ShortcutProvider';
+import ContentModal from '@/components/content/ContentModal';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
     return (
         <QueryProvider>
-            {/* <ZustandProvider> */}
-            {children}
-            {/* </ZustandProvider> */}
+            <ShortcutProvider>
+                {children}
+                <ContentModal />
+            </ShortcutProvider>
         </QueryProvider>
     );
 }

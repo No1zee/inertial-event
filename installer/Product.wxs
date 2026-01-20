@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="NovaStream" Language="1033" Version="1.0.0.0" Manufacturer="NovaStream" UpgradeCode="a290b2e0-22e7-4475-9e6a-77c8375330e7">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <Feature Id="ProductFeature" Title="NovaStream" Level="1">
+            <ComponentGroupRef Id="ProductComponents" />
+            <ComponentRef Id="LicenseFile" />
+        </Feature>
+
+        <!-- UI -->
+        <UI>
+            <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        </UI>
+
+        <!-- Custom Action: License Check -->
+        <Binary Id="InstallerHelper" SourceFile="InstallerHelper\bin\Release\net8.0\win-x64\publish\InstallerHelper.exe" />
+        
+        <CustomAction Id="CheckLicense" BinaryKey="InstallerHelper" ExeCommand="" Execute="immediate" Return="check" />
+
+        <InstallExecuteSequence>
+            <Custom Action="CheckLicense" Before="InstallInitialize">NOT Installed</Custom>
+        </InstallExecuteSequence>
+
+    </Product>
+
+    <Fragment>
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="NovaStream" />
+            </Directory>
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="AppDataFolder" Name="NovaStream" />
+            </Directory>
+        </Directory>
+    </Fragment>
+
+    <Fragment>
+        <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+            <!-- Electron App Files Placeholder -->
+            <Component Id="MainExecutable" Guid="*">
+                <File Id="NovaStreamEXE" Source="..\dist\win-unpacked\NovaStream.exe" KeyPath="yes" />
+            </Component>
+        </ComponentGroup>
+
+        <Component Id="LicenseFile" Directory="AppDataFolder" Guid="*">
+            <RegistryValue Root="HKCU" Key="Software\NovaStream" Name="license_installed" Type="integer" Value="1" KeyPath="yes"/>
+            <RemoveFolder Id="RemoveAppDataFolder" Directory="AppDataFolder" On="uninstall"/>
+        </Component>
+    </Fragment>
+</Wix>

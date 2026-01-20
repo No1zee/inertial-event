@@ -10,7 +10,7 @@ export const ProviderConfig = {
         baseUrl: process.env.CONSUMET_URL || 'https://api.consumet.org'
     },
     torrent: {
-        enabled: process.env.ENABLE_TORRENT === '1',
+        enabled: process.env.ENABLE_TORRENT !== 'false',
         timeout: 15000
     },
     global: {

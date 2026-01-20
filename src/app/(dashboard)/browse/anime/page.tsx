@@ -5,14 +5,15 @@ import { useState, useEffect } from "react";
 import { Hero } from "@/components/content/Hero";
 import { ContentRail } from "@/components/content/ContentRail";
 import { contentApi } from "@/lib/api/content";
-import { ContentModal } from "@/components/content/ContentModal";
+import { Content } from "@/lib/types/content";
 
 import { useHistoryStore } from "@/lib/store/historyStore";
 
 const ANIME_RAILS = [
+    { id: "english_original", title: "Dubbed Hits & English Originals 🎤", fetcher: () => contentApi.getEnglishAnime(1) },
     { id: "popular", title: "All Time Legends 🌟", fetcher: () => contentApi.getAnime(1) },
-    { id: "simulcasts", title: "Hot Simulcasts 🔥", fetcher: () => contentApi.getAnime(2) },
     { id: "shonen", title: "Shonen Power 👊", fetcher: () => contentApi.getAnimeByGenre("with_genres=10759") }, // Action/Adventure
+    { id: "simulcasts", title: "Hot Simulcasts 🔥", fetcher: () => contentApi.getAnime(2) },
     { id: "isekai", title: "Isekai Worlds 🌍", fetcher: () => contentApi.getAnimeByGenre("with_keywords=210024") },
     { id: "sol", title: "Slice of Life 🍰", fetcher: () => contentApi.getAnimeByGenre("with_keywords=9840") },
     { id: "dark", title: "Dark Fantasy & Horror 🌑", fetcher: () => contentApi.getAnimeByGenre("with_keywords=209252") },
@@ -26,7 +27,7 @@ const ANIME_RAILS = [
 export default function AnimePage() {
     const { data: anime } = useQuery({
         queryKey: ["anime", "hero"],
-        queryFn: () => contentApi.getAnime(),
+        queryFn: () => contentApi.getEnglishAnime(), // Bias hero towards English-friendly content
         staleTime: 1000 * 60 * 10
     });
 
@@ -34,9 +35,10 @@ export default function AnimePage() {
     const lastWatched = useHistoryStore(state => state.getLastWatched());
 
     useEffect(() => {
-        // Shuffle everything for Anime
-        const shuffled = [...ANIME_RAILS].sort(() => Math.random() - 0.5);
-        setRails(shuffled);
+        // Boost English hits to the top, shuffle the rest
+        const englishHits = ANIME_RAILS[0];
+        const others = [...ANIME_RAILS.slice(1)].sort(() => Math.random() - 0.5);
+        setRails([englishHits, ...others]);
     }, []);
 
     const heroItems = anime?.slice(0, 5) || [];
@@ -44,7 +46,7 @@ export default function AnimePage() {
     return (
         <div className="min-h-screen bg-[#141414] pb-20">
             <Hero items={heroItems} />
-            <div className="relative z-10 -mt-20 space-y-12 pl-4 lg:pl-12 opacity-95">
+            <div className="relative z-10 -mt-12 sm:-mt-20 space-y-8 md:space-y-12 pl-4 lg:pl-12 opacity-95">
                 {/* Recommendations Rail */}
                 {lastWatched && (
                     <AsyncRail
@@ -60,20 +62,25 @@ export default function AnimePage() {
                     <AsyncRail key={config.id} config={config} />
                 ))}
             </div>
-            <ContentModal />
         </div>
     );
 }
 
-function AsyncRail({ config }: { config: any }) {
-    const { data, isLoading } = useQuery({
+interface RailConfig {
+    id: string;
+    title: string;
+    fetcher: () => Promise<Content[]>;
+}
+
+function AsyncRail({ config }: { config: RailConfig }) {
+    const { data, isLoading } = useQuery<Content[]>({
         queryKey: ["rail", "anime", config.id],
-        queryFn: config.fetcher,
+        queryFn: () => config.fetcher(),
         staleTime: 1000 * 60 * 30
     });
 
     if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-    if (!data || data.length === 0) return null;
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
 
-    return <ContentRail title={config.title} items={data} />;
+    return <ContentRail title={config.title} items={data} railId={config.id} />;
 }
