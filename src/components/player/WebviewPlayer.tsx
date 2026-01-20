@@ -345,10 +345,9 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
 
         const onDidFinishLoad = () => {
             if (isReadyRef.current) return;
+            isReadyRef.current = true;
             // Delay loading dismissal to hide "Fetching data..." text from providers
-            // We wait for the first State Update with valid duration instead.
-            // Safety timeout:
-            setTimeout(() => setIsLoading(false), 8000); 
+            setTimeout(() => setIsLoading(false), 2000); 
 
             // Linger controls on startup
             setShowControls(true);
@@ -1122,16 +1121,19 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                 />
             )}
 
-            {/* Interaction Layer - Intercepts clicks to prevent native controls/ads from activating */}
-            {/* Disabled for basic iframe mode if needed, but keeping for now for consistent UI */}
-            <div
-                className="absolute inset-0 z-[50]"
-                onClick={handleTogglePlay}
-                onDoubleClick={handleToggleFullscreen}
-            />
+            {/* Interaction Layer - Intercepts clicks to prevent native controls/ads from activating.
+                DISABLED on web because we can't script the iframe anyway, and it blocks native provider controls. */}
+            {isElectron && (
+                <div
+                    className="absolute inset-0 z-[50]"
+                    onClick={handleTogglePlay}
+                    onDoubleClick={handleToggleFullscreen}
+                />
+            )}
 
             <PlayerControls
-                show={showControls || playerState.isPaused || isLoading}
+                show={(showControls || playerState.isPaused || isLoading)}
+                hideBottom={!isElectron} // New prop to hide non-functional controls
                 // @ts-ignore
                 providerType={playerState.providerType}
                 tracks={playerState.tracks}

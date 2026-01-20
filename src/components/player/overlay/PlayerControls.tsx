@@ -60,6 +60,7 @@ interface PlayerControlsProps {
     qualities?: any[];
     skipParams?: { type: 'intro' | 'credits'; to: number } | null;
     onSkip?: (time: number) => void;
+    hideBottom?: boolean;
 }
 
 export default function PlayerControls({
@@ -68,6 +69,7 @@ export default function PlayerControls({
     onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute,
     onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onToggleCast,
     onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen,
+    hideBottom,
     ...props // Capture debug props
 }: PlayerControlsProps) {
 
@@ -155,56 +157,61 @@ export default function PlayerControls({
                     </div>
                 )}
 
-                {/* Progress Bar */}
-                <div className="flex items-center gap-3 mb-4 group/progress">
-                    <span className="text-xs font-medium text-white/80 w-10 text-right">{formatTimeLocal(displayTime)}</span>
-                    <input
-                        type="range"
-                        min={0}
-                        max={safeDuration || 100}
-                        value={Math.min(displayTime, safeDuration || 100)}
-                        step={0.1}
-                        onChange={onSeekChange}
-                        onMouseUp={onSeekCommit}
-                        onTouchEnd={onSeekCommit} // For mobile
-                        aria-label="Seek slider"
-                        className="flex-1 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:scale-125 transition-all"
-                    />
-                    <span className="text-xs font-medium text-white/60 w-10">{formatTimeLocal(safeDuration)}</span>
-                </div>
+                {/* Progress Bar - Only functional on Electron */}
+                {!hideBottom && (
+                    <div className="flex items-center gap-3 mb-4 group/progress">
+                        <span className="text-xs font-medium text-white/80 w-10 text-right">{formatTimeLocal(displayTime)}</span>
+                        <input
+                            type="range"
+                            min={0}
+                            max={safeDuration || 100}
+                            value={Math.min(displayTime, safeDuration || 100)}
+                            step={0.1}
+                            onChange={onSeekChange}
+                            onMouseUp={onSeekCommit}
+                            onTouchEnd={onSeekCommit} // For mobile
+                            aria-label="Seek slider"
+                            className="flex-1 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:scale-125 transition-all"
+                        />
+                        <span className="text-xs font-medium text-white/60 w-10">{formatTimeLocal(safeDuration)}</span>
+                    </div>
+                )}
 
                 {/* Main Button Row */}
                 <div className="flex items-center justify-between">
 
                     <div className="flex items-center gap-6">
-                        {/* Play/Pause */}
-                        <button onClick={onTogglePlay} aria-label={isPaused ? "Play" : "Pause"} className="p-2 hover:bg-white/10 rounded-full text-white transition-colors">
-                            {isPaused ? <Play size={32} fill="currentColor" aria-hidden="true" /> : <Pause size={32} fill="currentColor" aria-hidden="true" />}
-                        </button>
-
-                        {/* Volume */}
-                        <div className="flex items-center gap-2 group/vol">
-                            <button onClick={onToggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="text-white/80 hover:text-white">
-                                {volume === 0 ? <VolumeX size={24} aria-hidden="true" /> : <Volume2 size={24} aria-hidden="true" />}
-                            </button>
-                            <div className="w-0 overflow-hidden group-hover/vol:w-24 transition-all duration-300">
-                                <input
-                                    type="range"
-                                    min={0}
-                                    max={2.5}
-                                    step={0.1}
-                                    value={isMuted ? 0 : volume}
-                                    onChange={(e) => {
-                                        const newVolume = parseFloat(e.target.value);
-                                        onVolumeChange(newVolume);
-                                        if (isMuted && newVolume > 0) {
-                                            onToggleMute();
-                                        }
-                                    }}
-                                    className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer ml-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
-                                />
-                            </div>
-                        </div>
+                        {/* Play/Pause & Volume - Functionally restricted on Web */}
+                        {!hideBottom && (
+                            <>
+                                <button onClick={onTogglePlay} aria-label={isPaused ? "Play" : "Pause"} className="p-2 hover:bg-white/10 rounded-full text-white transition-colors">
+                                    {isPaused ? <Play size={32} fill="currentColor" aria-hidden="true" /> : <Pause size={32} fill="currentColor" aria-hidden="true" />}
+                                </button>
+        
+                                <div className="flex items-center gap-2 group/vol">
+                                    <button onClick={onToggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="text-white/80 hover:text-white">
+                                        {volume === 0 ? <VolumeX size={24} aria-hidden="true" /> : <Volume2 size={24} aria-hidden="true" />}
+                                    </button>
+                                    <div className="w-0 overflow-hidden group-hover/vol:w-24 transition-all duration-300">
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={2.5}
+                                            step={0.1}
+                                            value={isMuted ? 0 : volume}
+                                            onChange={(e) => {
+                                                const newVolume = parseFloat(e.target.value);
+                                                onVolumeChange(newVolume);
+                                                if (isMuted && newVolume > 0) {
+                                                    onToggleMute();
+                                                }
+                                            }}
+                                            className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer ml-2 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* TV SERIES NAVIGATION */}
                         {type === 'tv' && seasons && (
@@ -250,15 +257,17 @@ export default function PlayerControls({
 
                     {/* Right Side Controls (Settings, PiP & Fullscreen) */}
                     <div className="flex items-center gap-4">
-                        {/* Settings Button (Languages/Quality) */}
-                        <button
-                            onClick={onToggleSettings}
-                            aria-label="Settings"
-                            className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
-                            title="Settings (Audio & Subtitles)"
-                        >
-                            <Settings size={20} aria-hidden="true" />
-                        </button>
+                        {/* Settings Button (Languages/Quality) - Only functional on Electron */}
+                        {!hideBottom && (
+                            <button
+                                onClick={onToggleSettings}
+                                aria-label="Settings"
+                                className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
+                                title="Settings (Audio & Subtitles)"
+                            >
+                                <Settings size={20} aria-hidden="true" />
+                            </button>
+                        )}
 
                         {/* Cast Button */}
                         <button
