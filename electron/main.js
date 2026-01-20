@@ -1,6 +1,10 @@
 const { app, BrowserWindow, ipcMain, session, shell, dialog, protocol, net } = require('electron');
 const { fork } = require('child_process');
 const path = require('path');
+
+// AG: Fixes for YouTube Autoplay & Media Keys
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+app.commandLine.appendSwitch('disable-features', 'MediaSessionService'); // Prevents some media key hijacking issues
 // app.name is now 'novastream' from package.json
 // const serve = require('electron-serve');
 const axios = require('axios');
@@ -71,19 +75,26 @@ function createWindow() {
     // 4. Header Spoofing (Universal Referer Control)
     const applyRequestHeaders = (sess) => {
         sess.webRequest.onBeforeSendHeaders(
-            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*'] },
+            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.youtube-nocookie.com/*', '*://*.googlevideo.com/*'] },
             (details, callback) => {
                 const url = new URL(details.url);
                 const domain = url.hostname;
 
                 if (domain.includes('tmdb.org') || domain.includes('themoviedb.org')) {
                     details.requestHeaders['Referer'] = 'https://www.themoviedb.org/';
-                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
+                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
                     // Critical Fix for Error 152: 
                     // DO NOT send Origin. Sending a fake 'youtube.com' Origin triggers strict CORS checks.
                     // Sending NO Origin allows the embed to play as if it were a direct browser nav.
                     details.requestHeaders['Referer'] = 'https://www.youtube.com/';
                     if (details.requestHeaders['Origin']) delete details.requestHeaders['Origin'];
+                    
+                    // Strip Sec-Fetch headers to hide "embed" status
+                    delete details.requestHeaders['sec-fetch-mode'];
+                    delete details.requestHeaders['sec-fetch-site'];
+                    delete details.requestHeaders['sec-fetch-dest'];
+                    delete details.requestHeaders['sec-fetch-user'];
+
                     // [DEBUG] Log packet to help user debug functionality
                     console.log(`[AG Debug] YouTube Req: ${url.pathname} | Ref: ${details.requestHeaders['Referer']} | Origin: ${details.requestHeaders['Origin'] || 'REMOVED'}`);
                 } else {
@@ -122,7 +133,7 @@ function createWindow() {
                     const newHeaders = { ...details.responseHeaders };
 
                     // A. YouTube/Google Video Cleanup (Aggressive Stripping)
-                    if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
+                    if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
                         const keysToDelete = [
                             'permissions-policy',
                             'content-security-policy',
@@ -141,12 +152,17 @@ function createWindow() {
                     // B. General CSP Injection
                     if (newHeaders['content-security-policy']) {
                         let csp = newHeaders['content-security-policy'][0];
-                        csp = csp.replace(/connect-src/g, "connect-src proxy: app: http: ");
-                        csp = csp.replace(/img-src/g, "img-src proxy: app: http: ");
-                        csp = csp.replace(/media-src/g, "media-src proxy: app: http: blob: ");
+                        csp = csp.replace(/connect-src/g, "connect-src 'self' proxy: app: http: https: ws: wss: ");
+                        csp = csp.replace(/img-src/g, "img-src 'self' proxy: app: http: https: data: blob: ");
+                        csp = csp.replace(/media-src/g, "media-src 'self' proxy: app: http: https: blob: ");
+                        csp = csp.replace(/frame-src/g, "frame-src 'self' proxy: app: http: https: https://www.youtube.com https://www.youtube-nocookie.com ");
+                        
                         // Fallback if media-src is missing (it falls back to default-src)
                         if (!csp.includes('media-src')) {
-                            csp += "; media-src proxy: app: http: blob: 'self' https:;";
+                            csp += "; media-src 'self' proxy: app: http: https: blob:;";
+                        }
+                        if (!csp.includes('frame-src')) {
+                            csp += "; frame-src 'self' proxy: app: http: https: https://www.youtube.com https://www.youtube-nocookie.com;";
                         }
                         newHeaders['content-security-policy'] = [csp];
                     }
@@ -208,7 +224,7 @@ function createWindow() {
 
     // Block any SUBFRAME navigation (iframe) to unknown domains
     mainWindow.webContents.on('will-frame-navigate', (event, url) => {
-        const allowedHostnames = ['localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'dicebear.com'];
+        const allowedHostnames = ['localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'youtube-nocookie.com', 'dicebear.com'];
         const isAllowed = allowedHostnames.some(h => url.includes(h));
 
         if (!isAllowed) {

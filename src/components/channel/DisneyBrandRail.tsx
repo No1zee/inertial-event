@@ -4,41 +4,52 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 // Brand Data
+// Brand Data
 const BRANDS = [
     {
         id: 'disney',
         name: 'Disney',
+        companyId: '2',
         video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564674844-disney.mp4',
         image: '/providers/disney.svg', 
-        gradient: 'bg-gradient-to-b from-[#113CCF] to-[#0f1014]'
+        gradient: 'bg-gradient-to-b from-[#113CCF] to-[#0f1014]',
+        invert: false
     },
     {
         id: 'pixar',
         name: 'Pixar',
+        companyId: '3',
         video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564676714-pixar.mp4',
-        image: 'https://images.ctfassets.net/usf1vwtuqyxm/1d4x91D0F8d9d8x1d8d/5d1d8d1d8d1d8d1d8d1d8d1d8d1d8d1d/pixar.svg',
-        gradient: 'bg-gradient-to-b from-[#113CCF] to-[#0f1014]'
+        image: 'https://upload.wikimedia.org/wikipedia/commons/4/40/Pixar_logo.svg',
+        gradient: 'bg-gradient-to-b from-[#113CCF] to-[#0f1014]',
+        invert: true 
     },
     {
         id: 'marvel',
         name: 'Marvel',
+        companyId: '420',
         video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564676115-marvel.mp4',
         image: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Marvel_Logo.svg',
-        gradient: 'bg-gradient-to-b from-[#ED1D24] to-[#0f1014]'
+        gradient: 'bg-gradient-to-b from-[#ED1D24] to-[#0f1014]',
+        invert: false
     },
     {
         id: 'starwars',
         name: 'Star Wars',
+        companyId: '1',
         video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2020/12/17/1608229455-star-wars.mp4',
         image: 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Star_Wars_Logo.svg',
-        gradient: 'bg-gradient-to-b from-[#FFE81F] to-[#0f1014]'
+        gradient: 'bg-gradient-to-b from-[#FFE81F] to-[#0f1014]',
+        invert: false
     },
     {
         id: 'natgeo',
         name: 'National Geographic',
+        companyId: '7505',
         video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564676296-national-geographic.mp4',
         image: 'https://upload.wikimedia.org/wikipedia/commons/6/67/National_Geographic_Logo.svg',
-        gradient: 'bg-gradient-to-b from-[#FFCC00] to-[#0f1014]'
+        gradient: 'bg-gradient-to-b from-[#FFCC00] to-[#0f1014]',
+        invert: true 
     }
 ];
 
@@ -56,7 +67,7 @@ export function DisneyBrandRail() {
                             "border border-white/10 shadow-lg bg-gradient-to-br from-[#30323e] to-[#1e1f2a]",
                             "hover:scale-105 hover:border-white transition-all duration-300 hover:shadow-2xl"
                         )}
-                        onClick={() => router.push(`/browse?q=${brand.name}`)}
+                        onClick={() => router.push(`/browse?company=${brand.companyId}`)}
                     >
                         <video 
                             src={brand.video}
@@ -70,7 +81,10 @@ export function DisneyBrandRail() {
                             <img 
                                 src={brand.image} 
                                 alt={brand.name}
-                                className="w-full h-full object-contain drop-shadow-lg"
+                                className={cn(
+                                    "w-full h-full object-contain drop-shadow-lg",
+                                    brand.invert && "invert brightness-0 bg-transparent"
+                                )}
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                 }}

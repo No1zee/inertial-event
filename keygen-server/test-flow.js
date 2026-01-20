@@ -1,7 +1,13 @@
-const axios = require('axios');
+import axios from 'axios';
+import 'dotenv/config';
 
-const BASE_URL = 'http://localhost:3000/api';
-const ADMIN_URL = 'http://localhost:3000/api/admin';
+const BASE_URL = 'http://localhost:4000/api';
+const ADMIN_URL = 'http://localhost:4000/api/admin/admin'; // Note the prefix logic in app.js
+
+// app.js line 18: const apiPrefix = process.env.VERCEL ? '/api/keygen/api' : '/api';
+// app.js line 19: app.use(apiPrefix, apiRoutes);
+// app.js line 20: app.use(apiPrefix + '/admin', adminRoutes);
+// So local admin is /api/admin
 
 async function runTest() {
     try {
@@ -25,10 +31,12 @@ async function runTest() {
 
         // 3. Admin Approve
         console.log('\n--- 3. Admin Approving ---');
-        const approveRes = await axios.post(`${ADMIN_URL}/approve`, {
+        const approveRes = await axios.post(`${BASE_URL}/admin/approve`, {
             request_id: request_id, 
             access_type: 'permanent',
             duration_days: 365
+        }, {
+            headers: { 'x-admin-key': process.env.MASTER_KEY }
         });
         console.log('Approval:', approveRes.data);
         const license_key = approveRes.data.license_key;

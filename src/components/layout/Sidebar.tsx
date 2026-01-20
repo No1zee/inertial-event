@@ -100,11 +100,7 @@ export function Sidebar() {
                                     key={item.href}
                                     href={item.href}
                                     aria-label={item.label}
-                                    onClick={() => {
-                                        if (window.innerWidth < 1024) {
-                                            setSidebarOpen(false);
-                                        }
-                                    }}
+                                    onClick={() => setSidebarOpen(false)}
                                     className={cn(
                                         "flex items-center px-3 py-3 rounded-xl transition-all duration-200 group/item whitespace-nowrap outline-none",
                                         isActive
@@ -139,11 +135,7 @@ export function Sidebar() {
                                 <Link
                                     key={provider.id}
                                     href={`/channel/${provider.id}`}
-                                    onClick={() => {
-                                        if (window.innerWidth < 1024) {
-                                            setSidebarOpen(false);
-                                        }
-                                    }}
+                                    onClick={() => setSidebarOpen(false)}
                                     className={cn(
                                         "flex items-center px-3 py-3 rounded-xl transition-all duration-200 group/item whitespace-nowrap outline-none",
                                         isActive
@@ -157,7 +149,7 @@ export function Sidebar() {
                                 >
                                     <div className={cn(
                                         "relative flex items-center justify-start transition-all duration-200",
-                                        ['disney', 'max', 'peacock'].includes(provider.slug) ? "h-9 w-32" : "h-7 w-28"
+                                        ['disney', 'max', 'peacock', 'adult-swim'].includes(provider.slug) ? "h-16 w-44" : "h-7 w-28"
                                     )}>
                                         <img 
                                             src={provider.logo} 

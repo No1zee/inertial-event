@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import PlayerControls from './overlay/PlayerControls';
 import SettingsOverlay from './overlay/SettingsOverlay';
 import CastModal from './overlay/CastModal';
@@ -44,6 +45,7 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
     type = 'movie', season = '1', episode = '1', seasons = [], onSeasonChange, onEpisodeChange,
     contentData
 }, ref) => {
+    const router = useRouter();
     const webviewRef = useRef<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const isReadyRef = useRef(false);
@@ -269,6 +271,8 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
     useEffect(() => {
         const handlePlayerKeyDown = (e: KeyboardEvent) => {
             if (!isReadyRef.current) return;
+            
+            console.log('[KeyLog] Time:', Date.now(), '| Pressed:', e.key, '| Code:', e.code, '| Ctrl:', e.ctrlKey, '| Shift:', e.shiftKey);
             
             // Ignore if typing in an input
             const activeElement = document.activeElement;
@@ -575,18 +579,34 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                                 // Trigger earlier (0.2s)
                                 if (!window.AG_HAS_NUDGED && !v.paused && v.currentTime > 0.2) {
                                     window.AG_HAS_NUDGED = true;
-                                    console.log("🤜 NUDGE: Force cycling playback to clear native overlays");
-                                    v.pause();
+                                    window.AG_HAS_NUDGED = true;
+                                    console.log("🤜 NUDGE: Force cycling playback to clear native overlays (Double Space)");
                                     
+                                    const pressSpace = () => {
+                                        const target = document.querySelector('video') || document.body;
+                                        // Attempt focus
+                                        if (target.focus) target.focus();
+                                        
+                                        const down = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
+                                        // Some players need charCode/keyCode for legacy support
+                                        // @ts-ignore
+                                        down.keyCode = 32; 
+                                        // @ts-ignore
+                                        down.which = 32;
+
+                                        const up = new KeyboardEvent('keyup', { key: ' ', code: 'Space', bubbles: true, cancelable: true }); 
+                                        
+                                        target.dispatchEvent(down);
+                                        target.dispatchEvent(up);
+                                    };
+
+                                    // Double Press Logic
+                                    pressSpace();
+                                    setTimeout(() => pressSpace(), 450);
+
                                     // Ensure volume is locked to 100 on nudge
                                     v.volume = START_VOLUME; 
                                     v.muted = false;
-
-                                    setTimeout(() => {
-                                        v.play(); 
-                                        v.volume = START_VOLUME; // Set again just in case
-                                        v.muted = false;
-                                    }, 100);
                                 }
                                 
                                 if (!v.hasAGListeners && v) {
@@ -1170,6 +1190,15 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                 onToggleFullscreen={handleToggleFullscreen}
                 skipParams={playerState.skipParams}
                 onSkip={(t) => safeExecute(`window.AG_CMD_SEEK && window.AG_CMD_SEEK(${t})`)}
+                // @ts-ignore
+                onBack={() => {
+                     // Try browser back first, else router back
+                     if (window.history.length > 1) {
+                         router.back();
+                     } else {
+                         router.push('/');
+                     }
+                }}
             />
 
             <SettingsOverlay

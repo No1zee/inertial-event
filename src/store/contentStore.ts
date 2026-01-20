@@ -32,6 +32,7 @@ interface ContentState {
     addToLibrary: (contentId: string) => Promise<void>;
     removeFromLibrary: (contentId: string) => Promise<void>;
     isInLibrary: (contentId: string) => boolean;
+    library: string[];
 }
 
 export const useContentStore = create<ContentState>()(

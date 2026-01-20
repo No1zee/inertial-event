@@ -51,6 +51,15 @@ export function VideoPlayer({ src, poster, title, subtitles, onEnded }: VideoPla
         });
     }, [src, onEnded, setPlaying, setDuration, setCurrentTime, setVolume, setMuted, setFullscreen]);
 
+    // Key Logging for Debugging
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            console.log('[VideoPlayer KeyLog] Time:', Date.now(), '| Pressed:', e.key, '| Code:', e.code, '| Ctrl:', e.ctrlKey, '| Shift:', e.shiftKey);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     return (
         <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
             <MediaPlayer
@@ -75,7 +84,14 @@ export function VideoPlayer({ src, poster, title, subtitles, onEnded }: VideoPla
                 <MediaProvider>
                     <Poster className="vds-poster" />
                     {subtitles?.map((track, i) => (
-                        <Track key={i} {...track} kind="subtitles" />
+                        <Track 
+                            key={String(i)} 
+                            src={track.src} 
+                            kind={track.kind as any} 
+                            label={track.label} 
+                            language={track.language} 
+                            default={track.default} 
+                        />
                     ))}
                 </MediaProvider>
 

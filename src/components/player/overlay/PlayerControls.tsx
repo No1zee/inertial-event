@@ -52,6 +52,7 @@ interface PlayerControlsProps {
     onEpisodeChange?: (e: string) => void;
     onStartOver?: () => void;
     onToggleFullscreen: () => void;
+    onBack?: () => void; // New Prop
 
     // Debug / State
     providerType?: string;
@@ -69,7 +70,7 @@ export default function PlayerControls({
     onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute,
     onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onToggleCast,
     onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen,
-    hideBottom,
+    hideBottom, onBack,
     ...props // Capture debug props
 }: PlayerControlsProps) {
 
@@ -82,7 +83,9 @@ export default function PlayerControls({
     const displayTime = isSeeking ? seekValue : safeTime;
 
     const handleBack = () => {
-        if (backUrl) {
+        if (onBack) {
+            onBack();
+        } else if (backUrl) {
             router.push(backUrl);
         } else {
             router.push('/');
@@ -93,85 +96,52 @@ export default function PlayerControls({
         <div className={`absolute inset-0 z-[100] flex flex-col justify-between transition-opacity duration-300 pointer-events-none ${show ? 'opacity-100' : 'opacity-0'}`}>
 
             {/* --- TOP BAR --- */}
-            <div className={`pointer-events-auto bg-gradient-to-b from-black via-black/90 to-transparent p-6 pb-20 flex justify-between items-start transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
-                <div className="flex items-center gap-4">
-                    <button onClick={handleBack} aria-label="Go back" className="p-2 bg-white/10 rounded-full hover:bg-white/20 text-white backdrop-blur-md">
-                        <ArrowLeft size={24} aria-hidden="true" />
-                    </button>
+            <div className={`pointer-events-auto bg-gradient-to-b from-black via-black/90 to-transparent p-6 pb-20 flex items-center transition-transform duration-300 gap-4 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
+                
+                {/* Back Button */}
+                <button onClick={handleBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors">
+                    <ArrowLeft size={24} />
+                </button>
+
+                {/* LEFT: Title */}
+                <div className="flex-1">
                     <div className="flex flex-col text-shadow">
                         <span className="text-white font-bold text-lg">{title}</span>
                         {subTitle && <span className="text-white/60 text-xs font-medium">{subTitle}</span>}
                     </div>
                 </div>
 
-                {/* Right Side Icons */}
-                <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-3">
-                        {/* Torrent Indicator Badge */}
-                        {(type === 'torrent' || isTorrent) && (
-                            <div className="flex items-center justify-center w-10 h-10 bg-purple-600/30 backdrop-blur-sm rounded-full border border-purple-400/30 shadow-[0_0_15px_rgba(147,51,234,0.3)] animate-pulse">
-                                <Zap size={20} className="text-purple-300 drop-shadow-[0_0_5px_rgba(147,51,234,0.8)]" fill="currentColor" />
-                            </div>
-                        )}
-
-                        <button onClick={onToggleLibrary} aria-label={isSaved ? "Remove from Library" : "Add to Library"} className={`p-2.5 rounded-full backdrop-blur-md transition-all ${isSaved ? 'bg-purple-600/80 text-white' : 'bg-white/10 text-white/60 hover:text-white'}`}>
-                            {isSaved ? <HeartHandshake size={20} aria-hidden="true" /> : <Heart size={20} aria-hidden="true" />}
-                        </button>
-                        {/* Download Button */}
-                        <button
-                            disabled={!downloadUrl}
-                            onClick={onDownload}
-                            aria-label="Download video"
-                            className={`p-2.5 rounded-full backdrop-blur-md transition-all ${downloadUrl ? 'bg-white/10 text-white/60 hover:text-white hover:bg-white/20' : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
-                            title={downloadUrl ? "Download" : "Waiting for stream..."}
-                        >
-                            <Download size={20} aria-hidden="true" />
-                        </button>
-
-                        {/* Fullscreen (Top-level utility) */}
-                        <button onClick={onToggleFullscreen} className="p-2.5 bg-white/10 rounded-full hover:bg-white/20 text-white backdrop-blur-md">
-                            <Maximize size={20} />
-                        </button>
-                    </div>
-
-                    {/* Web-Specific Navigation Row (Moved from bottom) */}
-                    {type === 'tv' && seasons && (
-                        <div className="flex items-center gap-2 mt-1">
-                            <button onClick={onPrev} className="p-1.5 bg-white/10 rounded-full text-white/70 hover:text-white transition-colors" disabled={currentSeasonNum === 1 && currentEpisodeNum === 1}>
-                                <ChevronLeft size={18} />
-                            </button>
-
-                            <div className="flex items-center gap-0 bg-white/10 rounded-md border border-white/10 overflow-hidden backdrop-blur-md">
-                                <select
-                                    className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer hover:bg-white/10 px-2 py-1.5 appearance-none text-center min-w-[3rem]"
-                                    value={currentSeasonNum}
-                                    onChange={(e) => onSeasonChange && onSeasonChange(Number(e.target.value))}
-                                >
-                                    {seasons.filter((s: any) => s.season_number > 0).map((s: any) => (
-                                        <option key={s.id} value={s.season_number} className="bg-zinc-900">S{s.season_number}</option>
-                                    ))}
-                                </select>
-                                <div className="w-[1px] h-4 bg-white/20" />
-                                <select
-                                    className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer hover:bg-white/10 px-2 py-1.5 appearance-none text-center min-w-[3rem]"
-                                    value={currentEpisodeNum}
-                                    onChange={(e) => onEpisodeChange && onEpisodeChange(e.target.value)}
-                                >
-                                    {(() => {
-                                        const seasonData = seasons.find((s: any) => s.season_number === currentSeasonNum);
-                                        const count = seasonData?.episode_count || 1;
-                                        return Array.from({ length: count }, (_, i) => i + 1).map(ep => (
-                                            <option key={ep} value={ep} className="bg-zinc-900">E{ep}</option>
-                                        ));
-                                    })()}
-                                </select>
-                            </div>
-
-                            <button onClick={onNext} className="p-1.5 bg-white/10 rounded-full text-white/70 hover:text-white transition-colors">
-                                <ChevronRight size={18} />
-                            </button>
+                {/* CENTER: Main Control Icons */}
+                <div className="flex-1 flex justify-center items-center gap-3">
+                    {/* Torrent Indicator Badge */}
+                    {(type === 'torrent' || isTorrent) && (
+                        <div className="flex items-center justify-center w-10 h-10 bg-purple-600/30 backdrop-blur-sm rounded-full border border-purple-400/30 shadow-[0_0_15px_rgba(147,51,234,0.3)] animate-pulse">
+                            <Zap size={20} className="text-purple-300 drop-shadow-[0_0_5px_rgba(147,51,234,0.8)]" fill="currentColor" />
                         </div>
                     )}
+
+                    <button onClick={onToggleLibrary} aria-label={isSaved ? "Remove from Library" : "Add to Library"} className={`p-2.5 rounded-full backdrop-blur-md transition-all ${isSaved ? 'bg-purple-600/80 text-white' : 'bg-white/10 text-white/60 hover:text-white'}`}>
+                        {isSaved ? <HeartHandshake size={20} aria-hidden="true" /> : <Heart size={20} aria-hidden="true" />}
+                    </button>
+                    {/* Download Button */}
+                    <button
+                        disabled={!downloadUrl}
+                        onClick={onDownload}
+                        aria-label="Download video"
+                        className={`p-2.5 rounded-full backdrop-blur-md transition-all ${downloadUrl ? 'bg-white/10 text-white/60 hover:text-white hover:bg-white/20' : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
+                        title={downloadUrl ? "Download" : "Waiting for stream..."}
+                    >
+                        <Download size={20} aria-hidden="true" />
+                    </button>
+
+                    {/* Fullscreen (Top-level utility) */}
+                    <button onClick={onToggleFullscreen} className="p-2.5 bg-white/10 rounded-full hover:bg-white/20 text-white backdrop-blur-md">
+                        <Maximize size={20} />
+                    </button>
+                </div>
+
+                {/* RIGHT: Series Navigation - REMOVED (Duplicate) */}
+                <div className="flex-1 flex justify-end">
                 </div>
             </div>
 

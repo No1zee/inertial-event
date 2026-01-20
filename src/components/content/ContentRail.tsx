@@ -12,10 +12,11 @@ interface ContentRailProps {
     title: string;
     items?: Content[];
     railId?: string;
+    viewAllHref?: string;
     aspectRatio?: "portrait" | "landscape" | "square";
 }
 
-export function ContentRail({ title, items, railId, aspectRatio = "portrait" }: ContentRailProps) {
+export function ContentRail({ title, items, railId, viewAllHref, aspectRatio = "portrait" }: ContentRailProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [showLeftArrow, setShowLeftArrow] = useState(false);
 
@@ -23,6 +24,8 @@ export function ContentRail({ title, items, railId, aspectRatio = "portrait" }: 
     const isEmpty = items !== undefined && items.length === 0;
 
     if (isEmpty) return null;
+
+    const finalViewAllHref = viewAllHref || (railId ? `/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}` : null);
 
     const scroll = (direction: "left" | "right") => {
         if (!scrollContainerRef.current) return;
@@ -47,9 +50,9 @@ export function ContentRail({ title, items, railId, aspectRatio = "portrait" }: 
         <div className="space-y-4 group/rail py-4">
             <h2 className="text-xl md:text-2xl font-semibold text-zinc-100 tracking-wide flex items-center gap-3 group cursor-pointer w-fit px-4 sm:px-8 md:px-12 lg:px-16 hover:text-white">
                 {title}
-                {railId && (
+                {finalViewAllHref && (
                     <Link
-                        href={`/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}`}
+                        href={finalViewAllHref}
                         className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 bg-zinc-900/50 px-3 py-1 rounded hover:bg-zinc-800 border border-white/5 opacity-0 group-hover:opacity-100 flex items-center hover:text-white"
                     >
                         Explore <ChevronRight size={10} className="ml-1" />
