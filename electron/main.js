@@ -98,8 +98,8 @@ function createWindow() {
                     // [DEBUG] Log packet to help user debug functionality
                     console.log(`[AG Debug] YouTube Req: ${url.pathname} | Ref: ${details.requestHeaders['Referer']} | Origin: ${details.requestHeaders['Origin'] || 'REMOVED'}`);
                 } else {
-                    details.requestHeaders['Referer'] = `${url.protocol}//${url.hostname}/`;
-                    details.requestHeaders['Origin'] = `${url.protocol}//${url.hostname}`;
+                    details.requestHeaders['Referer'] = url.origin + '/';
+                    details.requestHeaders['Origin'] = url.origin;
                 }
 
                 // Comprehensive browser identity (Downgraded to Chrome 120)

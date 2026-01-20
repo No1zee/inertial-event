@@ -1022,23 +1022,16 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
 
         const onDomReady = () => {
              // STEALTH MODE: Cloak the webview (Electron only)
-            const stealthScript = `
+            const stealthScript = \`
                 try {
-                    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-                    if (navigator.plugins.length === 0) {
-                        Object.defineProperty(navigator, 'plugins', { 
-                            get: () => [
-                                { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-                                { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: 'Portable Document Format' },
-                                { name: 'Native Client', filename: 'internal-nacl-plugin', description: 'Native Client Executable' }
-                            ] 
-                        });
-                    }
                     if (!navigator.languages || navigator.languages.length === 0) {
                         Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
                     }
+                    if (!window.chrome) {
+                        window.chrome = { runtime: {} };
+                    }
                 } catch(e) {}
-            `;
+            \`;
             // @ts-ignore
             if (webview?.executeJavaScript) {
                 webview.executeJavaScript(stealthScript).catch(() => {});
