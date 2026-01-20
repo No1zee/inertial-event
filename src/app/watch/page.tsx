@@ -130,7 +130,11 @@ function WatchContent() {
 
             if (bestSourceObj) {
                 setSourceUrl(bestSourceObj.url);
-                setIsEmbed(bestSourceObj.type === 'embed');
+                // Robust detection: if type is embed OR URL looks like an embed
+                const looksLikeEmbed = bestSourceObj.url.includes('/embed/') || 
+                                     bestSourceObj.url.includes('vidsrc') || 
+                                     bestSourceObj.url.includes('vidlink.pro');
+                setIsEmbed(bestSourceObj.type === 'embed' || looksLikeEmbed);
                 setSourceError(null);
             } else {
                 setSourceUrl(null);

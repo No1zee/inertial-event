@@ -35,7 +35,7 @@ export default function RootLayout({
                 />
                 <meta
                     httpEquiv="Content-Security-Policy"
-                    content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: app: proxy:; script-src 'self' 'unsafe-inline' 'unsafe-eval' app:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com app:; font-src 'self' https://fonts.gstatic.com data: app:; img-src 'self' http: https: data: blob: app: proxy:; connect-src 'self' http://localhost:* http://192.168.100.13:* ws://localhost:* app: proxy: https:; media-src 'self' blob: app: proxy: https: http: http://localhost:*; frame-src 'self' https: app: proxy:;"
+                    content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: app: proxy:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live app:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com app:; font-src 'self' https://fonts.gstatic.com https://r2cdn.perplexity.ai data: app:; img-src 'self' http: https: data: blob: app: proxy:; connect-src 'self' http://localhost:* http://192.168.100.13:* ws://localhost:* app: proxy: https:; media-src 'self' blob: app: proxy: https: http: http://localhost:*; frame-src 'self' https: app: proxy:;"
                 />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

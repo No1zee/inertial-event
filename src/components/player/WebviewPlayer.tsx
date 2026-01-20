@@ -1002,7 +1002,7 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
         };
 
         const onDomReady = () => {
-             // STEALTH MODE: Cloak the webview
+             // STEALTH MODE: Cloak the webview (Electron only)
             const stealthScript = `
                 try {
                     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -1020,40 +1020,54 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                     }
                 } catch(e) {}
             `;
-            webview.executeJavaScript(stealthScript).catch(() => {});
+            // @ts-ignore
+            if (webview?.executeJavaScript) {
+                webview.executeJavaScript(stealthScript).catch(() => {});
+            }
 
-             // Inject CSS safely (prev loop crash)
+             // Inject CSS safely
              const css = `
                 .ad, .ads, .popup, [class*="ad-"], [id*="ad-"], iframe[src*="ads"] { display: none !important; }
                 video::-webkit-media-controls { display: none !important; }
                 .jw-controls, .vjs-control-bar, .plyr__controls, .art-controls, .clappr-core { display: none !important; }
              `;
-             webview.insertCSS(css).catch(() => {});
+             // @ts-ignore
+             if (webview?.insertCSS) {
+                webview.insertCSS(css).catch(() => {});
+             }
              onDidFinishLoad();
         };
 
         const onDidFinishLoadEvent = () => onDidFinishLoad();
 
-        webview.addEventListener('did-finish-load', onDidFinishLoadEvent);
-        // webview.addEventListener('did-start-loading', onDidStartLoading); // Removed to prevent crash
-        webview.addEventListener('dom-ready', onDomReady);
-        webview.addEventListener('console-message', onConsole);
+        if (webview?.addEventListener) {
+            webview.addEventListener('did-finish-load', onDidFinishLoadEvent);
+            webview.addEventListener('dom-ready', onDomReady);
+            webview.addEventListener('console-message', onConsole);
 
-        // Prevent main process new-window (Fix for crash)
-        // @ts-ignore
-        webview.addEventListener('new-window', (e: any) => {
-            console.log('[Webview] Blocked popup:', e.url);
-            e.preventDefault();
-        });
+            // Prevent main process new-window
+            webview.addEventListener('new-window', (e: any) => {
+                console.log('[Webview] Blocked popup:', e.url);
+                e.preventDefault();
+            });
+        } else {
+            // Browser Fallback: Just trigger load after 1s or via iframe onLoad
+            setTimeout(onDidFinishLoad, 2000);
+        }
 
         return () => {
             isReadyRef.current = false;
-            webview.removeEventListener('did-finish-load', onDidFinishLoadEvent);
-            // webview.removeEventListener('did-start-loading', onDidStartLoading);
-            webview.removeEventListener('dom-ready', onDomReady);
-            webview.removeEventListener('console-message', onConsole);
+            if (webview?.removeEventListener) {
+                webview.removeEventListener('did-finish-load', onDidFinishLoadEvent);
+                webview.removeEventListener('dom-ready', onDomReady);
+                webview.removeEventListener('console-message', onConsole);
+            }
         };
     }, [src, initialVolume]);
+
+    // Browser environment check
+    // @ts-ignore
+    const isElectron = typeof window !== 'undefined' && !!window.electron;
 
     return (
         <div
@@ -1067,29 +1081,49 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                 </div>
             )}
 
-            <webview
-                ref={webviewRef}
-                src={src}
-                className="w-full h-full border-0 transition-opacity duration-500 ease-in-out z-[1] relative"
-                style={{
-                    width: '100vw',
-                    height: '100vh',
-                    background: '#000',
-                    opacity: isLoading ? 0 : 1
-                }}
-                // @ts-ignore
-                allowpopups="false"
-                // @ts-ignore
-                autoplay="true"
-                // @ts-ignore
-                disablewebsecurity="true"
-                webpreferences="contextIsolation=no, nodeIntegration=no, webSecurity=no, autoplayPolicy=no-user-gesture-required"
-                // @ts-ignore
-                partition="persist:youtube-player"
-                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            />
+            {isElectron ? (
+                /* @ts-ignore */
+                <webview
+                    ref={webviewRef}
+                    src={src}
+                    className="w-full h-full border-0 transition-opacity duration-500 ease-in-out z-[1] relative"
+                    style={{
+                        width: '100vw',
+                        height: '100vh',
+                        background: '#000',
+                        opacity: isLoading ? 0 : 1
+                    }}
+                    // @ts-ignore
+                    allowpopups="false"
+                    // @ts-ignore
+                    autoplay="true"
+                    // @ts-ignore
+                    disablewebsecurity="true"
+                    webpreferences="contextIsolation=no, nodeIntegration=no, webSecurity=no, autoplayPolicy=no-user-gesture-required"
+                    // @ts-ignore
+                    partition="persist:youtube-player"
+                    useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                />
+            ) : (
+                <iframe
+                    src={src}
+                    className="w-full h-full border-0 z-[1] relative"
+                    style={{
+                        width: '100vw',
+                        height: '100vh',
+                        background: '#000',
+                        opacity: isLoading ? 0 : 1
+                    }}
+                    allow="autoplay; encrypted-media; fullscreen"
+                    onLoad={() => {
+                        console.log('[Iframe] Content Loaded');
+                        setIsLoading(false);
+                    }}
+                />
+            )}
 
             {/* Interaction Layer - Intercepts clicks to prevent native controls/ads from activating */}
+            {/* Disabled for basic iframe mode if needed, but keeping for now for consistent UI */}
             <div
                 className="absolute inset-0 z-[50]"
                 onClick={handleTogglePlay}
