@@ -1,6 +1,7 @@
 {
   "name": "keygen-server",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "main": "electron-main.js",
   "scripts": {
