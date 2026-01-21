@@ -71,6 +71,7 @@ export default async function handler(req, res) {
     if (path === '/ping') {
         let dbStatus = 'disconnected';
         let keys = [];
+        let keyCount = 0;
         try {
             await connectDB();
             dbStatus = 'connected';
