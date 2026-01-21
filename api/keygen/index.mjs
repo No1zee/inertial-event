@@ -68,8 +68,22 @@ export default async function handler(req, res) {
     
     // Route handling
     if (path === '/ping') {
+        let dbStatus = 'disconnected';
+        let keyCount = 0;
+        try {
+            await connectDB();
+            dbStatus = 'connected';
+            keyCount = await License.countDocuments();
+        } catch (e) {
+            dbStatus = `error: ${e.message}`;
+        }
+
         return res.status(200).json({ 
             message: 'pong',
+            database: {
+                status: dbStatus,
+                licenseCount: keyCount
+            },
             debug: {
                 originalUrl: req.url,
                 originalPath: originalPath,
@@ -101,21 +115,22 @@ export default async function handler(req, res) {
             const license = await License.findOne({ license_key });
             
             if (!license) {
-                return res.status(404).json({ valid: false, error: 'Invalid license key' });
+                return res.status(200).json({ valid: false, error: 'Invalid license key', message: 'The provided key was not found.' });
             }
             
             if (license.status !== 'active') {
                 if (license.status === 'unused') {
                     license.device_id = device_id;
                     license.status = 'active';
+                    license.activated_at = new Date();
                     await license.save();
                 } else {
-                    return res.json({ valid: false, error: 'License revoked' });
+                    return res.status(200).json({ valid: false, error: 'License revoked', message: 'This license has been deactivated.' });
                 }
             }
             
             if (license.device_id !== device_id) {
-                return res.json({ valid: false, error: 'Device mismatch' });
+                return res.status(200).json({ valid: false, error: 'Device mismatch', message: 'This license is used on another machine.' });
             }
             
             if (license.expires_at) {
