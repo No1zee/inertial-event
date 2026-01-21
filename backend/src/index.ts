@@ -35,8 +35,21 @@ app.use((req, res, next) => {
 
 
 // API Routes
-app.get('/health', (req, res) => res.status(200).json({ status: 'ok', source: 'root', env: process.env.VERCEL ? 'vercel' : 'local', timestamp: new Date().toISOString() }));
-app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', source: 'api', timestamp: new Date().toISOString() }));
+app.get('/health', (req, res) => res.status(200).json({ 
+    status: 'ok', 
+    source: 'root', 
+    env: process.env.VERCEL ? 'vercel' : 'local',
+    db: mongoose.connection.readyState, // 0: disc, 1: conn, 2: connecting
+    has_uri: !!process.env.MONGODB_URI,
+    timestamp: new Date().toISOString() 
+}));
+
+app.get('/api/health', (req, res) => res.status(200).json({ 
+    status: 'ok', 
+    source: 'api', 
+    db: mongoose.connection.readyState,
+    timestamp: new Date().toISOString() 
+}));
 
 // Mount routes at both root and /api to be safe with Vercel rewrites
 app.use('/api', routes);
@@ -62,7 +75,15 @@ const connectDB = async () => {
     }
 
     try {
-        await mongoose.connect(MONGODB_URI);
+        // Disable buffering for serverless
+        mongoose.set('bufferCommands', false);
+        
+        if (mongoose.connection.readyState >= 1) return;
+
+        await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 30000,
+        });
         console.log('✅ Connected to MongoDB');
     } catch (err: any) {
         console.error('❌ MongoDB Connection Error:', err.message);

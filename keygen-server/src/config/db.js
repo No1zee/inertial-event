@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 
+// Disable buffering globally for serverless/cloud environments
+mongoose.set('bufferCommands', false);
+mongoose.set('bufferTimeoutMS', 5000);
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
@@ -17,7 +21,8 @@ const connectDB = async () => {
         
         await mongoose.connect(MONGODB_URI, {
             serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
+            socketTimeoutMS: 30000,
+            connectTimeoutMS: 10000,
         });
         console.log('✅ Connected to MongoDB (Keygen Server)');
     } catch (err) {

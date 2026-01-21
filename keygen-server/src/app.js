@@ -60,7 +60,10 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
     res.json({ 
         message: 'NovaStream Keygen Server',
-        admin_panel: '/keygen-admin/index.html'
+        admin_panel: '/keygen-admin/index.html',
+        db: mongoose.connection.readyState,
+        has_uri: !!process.env.MONGODB_URI,
+        env: process.env.VERCEL ? 'vercel' : 'local'
     });
 });
 
