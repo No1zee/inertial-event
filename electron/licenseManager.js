@@ -189,6 +189,15 @@ class LicenseManager {
                 timeout: 5000,
                 validateStatus: (status) => status < 500 // Don't throw for 404, handle manually
             });
+            
+            if (response.status >= 500) {
+                console.error('[LicenseManager] Server Error (500):', response.data);
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('[LicenseManager] DEV MODE: Validation failed with 500, but allowing bypass.');
+                    return { valid: true, source: 'development-bypass-500', error: response.data };
+                }
+                throw new Error(`License Server Error: ${response.data.message || 'Unknown server error'}`);
+            }
 
             if (response.status === 404) {
                 console.error('[LicenseManager] Server returned 404. Is the Keygen server deployed correctly?');
