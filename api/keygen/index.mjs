@@ -133,13 +133,11 @@ export default async function handler(req, res) {
                 return res.status(200).json({ valid: false, error: 'Device mismatch', message: 'This license is used on another machine.' });
             }
             
-            if (license.expires_at) {
-                if (new Date() > new Date(license.expires_at)) {
-                    return res.json({ valid: false, error: 'License expired' });
-                }
+            if (license.expires_at && new Date() > new Date(license.expires_at)) {
+                return res.status(200).json({ valid: false, error: 'License expired', message: 'This license has expired.' });
             }
             
-            return res.json({ 
+            return res.status(200).json({ 
                 valid: true, 
                 expires_at: license.expires_at,
                 access_type: license.access_type
@@ -147,11 +145,53 @@ export default async function handler(req, res) {
             
         } catch (error) {
             console.error('[Validate Error]', error);
-            return res.status(500).json({ 
-                valid: false, 
-                error: 'Internal Server Error', 
-                message: error.message 
+            return res.status(500).json({ valid: false, error: 'Internal Server Error', message: error.message });
+        }
+    }
+
+    if (path === '/activate' && req.method === 'POST') {
+        try {
+            await connectDB();
+            const { license_key, device_id, machine_info } = req.body || {};
+
+            if (!license_key) {
+                return res.status(400).json({ success: false, error: 'License key required' });
+            }
+
+            console.log(`[Activate] Activating key: ${license_key}`);
+            const license = await License.findOne({ license_key });
+
+            if (!license) {
+                return res.status(200).json({ success: false, error: 'Invalid license key' });
+            }
+
+            if (license.status === 'revoked') {
+                return res.status(200).json({ success: false, error: 'License revoked', message: 'This license has been permanently deactivated.' });
+            }
+
+            if (license.status === 'active' && license.device_id !== device_id) {
+                return res.status(200).json({ success: false, error: 'Already in use', message: 'This license is already registered to another device.' });
+            }
+
+            // Perform Activation
+            license.device_id = device_id;
+            license.status = 'active';
+            license.activated_at = new Date();
+            license.machine_info = machine_info;
+            await license.save();
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Activation successful',
+                license: {
+                    status: license.status,
+                    expires_at: license.expires_at
+                }
             });
+
+        } catch (error) {
+            console.error('[Activate Error]', error);
+            return res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
         }
     }
     
