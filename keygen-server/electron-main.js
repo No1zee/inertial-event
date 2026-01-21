@@ -1,6 +1,27 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const server = require('./server'); // Import the existing Express App
+import { app, BrowserWindow, dialog } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Explicitly load .env from the current directory
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+// Error handling - catch early crashes
+process.on('uncaughtException', (err) => {
+    console.error('CRASH:', err);
+    dialog.showErrorBox('Application Crash', err.stack || err.message);
+});
+
+async function startServer() {
+    try {
+        await import('./server.js');
+    } catch (err) {
+        console.error('Failed to start server:', err);
+        dialog.showErrorBox('Server Error', `Failed to start background server: ${err.message}`);
+    }
+}
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -13,14 +34,6 @@ function createWindow() {
         }
     });
 
-    // In production, we load the built React app
-    // In dev, we might want to load localhost:5173, but for this standalone build,
-    // we assume the UI is built into 'admin-dashboard/dist'
-    
-    // We need to wait for the server to start? 
-    // Actually, asking the main process to spawn the server is enough.
-    // The UI (React) calls 'http://localhost:3000' (or whatever port).
-    
     // Determine Environment
     const isDev = !app.isPackaged;
 
@@ -28,12 +41,12 @@ function createWindow() {
         win.loadURL('http://localhost:5173'); // Dev Mode (Vite)
     } else {
         // Load built files
-        // We need to ensure 'admin-dashboard/dist' exists and is copied
         win.loadFile(path.join(__dirname, 'admin-dashboard/dist/index.html'));
     }
 }
 
 app.whenReady().then(() => {
+    startServer();
     createWindow();
 
     app.on('activate', () => {

@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, session, shell, dialog, protocol, net } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { fork } = require('child_process');
 const path = require('path');
 // app.name is now 'novastream' from package.json
@@ -39,6 +40,8 @@ ipcMain.on('frontend-log', (event, msg) => {
     console.log(`[Frontend] ${msg}`);
 });
 
+const log = (msg, ...args) => console.log(`[Main] ${msg}`, ...args);
+
 let mainWindow;
 
 function createWindow() {
@@ -66,6 +69,9 @@ function createWindow() {
             autoplayPolicy: 'no-user-gesture-required' // Critical for background trailers
         }
     });
+
+    // Initialize Auto-updater logic
+    initAutoUpdater();
 
     // 4. Header Spoofing (Universal Referer Control)
     // 4. Header Spoofing (Universal Referer Control)
@@ -443,12 +449,26 @@ app.on('ready', async () => {
                 });
             }
 
-            // Local Backend Proxy
+            // Local Backend Proxy (SMART ROUTING)
             else if (url.pathname.startsWith('/api/')) {
-                const apiBase = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL !== 'undefined')
-                    ? process.env.NEXT_PUBLIC_API_URL 
-                    : 'http://localhost:5000';
-                const BACKEND_URL = `${apiBase}${url.pathname}${url.search}`;
+                // Scraper endpoints MUST stay local for performance and capability
+                const isLocalRoute = url.pathname.includes('/sources') || 
+                                    url.pathname.includes('/scrape') || 
+                                    url.pathname.includes('/refresh') ||
+                                    url.pathname.includes('/local');
+                
+                const cloudBase = 'https://inertial-event.vercel.app';
+                const localBase = 'http://localhost:5000';
+
+                let targetBase = cloudBase;
+                if (isLocalRoute) {
+                    targetBase = localBase;
+                    log(`[Proxy Smart] Routing Local Scraper: ${url.pathname} -> ${localBase}`);
+                } else {
+                    log(`[Proxy Smart] Routing Global Cloud: ${url.pathname} -> ${cloudBase}`);
+                }
+
+                const BACKEND_URL = `${targetBase}${url.pathname}${url.search}`;
                 response = await net.fetch(BACKEND_URL);
             }
 
@@ -483,23 +503,35 @@ app.on('ready', async () => {
             const url = details.url;
             const urlLower = url.toLowerCase();
             
-            // 1. Critical Reroute: app:// or localhost:3000 -> proxy://
+            // 1. Critical Reroute: Intercept absolute cloud URLs, app://, or localhost:3000 -> proxy://
             const isLocal = url.includes('localhost:3000') || url.includes('127.0.0.1:3000');
+            const isVercelApi = url.startsWith('https://inertial-event.vercel.app/api/');
             
             if (url.startsWith('app://-/tmdb-api/') || (isLocal && url.includes('/tmdb-api/'))) {
                 const redirected = `proxy://-/tmdb-api/${url.split('/tmdb-api/')[1]}`;
-                log(`[Dev Reroute] TMDB API: ${url} -> ${redirected}`);
+                log(`[Reroute] TMDB API: ${url} -> ${redirected}`);
                 return callback({ redirectURL: redirected });
             }
             if (url.startsWith('app://-/tmdb-img/') || (isLocal && url.includes('/tmdb-img/'))) {
                 const redirected = `proxy://-/tmdb-img/${url.split('/tmdb-img/')[1]}`;
-                // log(`[Dev Reroute] TMDB IMG: ${url} -> ${redirected}`);
                 return callback({ redirectURL: redirected });
             }
-            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/'))) {
-                const redirected = `proxy://-/api/${url.split('/api/')[1]}`;
-                log(`[Dev Reroute] Backend API: ${url} -> ${redirected}`);
-                return callback({ redirectURL: redirected });
+            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi) {
+                const pathPart = url.split('/api/')[1];
+                const redirected = `proxy://-/api/${pathPart}`;
+                
+                // CRITICAL: Avoid infinite loop if this request IS the proxy's own net.fetch
+                // Electron net.fetch usually has a unique 'id' or we can check details.resourceType
+                // BUT better yet, let's just make sure we only redirect if it's NOT already being handled.
+                // Actually, the proxy protocol handler handles 'proxy://' so this redirect is safe 
+                // as long as the proxy handler itself doesn't use the SAME URL structure that triggers this.
+                // In main.js, the proxy handler uses 'https://inertial-event.vercel.app' which WILL trigger this.
+                
+                // To prevent loop: Only redirect if it's NOT from the main process itself (which has webContents null or 0)
+                if (details.webContentsId > 0) {
+                    log(`[Reroute] Backend API: ${url} -> ${redirected}`);
+                    return callback({ redirectURL: redirected });
+                }
             }
 
             // 2. Allow-list
@@ -734,4 +766,65 @@ ipcMain.handle('torrent:stop-stream', async () => {
 // Just in case: Clean up interval on window close
 ipcMain.on('stop-status-updates', () => {
     if (this.statusInterval) clearInterval(this.statusInterval);
+});
+// --- Auto Updater Logic ---
+async function initAutoUpdater() {
+    // Only run in production
+    if (isDev) return;
+
+    try {
+        // Tie to keygen: Check license validity before allowing updates
+        // This ensures blocked/revoked users don't get new patches
+        const licenseStatus = await licenseManager.validate().catch(err => {
+            log('[Updater] License validation failed during update check:', err.message);
+            return { valid: false };
+        });
+
+        if (!licenseStatus.valid) {
+            log('[Updater] License invalid. Skipping remote update check.');
+            return;
+        }
+
+        autoUpdater.autoDownload = true;
+        autoUpdater.autoInstallOnAppQuit = true;
+
+        autoUpdater.on('checking-for-update', () => {
+            log('[Updater] Checking for update...');
+        });
+
+        autoUpdater.on('update-available', (info) => {
+            log('[Updater] Update available:', info.version);
+        });
+
+        autoUpdater.on('update-not-available', (info) => {
+            log('[Updater] No update available.');
+        });
+
+        autoUpdater.on('error', (err) => {
+            log('[Updater] Error:', err);
+        });
+
+        autoUpdater.on('download-progress', (progressObj) => {
+            log('[Updater] Download progress:', Math.round(progressObj.percent) + '%');
+        });
+
+        autoUpdater.on('update-downloaded', (info) => {
+            log('[Updater] Update downloaded; will install on quit.');
+        });
+
+        // Check for updates every 2 hours or on startup
+        autoUpdater.checkForUpdatesAndNotify();
+        setInterval(() => {
+            autoUpdater.checkForUpdates();
+        }, 1000 * 60 * 60 * 2); 
+    } catch (e) {
+        log('[Updater] Critical initialization failure:', e.message);
+    }
+}
+
+// IPC for manual update triggers if needed
+ipcMain.handle('check-for-updates', async () => {
+    if (isDev) return { message: 'In development mode', available: false };
+    const result = await autoUpdater.checkForUpdates();
+    return { available: result && result.updateInfo.version !== app.getVersion() };
 });

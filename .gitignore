@@ -19,6 +19,11 @@ coverage
 *.zip
 *.asar
 
+# Allow OTA updates
+!keygen-server/updates/*.exe
+!keygen-server/updates/*.blockmap
+!keygen-server/updates/*.yml
+
 # Misc
 .DS_Store
 *.pem

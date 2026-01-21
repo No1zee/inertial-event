@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { contentApi } from "@/lib/api/content";
 import { ContentCard } from "@/components/content/ContentCard";
-import { ContentModal } from "@/components/content/ContentModal";
+import ContentModal from "@/components/content/ContentModal";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Content } from "@/lib/types/content";
@@ -24,8 +24,8 @@ export default function ViewAllPage() {
         if (!railId) return [];
 
         switch (railId) {
-            case "trending": return contentApi.getTrending();
-            case "popular_tv": return contentApi.getPopularTV();
+            case "trending": return contentApi.getTrending(pageParam);
+            case "popular_tv": return contentApi.getPopularTV(pageParam);
             case "scifi": return contentApi.getByGenre(878, 'movie', pageParam);
             case "action": return contentApi.getByGenre(28, 'movie', pageParam);
             case "cbm": return contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc', page: pageParam }, 'movie');
@@ -38,7 +38,7 @@ export default function ViewAllPage() {
             case "docu": return contentApi.getByGenre(99, 'movie', pageParam);
 
             // TV Mappings
-            case "day1": return contentApi.getDayOneDrops('tv');
+            case "day1": return contentApi.getDayOneDrops('tv', pageParam);
             case "fresh": return contentApi.getFresh('tv', pageParam);
             case "bangers": return contentApi.getBangers('tv', pageParam);
             case "underrated": return contentApi.getUnderrated('tv', pageParam);

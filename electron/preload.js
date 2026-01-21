@@ -21,5 +21,6 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('electronAPI', {
     activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
     activationSuccess: () => ipcRenderer.send('activation-success'),
-    closeActivation: () => ipcRenderer.send('close-activation')
+    closeActivation: () => ipcRenderer.send('close-activation'),
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates')
 });

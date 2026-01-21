@@ -6,37 +6,43 @@
         "node": "22.x"
     },
     "main": "electron/main.js",
-    "build": {
-        "appId": "com.novastream.app",
-        "productName": "NovaStream",
-        "directories": {
-            "output": "dist"
+        "build": {
+            "appId": "com.novastream.app",
+            "productName": "NovaStream",
+            "directories": {
+                "output": "dist"
+            },
+            "files": [
+                "electron/**/*",
+                "out/**/*",
+                "assets/env.enc",
+                "dist-server/**/*",
+                "services/**/*",
+                "!**/*.ts",
+                "!**/*.tsx",
+                "!**/*.map"
+            ],
+            "publish": [
+                {
+                    "provider": "generic",
+                    "url": "https://inertial-event.vercel.app/updates"
+                }
+            ],
+            "win": {
+                "target": "nsis",
+                "icon": "build/icon.png"
+            },
+            "nsis": {
+                "oneClick": false,
+                "allowToChangeInstallationDirectory": true,
+                "allowElevation": true,
+                "runAfterFinish": true,
+                "createDesktopShortcut": "always",
+                "createStartMenuShortcut": true,
+                "shortcutName": "NovaStream",
+                "include": "build/installer.nsh"
+            }
         },
-        "files": [
-            "electron/**/*",
-            "out/**/*",
-            "assets/env.enc",
-            "dist-server/**/*",
-            "services/**/*",
-            "!**/*.ts",
-            "!**/*.tsx",
-            "!**/*.map"
-        ],
-        "win": {
-            "target": "nsis",
-            "icon": "build/icon.png"
-        },
-        "nsis": {
-            "oneClick": false,
-            "allowToChangeInstallationDirectory": true,
-            "allowElevation": true,
-            "runAfterFinish": true,
-            "createDesktopShortcut": "always",
-            "createStartMenuShortcut": true,
-            "shortcutName": "NovaStream",
-            "include": "build/installer.nsh"
-        }
-    },
     "scripts": {
         "dev": "cross-env PORT=3000 next dev -H 0.0.0.0",
         "build": "next build && node fix_html.cjs",
@@ -49,7 +55,7 @@
         "analyze": "ANALYZE=true next build",
         "electron-dev": "concurrently -k \"npm run dev\" \"npm run server\" \"wait-on http://localhost:3000 http://localhost:5000/api/health && electron .\"",
         "server": "cross-env BACKEND_PORT=5000 npx tsx backend/src/index.ts",
-        "build:server": "node scripts/build-backend.js",
+        "build:server": "node scripts/build-backend.cjs",
         "electron-build": "npm run build:server && npm run encrypt-env && next build && electron-builder",
         "encrypt-env": "tsx scripts/encrypt-env.ts",
         "electron": "electron ."
@@ -75,6 +81,7 @@
         "dotenv": "^17.2.3",
         "electron-serve": "^1.3.0",
         "electron-store": "^11.0.2",
+        "electron-updater": "^6.7.3",
         "express": "^5.2.1",
         "fluent-ffmpeg": "^2.1.3",
         "framer-motion": "^10.16.0",

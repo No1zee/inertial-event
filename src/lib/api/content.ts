@@ -26,9 +26,9 @@ export const contentApi = {
         return { id: 0, name: 'Mock Collection', overview: '', poster_path: '', backdrop_path: '', parts: generateMockContent(5) };
     },
 
-    getTrending: async (): Promise<Content[]> => {
+    getTrending: async (page: number = 1): Promise<Content[]> => {
         try {
-            const res = await axios.get(getTmdbUrl('/trending/all/day', 'language=en-US'));
+            const res = await axios.get(getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`));
             const data = res.data.results || [];
             return data.map((item: any) => transformToContent(item));
         } catch (error) {
@@ -37,9 +37,9 @@ export const contentApi = {
         }
     },
 
-    getPopularTV: async (): Promise<Content[]> => {
+    getPopularTV: async (page: number = 1): Promise<Content[]> => {
         try {
-            const res = await axios.get(getTmdbUrl('/tv/popular', 'language=en-US&page=1'));
+            const res = await axios.get(getTmdbUrl('/tv/popular', `language=en-US&page=${page}`));
             const data = res.data.results || [];
             return data.map((item: any) => transformToContent({ ...item, type: 'tv' }));
         } catch (error) {
@@ -238,7 +238,7 @@ export const contentApi = {
         }
     },
 
-    getDayOneDrops: async (type: 'movie' | 'tv' = 'movie'): Promise<Content[]> => {
+    getDayOneDrops: async (type: 'movie' | 'tv' = 'movie', page: number = 1): Promise<Content[]> => {
         try {
             const tmdbEndpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
 
@@ -253,7 +253,7 @@ export const contentApi = {
                 : `first_air_date.gte=${formatDate(pastDate)}&first_air_date.lte=${formatDate(today)}`;
 
             const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
-            const res = await axios.get(getTmdbUrl(tmdbEndpoint, `sort_by=popularity.desc&${dateFilter}&language=en-US&page=1${extraFilter}`));
+            const res = await axios.get(getTmdbUrl(tmdbEndpoint, `sort_by=popularity.desc&${dateFilter}&language=en-US&page=${page}${extraFilter}`));
             return (res.data.results || []).map((item: any) => transformToContent({ ...item, type }));
         } catch (error) {
             return [];

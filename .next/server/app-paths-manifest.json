@@ -1,4 +1,21 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
   "/watch/page": "app/watch/page.js",
-  "/(dashboard)/page": "app/(dashboard)/page.js"
+  "/(dashboard)/browse/tv-shows/page": "app/(dashboard)/browse/tv-shows/page.js",
+  "/(dashboard)/browse/page": "app/(dashboard)/browse/page.js",
+  "/(dashboard)/browse/movies/page": "app/(dashboard)/browse/movies/page.js",
+  "/(dashboard)/browse/view-all/page": "app/(dashboard)/browse/view-all/page.js",
+  "/(dashboard)/files/page": "app/(dashboard)/files/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/collection/page": "app/(dashboard)/collection/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/(dashboard)/collections/page": "app/(dashboard)/collections/page.js",
+  "/(dashboard)/browse/anime/page": "app/(dashboard)/browse/anime/page.js",
+  "/(dashboard)/tv/page": "app/(dashboard)/tv/page.js",
+  "/(dashboard)/profile/page": "app/(dashboard)/profile/page.js",
+  "/(dashboard)/search/page": "app/(dashboard)/search/page.js",
+  "/(dashboard)/watchlist/page": "app/(dashboard)/watchlist/page.js",
+  "/(dashboard)/history/page": "app/(dashboard)/history/page.js",
+  "/(dashboard)/channel/[id]/page": "app/(dashboard)/channel/[id]/page.js"
 }

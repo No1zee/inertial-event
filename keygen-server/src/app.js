@@ -16,6 +16,9 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Static files for OTA updates
+app.use('/updates', express.static('updates'));
+
 // 1. URL Normalization Middleware (Fix Vercel Routing/404s)
 app.use((req, res, next) => {
     const originalUrl = req.url;
