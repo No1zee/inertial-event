@@ -45,7 +45,9 @@ export const validateLicense = async (req, res) => {
 
     } catch (error) {
         console.error('Validation Error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ 
+            error: 'Validation Failed',
+            message: error.message
+        });
     }
 };
-

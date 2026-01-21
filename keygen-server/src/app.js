@@ -46,8 +46,12 @@ app.get('/', (req, res) => {
 
 // Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('[Keygen Error Handler]', err);
+    res.status(500).json({ 
+        error: 'Keygen Internal Error',
+        message: err.message,
+        path: req.path
+    });
 });
 
 export { app };
