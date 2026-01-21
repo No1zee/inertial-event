@@ -14,181 +14,84 @@ interface HeroProps {
     items?: Content[];
 }
 
-
-
 export function Hero({ items = [] }: HeroProps) {
     const [index, setIndex] = useState(0);
-    const [isCurrentSlidePlaying, setIsCurrentSlidePlaying] = useState(false);
-    
-    // Auto-advance carousel (Pause if video is playing)
+    const [uiVisible, setUiVisible] = useState(true);
+    const queryClient = useQueryClient();
+
+    const currentItem = items && items.length > 0 ? items[index % items.length] : null;
+
+    // Auto-advance carousel
+    // Auto-advance carousel
     useEffect(() => {
-        if (!items || items.length === 0 || isCurrentSlidePlaying) return;
+        if (!items || items.length === 0) return;
 
         const timer = setTimeout(() => {
             setIndex((prev) => (prev + 1) % items.length);
         }, 12000);
 
         return () => clearTimeout(timer);
-    }, [index, items ? items.length : 0, isCurrentSlidePlaying]);
+    }, [index, items.length]);
 
-    // Safety check
-    if (!items || items.length === 0) return <HeroSkeleton />;
+    // Handle UI Fade on Video Play
+    // Check for "In Theaters" status
+    const isTheatrical = currentItem?.type === 'movie' && currentItem.releaseDate && (() => {
+        const release = new Date(currentItem.releaseDate);
+        const now = new Date();
+        const diff = Math.ceil(Math.abs(now.getTime() - release.getTime()) / (1000 * 3600 * 24));
+        return diff <= 60 && release <= now;
+    })();
 
-    const currentItem = items[index % items.length];
 
-    return (
-        <section
-            className="relative h-[50vh] sm:h-[70vh] lg:h-[85vh] w-full group mx-auto overflow-hidden bg-black"
-        >
-            {/* FORCE REBUILD: Updated transition mode */}
-            <AnimatePresence>
-                <HeroSlide 
-                    key={currentItem.id} 
-                    item={currentItem} 
-                    isActive={true}
-                    onPlayStatusChange={setIsCurrentSlidePlaying}
-                />
-            </AnimatePresence>
 
-            {/* Carousel Indicators - Keep outside to remain visible on top */}
-            <div className="absolute right-4 sm:right-8 bottom-24 sm:bottom-48 flex flex-col gap-1.5 sm:gap-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
-                {items.map((_, i) => (
-                    <button
-                        key={i}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIndex(i);
-                        }}
-                        className={cn(
-                            "w-1.5 h-1.5 rounded-full transition-all duration-300 shadow shadow-black/50",
-                            i === index ? "h-6 bg-white" : "bg-white/30 hover:bg-white/60"
-                        )}
-                    />
-                ))}
-            </div>
-        </section>
-    );
-}
-
-// Separate component to handle per-slide state (Video playback, fetching)
-function HeroSlide({ item, isActive, onPlayStatusChange }: { item: Content, isActive: boolean, onPlayStatusChange: (playing: boolean) => void }) {
-    const [trailerKey, setTrailerKey] = useState<string | null>(null);
-    const [showTrailer, setShowTrailer] = useState(false);
-    const [iframeLoaded, setIframeLoaded] = useState(false);
-    const [uiVisible, setUiVisible] = useState(true);
-    const queryClient = useQueryClient();
-
-    // Fetch trailer logic
-    useEffect(() => {
-        let isMounted = true;
-        
-        const fetchTrailer = async () => {
-             // Delay to allow slide transition to finish before starting network requests
-            await new Promise(r => setTimeout(r, 2000));
-            if (!isMounted) return;
-
-            // Disable trailers in Electron to avoid persistent playback errors (Error 152)
-            // Trailers will still work on the web version.
-            const isElectron = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('electron');
-            if (isElectron) {
-                console.log("🚫 Trailers disabled in Electron");
-                return;
-            }
-
-            // Try existing trailer key
-            let key = item.trailer;
-
-            // If not found, fetch from API
-            if (!key) {
-                key = await contentApi.getTrailer(item.id, item.type as 'movie' | 'tv');
-            }
-            
-            if (!isMounted) return;
-
-            if (key) {
-                console.log("🎬 Trailer key acquired:", key);
-                setTrailerKey(key);
-                setShowTrailer(true);
-                // AG: Optimistic loading - Assume video is ready after 1.5s
-                // This ensures carousel pauses and video fades in even if onLoad request event is swallowed.
-                setTimeout(() => setIframeLoaded(true), 1500);
-            } else {
-                console.log("⚠️ No trailer found for:", item.title);
-            }
-        };
-
-        if (isActive) {
-            fetchTrailer();
-        }
-
-        return () => {
-            isMounted = false;
-        };
-    }, [item.id, isActive]);
-
-    // Update parent about play status (Prevent rotation if we have a visible trailer)
-    useEffect(() => {
-        if (isActive) {
-            onPlayStatusChange(iframeLoaded);
-        }
-    }, [iframeLoaded, isActive, onPlayStatusChange]);
-
+    // Show UI on interaction
     const handleInteraction = () => {
         if (!uiVisible) setUiVisible(true);
     };
 
+
+
+    // Safety check: if no items, show a basic skeleton
+    if (!currentItem) return <HeroSkeleton />;
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-            className="absolute inset-0"
+        <section
+            className="relative h-[50vh] sm:h-[70vh] lg:h-[85vh] w-full group mx-auto overflow-hidden"
             onMouseMove={handleInteraction}
             onClick={handleInteraction}
         >
-            {/* Background Image (Base Layer) */}
-            <div className="absolute inset-0 bg-black">
-                 {/* YouTube Iframe Layer - Pure HTML for robustness */}
-                 {trailerKey && (
-                     <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}>
-                            <iframe
-                                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&loop=1&playlist=${trailerKey}&modestbranding=1&fs=0`}
-                                className="w-full h-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.5] pointer-events-none"
-                                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-                                onLoad={() => {
-                                    console.log("✅ Iframe Loaded for:", trailerKey);
-                                    // Small delay to allow actual video buffer to start filling effectively
-                                    setTimeout(() => setIframeLoaded(true), 1500);
-                                }}
-                                onError={(e) => console.error("❌ Iframe Error", e)}
-                            />
-                     </div>
-                 )}
-
-                {/* Image Layer (Fades out when video is ready) */}
+            <AnimatePresence mode="wait">
                 <motion.div
-                    className="absolute inset-0 bg-cover bg-[center_20%] sm:bg-center transition-opacity duration-1000 pointer-events-none"
-                    style={{ 
-                        backgroundImage: `url(${item.backdrop || "/images/hero_placeholder.jpg"})`,
-                        opacity: iframeLoaded ? 0 : 1 
-                    }}
-                    initial={{ scale: 1 }}
-                    animate={{ scale: 1.1 }}
-                    transition={{ duration: 15, ease: "linear" }}
-                />
-                
-                {/* Gradients */}
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-100 z-10 pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent opacity-100 z-10 pointer-events-none" />
-            </div>
+                    key={currentItem.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.5, ease: "easeInOut" }}
+                    className="absolute inset-0"
+                >
+                    {/* Background Image (Base Layer) */}
+                    <motion.div
+                        className="absolute inset-0 bg-cover bg-[center_20%] sm:bg-center"
+                        style={{ backgroundImage: `url(${currentItem.backdrop || "/images/hero_placeholder.jpg"})` }}
+                        initial={{ scale: 1 }}
+                        animate={{ scale: 1.1 }}
+                        transition={{ duration: 15, ease: "linear" }}
+                    >
+                        {/* Gradients for readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
+                    </motion.div>
+
+
+                </motion.div>
+            </AnimatePresence>
 
             {/* Content Overlay */}
             <div className="absolute bottom-0 left-0 z-20 p-6 pb-24 md:p-12 md:pb-32 lg:p-16 lg:pb-40 w-full max-w-4xl space-y-4 md:space-y-6 pointer-events-none">
                 <AnimatePresence mode="wait">
                     {uiVisible && (
                         <motion.div
-                            key="text-content"
+                            key={currentItem.id + "-text"}
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 30 }}
@@ -206,19 +109,19 @@ function HeroSlide({ item, isActive, onPlayStatusChange }: { item: Content, isAc
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2, duration: 0.8 }}
                             >
-                                {item.title}
+                                {currentItem.title}
                             </motion.h1>
 
                             <div className="flex items-center gap-3 text-sm md:text-base font-medium text-zinc-300">
                                 <span className="flex items-center gap-1 text-green-400 font-bold">
                                     <Star size={14} fill="currentColor" />
-                                    {Math.round((item.rating || 0) * 10)}% Match
+                                    {Math.round((currentItem.rating || 0) * 10)}% Match
                                 </span>
                                 <span>•</span>
-                                <span>{item.releaseDate?.substring(0, 4)}</span>
+                                <span>{currentItem.releaseDate?.substring(0, 4)}</span>
                                 <span>•</span>
                                 <span className="uppercase tracking-widest text-xs border border-zinc-600 px-2 py-0.5 rounded text-zinc-400 bg-zinc-900/40">
-                                    {item.type === 'tv' ? 'Series' : 'Movie'}
+                                    {currentItem.type === 'tv' ? 'Series' : 'Movie'}
                                 </span>
                             </div>
 
@@ -228,7 +131,7 @@ function HeroSlide({ item, isActive, onPlayStatusChange }: { item: Content, isAc
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4, duration: 0.8 }}
                             >
-                                {item.description}
+                                {currentItem.description}
                             </motion.p>
 
                             <motion.div
@@ -238,11 +141,11 @@ function HeroSlide({ item, isActive, onPlayStatusChange }: { item: Content, isAc
                                 transition={{ delay: 0.6, duration: 0.8 }}
                             >
                                 <Link 
-                                    href={`/watch?id=${String(item.id).replace('tmdb_', '')}&type=${item.type}`}
+                                    href={`/watch?id=${String(currentItem.id).replace('tmdb_', '')}&type=${currentItem.type}`}
                                     onMouseEnter={() => {
                                          queryClient.prefetchQuery({
-                                            queryKey: ['content', 'details', String(item.id), item.type],
-                                            queryFn: () => contentApi.getDetails(item.id, (item.type === 'anime' ? 'tv' : item.type) as 'movie' | 'tv'),
+                                            queryKey: ['content', 'details', String(currentItem.id), currentItem.type],
+                                            queryFn: () => contentApi.getDetails(currentItem.id, currentItem.type),
                                             staleTime: 10 * 60 * 1000
                                         });
                                     }}
@@ -266,7 +169,27 @@ function HeroSlide({ item, isActive, onPlayStatusChange }: { item: Content, isAc
                     )}
                 </AnimatePresence>
             </div>
-        </motion.div>
+
+            {/* Carousel Indicators */}
+            <div className={cn(
+                "absolute right-4 sm:right-8 bottom-24 sm:bottom-48 flex flex-col gap-1.5 sm:gap-2 z-30 transition-opacity duration-1000",
+                uiVisible ? "opacity-100" : "opacity-0"
+            )}>
+                {items.map((_, i) => (
+                    <button
+                        key={i}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIndex(i);
+                        }}
+                        className={cn(
+                            "w-1.5 h-1.5 rounded-full transition-all duration-300 shadow shadow-black/50",
+                            i === index ? "h-6 bg-white" : "bg-white/30 hover:bg-white/60"
+                        )}
+                    />
+                ))}
+            </div>
+        </section>
     );
 }
 

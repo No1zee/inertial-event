@@ -1,37 +1,32 @@
 import mongoose from 'mongoose';
 
-// Disable buffering globally for serverless/cloud environments
-mongoose.set('bufferCommands', false);
-mongoose.set('bufferTimeoutMS', 5000);
-
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-    if (process.env.VERCEL) {
-        console.warn('⚠️ MONGODB_URI is not defined in Vercel environment variables. Database operations will fail.');
-    } else {
-        console.error('❌ MONGODB_URI is not defined in environment variables');
-        process.exit(1);
-    }
+    console.error('❌ MONGODB_URI is not defined in environment variables');
+    process.exit(1);
 }
 
 const connectDB = async () => {
+    if (mongoose.connection.readyState >= 1) {
+        return mongoose.connection;
+    }
+
     try {
-        if (mongoose.connection.readyState >= 1) return;
-        
+        console.log('[DB] Connecting to MongoDB...');
         await mongoose.connect(MONGODB_URI, {
             serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 30000,
-            connectTimeoutMS: 10000,
+            socketTimeoutMS: 45000,
+            bufferCommands: false
         });
         console.log('✅ Connected to MongoDB (Keygen Server)');
+        return mongoose.connection;
     } catch (err) {
-        console.error('❌ MongoDB Connection Error (Keygen Server):', err.message);
+        console.error('❌ MongoDB Connection Error:', err.message);
+        throw err;
     }
 };
 
-// Start connection
-connectDB();
-
+export { connectDB };
 export default mongoose.connection;
 

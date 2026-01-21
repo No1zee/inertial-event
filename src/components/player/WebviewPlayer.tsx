@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import PlayerControls from './overlay/PlayerControls';
 import SettingsOverlay from './overlay/SettingsOverlay';
 import CastModal from './overlay/CastModal';
@@ -45,7 +44,6 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
     type = 'movie', season = '1', episode = '1', seasons = [], onSeasonChange, onEpisodeChange,
     contentData
 }, ref) => {
-    const router = useRouter();
     const webviewRef = useRef<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const isReadyRef = useRef(false);
@@ -271,8 +269,6 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
     useEffect(() => {
         const handlePlayerKeyDown = (e: KeyboardEvent) => {
             if (!isReadyRef.current) return;
-            
-            console.log('[KeyLog] Time:', Date.now(), '| Pressed:', e.key, '| Code:', e.code, '| Ctrl:', e.ctrlKey, '| Shift:', e.shiftKey);
             
             // Ignore if typing in an input
             const activeElement = document.activeElement;
@@ -579,34 +575,18 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                                 // Trigger earlier (0.2s)
                                 if (!window.AG_HAS_NUDGED && !v.paused && v.currentTime > 0.2) {
                                     window.AG_HAS_NUDGED = true;
-                                    window.AG_HAS_NUDGED = true;
-                                    console.log("🤜 NUDGE: Force cycling playback to clear native overlays (Double Space)");
+                                    console.log("🤜 NUDGE: Force cycling playback to clear native overlays");
+                                    v.pause();
                                     
-                                    const pressSpace = () => {
-                                        const target = document.querySelector('video') || document.body;
-                                        // Attempt focus
-                                        if (target.focus) target.focus();
-                                        
-                                        const down = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
-                                        // Some players need charCode/keyCode for legacy support
-                                        // @ts-ignore
-                                        down.keyCode = 32; 
-                                        // @ts-ignore
-                                        down.which = 32;
-
-                                        const up = new KeyboardEvent('keyup', { key: ' ', code: 'Space', bubbles: true, cancelable: true }); 
-                                        
-                                        target.dispatchEvent(down);
-                                        target.dispatchEvent(up);
-                                    };
-
-                                    // Double Press Logic
-                                    pressSpace();
-                                    setTimeout(() => pressSpace(), 450);
-
                                     // Ensure volume is locked to 100 on nudge
                                     v.volume = START_VOLUME; 
                                     v.muted = false;
+
+                                    setTimeout(() => {
+                                        v.play(); 
+                                        v.volume = START_VOLUME; // Set again just in case
+                                        v.muted = false;
+                                    }, 100);
                                 }
                                 
                                 if (!v.hasAGListeners && v) {
@@ -1024,11 +1004,18 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
              // STEALTH MODE: Cloak the webview (Electron only)
             const stealthScript = `
                 try {
+                    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+                    if (navigator.plugins.length === 0) {
+                        Object.defineProperty(navigator, 'plugins', { 
+                            get: () => [
+                                { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+                                { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: 'Portable Document Format' },
+                                { name: 'Native Client', filename: 'internal-nacl-plugin', description: 'Native Client Executable' }
+                            ] 
+                        });
+                    }
                     if (!navigator.languages || navigator.languages.length === 0) {
                         Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-                    }
-                    if (!window.chrome) {
-                        window.chrome = { runtime: {} };
                     }
                 } catch(e) {}
             `;
@@ -1077,20 +1064,6 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
         };
     }, [src, initialVolume]);
 
-    useEffect(() => {
-        // Use ref to set attributes to silence React DOM warnings
-        // but keep native Electron webview behavior
-        if (webviewRef.current) {
-            try {
-                webviewRef.current.setAttribute('autoplay', 'true');
-                webviewRef.current.setAttribute('allowpopups', 'false');
-                webviewRef.current.setAttribute('disablewebsecurity', 'true');
-            } catch (e) {
-                console.error('Failed to set webview attributes:', e);
-            }
-        }
-    }, [src]); // Re-set if src changes to be safe
-
     // Browser environment check
     // @ts-ignore
     const isElectron = typeof window !== 'undefined' && !!window.electron;
@@ -1119,8 +1092,12 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                         background: '#000',
                         opacity: isLoading ? 0 : 1
                     }}
-                    /* Managed via ref in useEffect to avoid React warnings */
                     // @ts-ignore
+                    allowpopups="false"
+                    // @ts-ignore
+                    autoplay="true"
+                    // @ts-ignore
+                    disablewebsecurity="true"
                     webpreferences="contextIsolation=no, nodeIntegration=no, webSecurity=no, autoplayPolicy=no-user-gesture-required"
                     // @ts-ignore
                     partition="persist:youtube-player"
@@ -1193,15 +1170,6 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                 onToggleFullscreen={handleToggleFullscreen}
                 skipParams={playerState.skipParams}
                 onSkip={(t) => safeExecute(`window.AG_CMD_SEEK && window.AG_CMD_SEEK(${t})`)}
-                // @ts-ignore
-                onBack={() => {
-                     // Try browser back first, else router back
-                     if (window.history.length > 1) {
-                         router.back();
-                     } else {
-                         router.push('/');
-                     }
-                }}
             />
 
             <SettingsOverlay

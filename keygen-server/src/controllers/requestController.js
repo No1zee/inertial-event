@@ -39,10 +39,7 @@ export const requestAccess = async (req, res) => {
 
     } catch (error) {
         console.error('Request Access Error:', error);
-        res.status(500).json({ 
-            error: 'Request Access Failed',
-            message: error.message
-        });
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 
@@ -70,10 +67,7 @@ export const checkStatus = async (req, res) => {
 
     } catch (error) {
         console.error('Check Status Error:', error);
-        res.status(500).json({ 
-            error: 'Check Status Failed',
-            message: error.message
-        });
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };
 

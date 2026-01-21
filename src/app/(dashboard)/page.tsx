@@ -11,7 +11,6 @@ import { useHistoryStore } from "@/lib/store/historyStore";
 import { useWatchlistStore } from "@/lib/store/watchlistStore";
 import { Content } from "@/lib/types/content";
 import { useTrending, useSimilar } from "@/hooks/queries/useContent";
-import { Greeting } from "@/components/dashboard/Greeting";
 
 // Rails Configuration
 const RAIL_CONFIGS = [
@@ -26,7 +25,6 @@ const RAIL_CONFIGS = [
     { id: "short", title: "Quick Watch (< 100m)", fetcher: contentApi.getShortAndSweet },
     { id: "feelgood", title: "Feel Good Movies", fetcher: contentApi.getFeelGood },
     { id: "horror", title: "Late Night Horror", fetcher: () => contentApi.getByGenre(27, 'movie') },
-    { id: "aunties", title: "For the Aunties ❤️", fetcher: contentApi.getAuntiesFaves }, // Nollywood, Bollywood, K-Drama
     { id: "anime", title: "Anime Hits", fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv') },
     { id: "docu", title: "Mind-Blowing Docs", fetcher: () => contentApi.getByGenre(99, 'movie') },
 ];
@@ -63,13 +61,11 @@ export default function DashboardPage() {
     }, [trending]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-black pb-20">
+        <div className="min-h-screen bg-[#141414] pb-20">
             <Hero items={heroItems} />
 
             {/* Content Rails */}
             <div className="relative z-10 -mt-12 sm:-mt-24 space-y-8 md:space-y-10 pb-24">
-                
-                <Greeting />
 
                 {/* Continue Watching Rail */}
                 <ContinueWatchingRail />

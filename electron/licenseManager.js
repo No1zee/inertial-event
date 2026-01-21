@@ -6,18 +6,7 @@ const crypto = require('crypto');
 // const Store = require('electron-store'); // ESM only
 const { app } = require('electron');
 
-let KEYGEN_SERVER_URL = process.env.KEYGEN_SERVER_URL || 'https://inertial-event.vercel.app/api/keygen/api';
-
-// Fix relative URLs or normalize to production if explicitly requested
-if (KEYGEN_SERVER_URL && (KEYGEN_SERVER_URL.startsWith('/') || KEYGEN_SERVER_URL.includes('localhost'))) {
-    // Only use localhost in dev if NODE_ENV is explicitly development
-    if (process.env.NODE_ENV === 'development') {
-        KEYGEN_SERVER_URL = `http://localhost:5000${KEYGEN_SERVER_URL.startsWith('/') ? KEYGEN_SERVER_URL : '/api'}`;
-    } else {
-        KEYGEN_SERVER_URL = 'https://inertial-event.vercel.app/api/keygen/api';
-    }
-    console.log('[LicenseManager] Normalized KEYGEN_SERVER_URL to:', KEYGEN_SERVER_URL);
-}
+const KEYGEN_SERVER_URL = process.env.KEYGEN_SERVER_URL || 'http://localhost:4000/api';
 
 const ENCRYPTION_KEY = Buffer.from('4ee9ccf17e082f9d5a9c3b88e04b4d7f6c3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c', 'hex');
 const IV = Buffer.from('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', 'hex');
@@ -171,42 +160,12 @@ class LicenseManager {
                 hostname: os.hostname
             };
 
-            // URL Construction & Debug
-            let baseUrl = process.env.KEYGEN_SERVER_URL || KEYGEN_SERVER_URL;
-            if (!baseUrl.startsWith('http')) {
-                console.warn('[LicenseManager] Invalid KEYGEN_SERVER_URL (missing protocol):', baseUrl);
-                baseUrl = 'http://localhost:4000/api/keygen/api';
-            }
-            const targetUrl = `${baseUrl}/validate`;
-            console.log(`[LicenseManager] Validating against: ${targetUrl}`);
-
             // Online Validation
-            const response = await axios.post(targetUrl, {
+            const response = await axios.post(`${process.env.KEYGEN_SERVER_URL || KEYGEN_SERVER_URL}/validate`, {
                 license_key: licenseKey,
                 device_id: deviceId,
                 machine_info: machineInfo
-            }, { 
-                timeout: 5000,
-                validateStatus: () => true // Handle all status codes manually to log bodies
-            });
-            
-            if (response.status >= 500) {
-                console.error(`[LicenseManager] Server Error (${response.status}):`, response.data);
-                if (process.env.NODE_ENV === 'development') {
-                    console.warn('[LicenseManager] DEV MODE: Validation failed with server error, but allowing bypass.');
-                    return { valid: true, source: 'development-bypass-error', error: response.data };
-                }
-                throw new Error(`License Server Error (${response.status}): ${response.data.message || 'Check logs'}`);
-            }
-
-            if (response.status === 404) {
-                console.error('[LicenseManager] Server returned 404. Is the Keygen server deployed correctly?');
-                if (process.env.NODE_ENV === 'development') {
-                    console.warn('[LicenseManager] DEV MODE: Allowing boot despite 404.');
-                    return { valid: true, source: 'development-bypass-404' };
-                }
-                throw new Error('License Verification Server unreachable (404).');
-            }
+            }, { timeout: 8000 });
 
             if (response.data.valid) {
                 // Update Cache

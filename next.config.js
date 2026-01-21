@@ -2,7 +2,7 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: process.env.VERCEL ? undefined : 'export',
+  output: 'export',
   reactStrictMode: false,
   compress: true,
   productionBrowserSourceMaps: true,

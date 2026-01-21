@@ -1,10 +1,6 @@
 const { app, BrowserWindow, ipcMain, session, shell, dialog, protocol, net } = require('electron');
 const { fork } = require('child_process');
 const path = require('path');
-
-// AG: Fixes for YouTube Autoplay & Media Keys
-app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
-app.commandLine.appendSwitch('disable-features', 'MediaSessionService'); // Prevents some media key hijacking issues
 // app.name is now 'novastream' from package.json
 // const serve = require('electron-serve');
 const axios = require('axios');
@@ -75,40 +71,30 @@ function createWindow() {
     // 4. Header Spoofing (Universal Referer Control)
     const applyRequestHeaders = (sess) => {
         sess.webRequest.onBeforeSendHeaders(
-            { urls: ['*://*/*'] },
+            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*'] },
             (details, callback) => {
                 const url = new URL(details.url);
                 const domain = url.hostname;
-                const urlLower = details.url.toLowerCase();
-
-                // Skip internal app/proxy protocols
-                if (urlLower.startsWith('app://') || urlLower.startsWith('proxy://')) {
-                    return callback({});
-                }
 
                 if (domain.includes('tmdb.org') || domain.includes('themoviedb.org')) {
                     details.requestHeaders['Referer'] = 'https://www.themoviedb.org/';
-                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
+                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
+                    // Critical Fix for Error 152: 
+                    // DO NOT send Origin. Sending a fake 'youtube.com' Origin triggers strict CORS checks.
+                    // Sending NO Origin allows the embed to play as if it were a direct browser nav.
                     details.requestHeaders['Referer'] = 'https://www.youtube.com/';
                     if (details.requestHeaders['Origin']) delete details.requestHeaders['Origin'];
-                    delete details.requestHeaders['sec-fetch-mode'];
-                    delete details.requestHeaders['sec-fetch-site'];
-                    delete details.requestHeaders['sec-fetch-dest'];
-                    delete details.requestHeaders['sec-fetch-user'];
-                } else if (domain.includes('vidlink.pro') || domain.includes('vidsrc')) {
-                    // Providers often check Referer and sometimes Origin
-                    details.requestHeaders['Referer'] = url.origin + '/';
-                    details.requestHeaders['Origin'] = url.origin;
+                    // [DEBUG] Log packet to help user debug functionality
+                    console.log(`[AG Debug] YouTube Req: ${url.pathname} | Ref: ${details.requestHeaders['Referer']} | Origin: ${details.requestHeaders['Origin'] || 'REMOVED'}`);
                 } else {
-                    // Generic fallback for other potential providers
-                    // Only set if not already present or if we want to force it
-                    if (!details.requestHeaders['Referer']) {
-                        details.requestHeaders['Referer'] = url.origin + '/';
-                    }
+                    details.requestHeaders['Referer'] = `${url.protocol}//${url.hostname}/`;
+                    details.requestHeaders['Origin'] = `${url.protocol}//${url.hostname}`;
                 }
 
-                // Global overrides for stealth
+                // Comprehensive browser identity (Downgraded to Chrome 120)
                 details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+                
+                // Remove 'sec-ch-ua-form-factors' request header
                 if (details.requestHeaders['sec-ch-ua-form-factors']) delete details.requestHeaders['sec-ch-ua-form-factors'];
                 
                 callback({ requestHeaders: details.requestHeaders });
@@ -136,7 +122,7 @@ function createWindow() {
                     const newHeaders = { ...details.responseHeaders };
 
                     // A. YouTube/Google Video Cleanup (Aggressive Stripping)
-                    if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
+                    if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
                         const keysToDelete = [
                             'permissions-policy',
                             'content-security-policy',
@@ -155,17 +141,12 @@ function createWindow() {
                     // B. General CSP Injection
                     if (newHeaders['content-security-policy']) {
                         let csp = newHeaders['content-security-policy'][0];
-                        csp = csp.replace(/connect-src/g, "connect-src 'self' proxy: app: http: https: ws: wss: ");
-                        csp = csp.replace(/img-src/g, "img-src 'self' proxy: app: http: https: data: blob: ");
-                        csp = csp.replace(/media-src/g, "media-src 'self' proxy: app: http: https: blob: ");
-                        csp = csp.replace(/frame-src/g, "frame-src 'self' proxy: app: http: https: https://www.youtube.com https://www.youtube-nocookie.com ");
-                        
+                        csp = csp.replace(/connect-src/g, "connect-src proxy: app: http: ");
+                        csp = csp.replace(/img-src/g, "img-src proxy: app: http: ");
+                        csp = csp.replace(/media-src/g, "media-src proxy: app: http: blob: ");
                         // Fallback if media-src is missing (it falls back to default-src)
                         if (!csp.includes('media-src')) {
-                            csp += "; media-src 'self' proxy: app: http: https: blob:;";
-                        }
-                        if (!csp.includes('frame-src')) {
-                            csp += "; frame-src 'self' proxy: app: http: https: https://www.youtube.com https://www.youtube-nocookie.com;";
+                            csp += "; media-src proxy: app: http: blob: 'self' https:;";
                         }
                         newHeaders['content-security-policy'] = [csp];
                     }
@@ -227,7 +208,7 @@ function createWindow() {
 
     // Block any SUBFRAME navigation (iframe) to unknown domains
     mainWindow.webContents.on('will-frame-navigate', (event, url) => {
-        const allowedHostnames = ['localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'youtube-nocookie.com', 'dicebear.com'];
+        const allowedHostnames = ['localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'dicebear.com'];
         const isAllowed = allowedHostnames.some(h => url.includes(h));
 
         if (!isAllowed) {
@@ -464,7 +445,10 @@ app.on('ready', async () => {
 
             // Local Backend Proxy
             else if (url.pathname.startsWith('/api/')) {
-                const BACKEND_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.pathname}${url.search}`;
+                const apiBase = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL !== 'undefined')
+                    ? process.env.NEXT_PUBLIC_API_URL 
+                    : 'http://localhost:5000';
+                const BACKEND_URL = `${apiBase}${url.pathname}${url.search}`;
                 response = await net.fetch(BACKEND_URL);
             }
 
@@ -536,7 +520,7 @@ app.on('ready', async () => {
                 'outbrain', 'taboola', 'mgid', 'revcontent', 'adroll', 'adform', 'opera',
                 'click', 'redirect', 'popup', 'adbox', 'ad-cache', 'analytics',
                 'luckyorange', 'hotjar', 'histats', 'statcounter', 'quantserve',
-                'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront', 'yandex'
+                'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront'
             ].join('|'), 'i');
 
             // Surgical Exception: Allow DoubleClick if it's for YouTube (Referrer check)
@@ -563,15 +547,11 @@ app.on('ready', async () => {
         // Safety timeout for validation
         let validationResult;
         try {
-            const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-            
             validationResult = await Promise.race([
                 licenseManager.validate(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout')), 25000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (15s)')), 15000))
             ]);
         } catch (err) {
-            const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-            
             if (err.message && err.message.includes('LICENSE_REVOKED')) {
                 log('License revoked. Prompting for new key.');
                 dialog.showMessageBoxSync({
@@ -580,11 +560,8 @@ app.on('ready', async () => {
                     message: 'Your license validation failed.\n\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\n\nPlease enter a new key to continue.',
                     buttons: ['OK']
                 });
+                // Force activation flow
                 validationResult = { requiresActivation: true };
-            } else if (isDev) {
-                const axiosBody = err.response?.data ? JSON.stringify(err.response.data) : '';
-                log(`WARN: Validation error/timeout, but bypassing in DEV mode: ${err.message} ${axiosBody}`);
-                validationResult = { valid: true, source: 'dev-bypass' };
             } else {
                 throw err;
             }

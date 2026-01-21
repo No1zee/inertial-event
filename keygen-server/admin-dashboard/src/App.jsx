@@ -1,17 +1,8 @@
-const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
-const API_BASE = isVercel 
-    ? '/api/keygen/api/admin' 
-    : 'http://localhost:4000/api/keygen/api/admin';
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import { Shield, Key, Clock, CheckCircle, XCircle, RefreshCw, Power, Plus, Copy, Check } from 'lucide-react'
 
-// Prompt for master key if missing (for web version security)
-const getAdminConfig = () => {
-    let key = localStorage.getItem('ns_admin_key');
-    if (!key && typeof window !== 'undefined') {
-        key = window.prompt('Enter Master Admin Key:');
-        if (key) localStorage.setItem('ns_admin_key', key);
-    }
-    return { headers: { 'x-admin-key': key } };
-};
+const API_BASE = 'http://localhost:4000/api/admin';
 
 // Basic Dashboard Implementation
 function App() {
@@ -36,8 +27,8 @@ function App() {
   const fetchData = async () => {
     try {
       const [reqRes, licRes] = await Promise.all([
-        axios.get(`${API_BASE}/requests`, getAdminConfig()),
-        axios.get(`${API_BASE}/licenses`, getAdminConfig())
+        axios.get(`${API_BASE}/requests`),
+        axios.get(`${API_BASE}/licenses`)
       ]);
       setRequests(reqRes.data);
       setLicenses(licRes.data);
@@ -55,7 +46,7 @@ function App() {
         user_email: genEmail || null,
         access_type: genAccessType,
         duration_days: genAccessType !== 'permanent' ? genDays : null
-      }, getAdminConfig());
+      });
       setGeneratedKey(res.data.license_key);
       fetchData(); // Refresh licenses list
     } catch (err) {
@@ -74,7 +65,7 @@ function App() {
   const handleRevoke = async (license_key) => {
     if (!confirm('Revoke this license? The user will lose access immediately.')) return;
     try {
-      await axios.post(`${API_BASE}/revoke`, { license_key }, getAdminConfig());
+      await axios.post(`${API_BASE}/revoke`, { license_key });
       fetchData();
     } catch (err) {
       alert('Failed to revoke');
@@ -87,7 +78,7 @@ function App() {
         request_id: id,
         access_type: type,
         duration_days: days
-      }, getAdminConfig());
+      });
       fetchData();
     } catch (err) {
       alert('Failed to approve');
@@ -97,7 +88,7 @@ function App() {
   const handleReject = async (id) => {
     if(!confirm('Reject this request?')) return;
     try {
-      await axios.post(`${API_BASE}/reject`, { request_id: id }, getAdminConfig());
+      await axios.post(`${API_BASE}/reject`, { request_id: id });
       fetchData();
     } catch (err) {
       alert('Failed to reject');

@@ -52,7 +52,6 @@ interface PlayerControlsProps {
     onEpisodeChange?: (e: string) => void;
     onStartOver?: () => void;
     onToggleFullscreen: () => void;
-    onBack?: () => void; // New Prop
 
     // Debug / State
     providerType?: string;
@@ -70,7 +69,7 @@ export default function PlayerControls({
     onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute,
     onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onToggleCast,
     onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen,
-    hideBottom, onBack,
+    hideBottom,
     ...props // Capture debug props
 }: PlayerControlsProps) {
 
@@ -83,9 +82,7 @@ export default function PlayerControls({
     const displayTime = isSeeking ? seekValue : safeTime;
 
     const handleBack = () => {
-        if (onBack) {
-            onBack();
-        } else if (backUrl) {
+        if (backUrl) {
             router.push(backUrl);
         } else {
             router.push('/');
@@ -96,13 +93,7 @@ export default function PlayerControls({
         <div className={`absolute inset-0 z-[100] flex flex-col justify-between transition-opacity duration-300 pointer-events-none ${show ? 'opacity-100' : 'opacity-0'}`}>
 
             {/* --- TOP BAR --- */}
-            <div className={`pointer-events-auto bg-gradient-to-b from-black via-black/90 to-transparent p-6 pb-20 flex items-center transition-transform duration-300 gap-4 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
-                
-                {/* Back Button */}
-                <button onClick={handleBack} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors">
-                    <ArrowLeft size={24} />
-                </button>
-
+            <div className={`pointer-events-auto bg-gradient-to-b from-black via-black/90 to-transparent p-6 pb-20 flex items-center transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
                 {/* LEFT: Title */}
                 <div className="flex-1">
                     <div className="flex flex-col text-shadow">
@@ -140,8 +131,45 @@ export default function PlayerControls({
                     </button>
                 </div>
 
-                {/* RIGHT: Series Navigation - REMOVED (Duplicate) */}
+                {/* RIGHT: Series Navigation */}
                 <div className="flex-1 flex justify-end">
+                    {type === 'tv' && seasons && (
+                        <div className="flex items-center gap-2">
+                            <button onClick={onPrev} className="p-1.5 bg-white/10 rounded-full text-white/70 hover:text-white transition-colors" disabled={currentSeasonNum === 1 && currentEpisodeNum === 1}>
+                                <ChevronLeft size={18} />
+                            </button>
+
+                            <div className="flex items-center gap-0 bg-white/10 rounded-md border border-white/10 overflow-hidden backdrop-blur-md">
+                                <select
+                                    className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer hover:bg-white/10 px-2 py-1.5 appearance-none text-center min-w-[3rem]"
+                                    value={currentSeasonNum}
+                                    onChange={(e) => onSeasonChange && onSeasonChange(Number(e.target.value))}
+                                >
+                                    {seasons.filter((s: any) => s.season_number > 0).map((s: any) => (
+                                        <option key={s.id} value={s.season_number} className="bg-zinc-900">S{s.season_number}</option>
+                                    ))}
+                                </select>
+                                <div className="w-[1px] h-4 bg-white/20" />
+                                <select
+                                    className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer hover:bg-white/10 px-2 py-1.5 appearance-none text-center min-w-[3rem]"
+                                    value={currentEpisodeNum}
+                                    onChange={(e) => onEpisodeChange && onEpisodeChange(e.target.value)}
+                                >
+                                    {(() => {
+                                        const seasonData = seasons.find((s: any) => s.season_number === currentSeasonNum);
+                                        const count = seasonData?.episode_count || 1;
+                                        return Array.from({ length: count }, (_, i) => i + 1).map(ep => (
+                                            <option key={ep} value={ep} className="bg-zinc-900">E{ep}</option>
+                                        ));
+                                    })()}
+                                </select>
+                            </div>
+
+                            <button onClick={onNext} className="p-1.5 bg-white/10 rounded-full text-white/70 hover:text-white transition-colors">
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

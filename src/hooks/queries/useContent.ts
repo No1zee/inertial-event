@@ -83,41 +83,39 @@ export function useSimilar(id: string, type: 'movie' | 'tv' | 'anime' = 'movie')
     });
 }
 
-// Helper to get param key based on type
-const getProviderParam = (id: string, type: 'provider' | 'network') => {
-    return type === 'network' ? { with_networks: id } : { with_watch_providers: id, watch_region: 'US' };
-};
-
-export function useProviderContent(providerId: string, type: 'movie' | 'tv' = 'movie', sort_by: string = 'popularity.desc', providerType: 'provider' | 'network' = 'provider') {
+export function useProviderContent(providerId: string, type: 'movie' | 'tv' = 'movie', sort_by: string = 'popularity.desc') {
     return useQuery({
-        queryKey: ['content', 'provider', providerId, type, sort_by, providerType],
+        queryKey: ['content', 'provider', providerId, type, sort_by],
         queryFn: () => contentApi.discover({ 
-            ...getProviderParam(providerId, providerType),
+            with_watch_providers: providerId, 
+            watch_region: 'US',
             sort_by 
         }, type),
         staleTime: 10 * 60 * 1000,
     });
 }
 
-export function useProviderGenre(providerId: string, genreId: number, type: 'movie' | 'tv' = 'movie', sort_by: string = 'popularity.desc', providerType: 'provider' | 'network' = 'provider') {
+export function useProviderGenre(providerId: string, genreId: number, type: 'movie' | 'tv' = 'movie', sort_by: string = 'popularity.desc') {
     return useQuery({
-        queryKey: ['content', 'provider-genre', providerId, genreId, type, sort_by, providerType],
+        queryKey: ['content', 'provider-genre', providerId, genreId, type, sort_by],
         queryFn: () => contentApi.discover({ 
-            ...getProviderParam(providerId, providerType),
+            with_watch_providers: providerId, 
             with_genres: genreId,
+            watch_region: 'US',
             sort_by 
         }, type),
         staleTime: 10 * 60 * 1000,
     });
 }
 
-export function useProviderClassics(providerId: string, type: 'movie' | 'tv' = 'movie', providerType: 'provider' | 'network' = 'provider') {
+export function useProviderClassics(providerId: string, type: 'movie' | 'tv' = 'movie') {
     return useQuery({
-        queryKey: ['content', 'provider-classics', providerId, type, providerType],
+        queryKey: ['content', 'provider-classics', providerId, type],
         queryFn: () => {
              const dateFilter = type === 'movie' ? { 'primary_release_date.lte': '2010-01-01' } : { 'first_air_date.lte': '2010-01-01' };
              return contentApi.discover({
-                ...getProviderParam(providerId, providerType),
+                with_watch_providers: providerId,
+                watch_region: 'US',
                 sort_by: 'vote_average.desc',
                 'vote_count.gte': 1000,
                 'vote_average.gte': 7.5,
@@ -128,41 +126,17 @@ export function useProviderClassics(providerId: string, type: 'movie' | 'tv' = '
     });
 }
 
-export function useProviderUnderrated(providerId: string, type: 'movie' | 'tv' = 'movie', providerType: 'provider' | 'network' = 'provider') {
+export function useProviderUnderrated(providerId: string, type: 'movie' | 'tv' = 'movie') {
     return useQuery({
-        queryKey: ['content', 'provider-underrated', providerId, type, providerType],
+        queryKey: ['content', 'provider-underrated', providerId, type],
         queryFn: () => contentApi.discover({
-            ...getProviderParam(providerId, providerType),
+            with_watch_providers: providerId,
+            watch_region: 'US',
             sort_by: 'vote_average.desc',
             'vote_count.gte': 200,
             'vote_count.lte': 5000,
             'vote_average.gte': 8.0,
         }, type),
         staleTime: 60 * 60 * 1000,
-    });
-}
-
-export function useProviderNewReleases(providerId: string, type: 'movie' | 'tv' = 'movie', providerType: 'provider' | 'network' = 'provider') {
-    return useQuery({
-        queryKey: ['content', 'provider-new', providerId, type, providerType],
-        queryFn: () => {
-             const today = new Date().toISOString().split('T')[0];
-             const dateKey = type === 'movie' ? 'primary_release_date.lte' : 'first_air_date.lte';
-             const sortKey = type === 'movie' ? 'primary_release_date.desc' : 'first_air_date.desc';
-             
-             const params: any = {
-                ...getProviderParam(providerId, providerType),
-                sort_by: sortKey,
-                [dateKey]: today,
-                'vote_count.gte': 5 // Basic filter to avoid stub entries
-             };
-
-             if (type === 'movie') {
-                 params.with_release_type = '4|5'; // Digital or Physical release only
-             }
-
-             return contentApi.discover(params, type);
-        },
-        staleTime: 10 * 60 * 1000,
     });
 }

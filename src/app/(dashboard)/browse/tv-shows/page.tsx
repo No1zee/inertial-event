@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Hero } from "@/components/content/Hero";
 import { ContentRail } from "@/components/content/ContentRail";
 import { contentApi } from "@/lib/api/content";
-import ContentModal from "@/components/content/ContentModal";
+import { ContentModal } from "@/components/content/ContentModal";
 
 import { useHistoryStore } from "@/lib/store/historyStore";
 

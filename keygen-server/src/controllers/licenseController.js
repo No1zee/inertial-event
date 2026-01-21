@@ -1,13 +1,17 @@
 import { License } from '../models/License.js';
+import { connectDB } from '../config/db.js';
 
 export const validateLicense = async (req, res) => {
     try {
-        const { license_key, device_id } = req.body;
+        console.log('[LicenseController] Validating request...');
+        await connectDB();
+        const { license_key, device_id, machine_info } = req.body;
 
-        if (!license_key || !device_id) {
-            return res.status(400).json({ valid: false, error: 'License key and Device ID required' });
+        if (!license_key) {
+            return res.status(400).json({ valid: false, error: 'License key required' });
         }
 
+        console.log(`[LicenseController] Searching for key: ${license_key.substring(0, 8)}...`);
         const license = await License.findOne({ license_key });
 
         if (!license) {
@@ -46,8 +50,10 @@ export const validateLicense = async (req, res) => {
     } catch (error) {
         console.error('Validation Error:', error);
         res.status(500).json({ 
-            error: 'Validation Failed',
-            message: error.message
+            error: 'Internal Server Error', 
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
+

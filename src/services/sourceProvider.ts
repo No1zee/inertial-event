@@ -15,7 +15,9 @@ class SourceProvider {
     private cache: Map<string, Map<string, StreamSource[]>> = new Map();
 
     async getSources(contentId: string, type: 'movie' | 'series' | 'anime', title: string): Promise<StreamSource[]> {
-        const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
+        const API_URL = (process.env.NEXT_PUBLIC_API_URL && 
+                         process.env.NEXT_PUBLIC_API_URL !== "undefined" && 
+                         !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
             ? process.env.NEXT_PUBLIC_API_URL 
             : "";
         try {
@@ -46,7 +48,9 @@ class SourceProvider {
         }
 
         const sources = new Map<string, StreamSource[]>();
-        const API_URL = (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
+        const API_URL = (process.env.NEXT_PUBLIC_API_URL && 
+                         process.env.NEXT_PUBLIC_API_URL !== "undefined" && 
+                         !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
             ? process.env.NEXT_PUBLIC_API_URL 
             : "";
 

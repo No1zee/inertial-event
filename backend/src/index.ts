@@ -22,48 +22,16 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-    // Bulletproof Normalization: Strip environment prefixes with regex
-    const originalUrl = req.url;
-    req.url = req.url.replace(/^\/api/, '');
-    if (req.url === '' || req.url.startsWith('?')) req.url = '/' + req.url;
-
     if (process.env.DEBUG_REQUESTS || process.env.NODE_ENV !== 'production') {
-        console.log(`[Backend] ${req.method} ${originalUrl} -> ${req.url}`);
+        console.log(`[REQUEST] ${req.method} ${req.url}`);
     }
     next();
 });
 
 
 // API Routes
-app.get('/health', (req, res) => res.status(200).json({ 
-    status: 'ok', 
-    source: 'root', 
-    env: process.env.VERCEL ? 'vercel' : 'local',
-    db: mongoose.connection.readyState, // 0: disc, 1: conn, 2: connecting
-    has_uri: !!process.env.MONGODB_URI,
-    timestamp: new Date().toISOString() 
-}));
-
-app.get('/api/health', (req, res) => res.status(200).json({ 
-    status: 'ok', 
-    source: 'api', 
-    db: mongoose.connection.readyState,
-    timestamp: new Date().toISOString() 
-}));
-
-// Mount routes at both root and /api to be safe with Vercel rewrites
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.use('/api', routes);
-app.use('/', routes);
-
-// Fallback 404 for debugging
-app.use((req, res) => {
-    console.warn(`[Backend 404] ${req.method} ${req.url}`);
-    res.status(404).json({ 
-        error: 'Not Found', 
-        message: `No route matches ${req.url} in Backend Server`,
-        vercel: !!process.env.VERCEL
-    });
-});
 
 // DB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -75,15 +43,7 @@ const connectDB = async () => {
     }
 
     try {
-        // Disable buffering for serverless
-        mongoose.set('bufferCommands', false);
-        
-        if (mongoose.connection.readyState >= 1) return;
-
-        await mongoose.connect(MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 30000,
-        });
+        await mongoose.connect(MONGODB_URI);
         console.log('✅ Connected to MongoDB');
     } catch (err: any) {
         console.error('❌ MongoDB Connection Error:', err.message);

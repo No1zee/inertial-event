@@ -35,5 +35,5 @@ const licenseSchema = new mongoose.Schema({
     }
 });
 
-const License = mongoose.models.License || mongoose.model('License', licenseSchema);
+const License = mongoose.model('License', licenseSchema);
 export { License };

@@ -260,42 +260,6 @@ export const contentApi = {
         }
     },
 
-    getAuntiesFaves: async (): Promise<Content[]> => {
-        try {
-            // "For the Aunties": Nollywood, Bollywood, K-Drama, African Series
-            // 1. Nollywood (Nigeria) - Movies
-            // 2. Bollywood (India) - Movies (Hindi)
-            // 3. K-Drama (Korea) - TV
-            // 4. South African/African - TV/Movies
-            
-            const [nollywood, bollywood, kdrama, african] = await Promise.all([
-                 axios.get(getTmdbUrl('/discover/movie', 'with_origin_country=NG&sort_by=popularity.desc&page=1')),
-                 axios.get(getTmdbUrl('/discover/movie', 'with_origin_country=IN&with_original_language=hi&sort_by=popularity.desc&page=1')),
-                 axios.get(getTmdbUrl('/discover/tv', 'with_origin_country=KR&with_original_language=ko&sort_by=popularity.desc&page=1')),
-                 axios.get(getTmdbUrl('/discover/tv', 'with_origin_country=ZA|KE|GH&sort_by=popularity.desc&page=1'))
-            ]);
-
-            const nData = (nollywood.data.results || []).slice(0, 5).map((i: any) => transformToContent({...i, type: 'movie'}));
-            const bData = (bollywood.data.results || []).slice(0, 5).map((i: any) => transformToContent({...i, type: 'movie'}));
-            const kData = (kdrama.data.results || []).slice(0, 5).map((i: any) => transformToContent({...i, type: 'tv'})); // K-Drama usually TV
-            const aData = (african.data.results || []).slice(0, 5).map((i: any) => transformToContent({...i, type: 'tv'}));
-
-            // Interleave results for variety
-            const combined = [];
-            for (let i = 0; i < 5; i++) {
-                if (nData[i]) combined.push(nData[i]);
-                if (kData[i]) combined.push(kData[i]); // K-Drama is super popular, push earlier
-                if (bData[i]) combined.push(bData[i]);
-                if (aData[i]) combined.push(aData[i]);
-            }
-            
-            return combined;
-        } catch (error) {
-            console.error("Failed to fetch Aunties Faves:", error);
-            return [];
-        }
-    },
-
     // Flexible discover for custom categories (A24, CBM, etc.)
     discover: async (params: { [key: string]: any }, type: 'movie' | 'tv' = 'movie'): Promise<Content[]> => {
         try {

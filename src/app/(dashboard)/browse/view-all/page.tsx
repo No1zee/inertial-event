@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { contentApi } from "@/lib/api/content";
 import { ContentCard } from "@/components/content/ContentCard";
-import ContentModal from "@/components/content/ContentModal";
+import { ContentModal } from "@/components/content/ContentModal";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Content } from "@/lib/types/content";
@@ -23,44 +23,6 @@ export default function ViewAllPage() {
     const fetchContent = async ({ pageParam = 1 }) => {
         if (!railId) return [];
 
-        const providerId = searchParams.get("providerId");
-        const type = (searchParams.get("type") as 'movie' | 'tv') || 'movie';
-        const genreId = searchParams.get("genreId");
-        const providerType = (searchParams.get("providerType") as 'provider' | 'network') || 'provider';
-
-        // If it's a provider-specific rail, use discover with those params
-        if (providerId) {
-            const params: any = {
-                page: pageParam,
-                sort_by: 'popularity.desc'
-            };
-
-            if (providerType === 'network') {
-                params.with_networks = providerId;
-            } else {
-                params.with_watch_providers = providerId;
-                params.watch_region = 'US';
-            }
-
-            if (genreId) params.with_genres = genreId;
-
-            // Handle special cases within provider (like 'classics')
-            if (railId === 'classics') {
-                params.sort_by = 'vote_average.desc';
-                params['vote_count.gte'] = 1000;
-                const dateKey = type === 'movie' ? 'primary_release_date.lte' : 'first_air_date.lte';
-                params[dateKey] = '2010-01-01';
-            }
-            if (railId === 'underrated') {
-                params.sort_by = 'vote_average.desc';
-                params['vote_count.gte'] = 200;
-                params['vote_count.lte'] = 5000;
-                params['vote_average.gte'] = 8.0;
-            }
-
-            return contentApi.discover(params, type);
-        }
-
         switch (railId) {
             case "trending": return contentApi.getTrending();
             case "popular_tv": return contentApi.getPopularTV();
@@ -74,7 +36,6 @@ export default function ViewAllPage() {
             case "horror": return contentApi.getByGenre(27, 'movie', pageParam);
             case "anime": return contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc', page: pageParam }, 'tv');
             case "docu": return contentApi.getByGenre(99, 'movie', pageParam);
-            case "aunties": return contentApi.getAuntiesFaves();
 
             // TV Mappings
             case "day1": return contentApi.getDayOneDrops('tv');
@@ -88,9 +49,12 @@ export default function ViewAllPage() {
             case "bg_scifi": return contentApi.getByGenre(10765, 'tv', pageParam);
             case "reality": return contentApi.getByGenre(10764, 'tv', pageParam);
 
-            // Movie Mappings
+            // Movie Mappings (if duplicate IDs exist, we need smarter mapping, but current IDs are unique enough)
             case "popular_movies": return contentApi.discover({ sort_by: 'popularity.desc', page: pageParam }, 'movie');
             case "top_rated_movies": return contentApi.discover({ sort_by: 'vote_average.desc', 'vote_count.gte': 1000, page: pageParam }, 'movie');
+
+            // Add Anime page specific mappings if needed (e.g. shonen, seinen)
+            // For now 'anime' covers the main one.
 
             default: return [];
         }
