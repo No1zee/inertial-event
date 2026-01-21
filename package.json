@@ -2,6 +2,9 @@
     "name": "novastream",
     "version": "0.1.0",
     "private": true,
+    "engines": {
+        "node": "20.x"
+    },
     "main": "electron/main.js",
     "build": {
         "appId": "com.novastream.app",
