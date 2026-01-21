@@ -187,23 +187,23 @@ class LicenseManager {
                 machine_info: machineInfo
             }, { 
                 timeout: 5000,
-                validateStatus: (status) => status < 500 // Don't throw for 404, handle manually
+                validateStatus: () => true // Handle all status codes manually to log bodies
             });
             
             if (response.status >= 500) {
-                console.error('[LicenseManager] Server Error (500):', response.data);
+                console.error(`[LicenseManager] Server Error (${response.status}):`, response.data);
                 if (process.env.NODE_ENV === 'development') {
-                    console.warn('[LicenseManager] DEV MODE: Validation failed with 500, but allowing bypass.');
-                    return { valid: true, source: 'development-bypass-500', error: response.data };
+                    console.warn('[LicenseManager] DEV MODE: Validation failed with server error, but allowing bypass.');
+                    return { valid: true, source: 'development-bypass-error', error: response.data };
                 }
-                throw new Error(`License Server Error: ${response.data.message || 'Unknown server error'}`);
+                throw new Error(`License Server Error (${response.status}): ${response.data.message || 'Check logs'}`);
             }
 
             if (response.status === 404) {
                 console.error('[LicenseManager] Server returned 404. Is the Keygen server deployed correctly?');
                 if (process.env.NODE_ENV === 'development') {
                     console.warn('[LicenseManager] DEV MODE: Allowing boot despite 404.');
-                    return { valid: true, source: 'development-bypass' };
+                    return { valid: true, source: 'development-bypass-404' };
                 }
                 throw new Error('License Verification Server unreachable (404).');
             }

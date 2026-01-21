@@ -582,7 +582,8 @@ app.on('ready', async () => {
                 });
                 validationResult = { requiresActivation: true };
             } else if (isDev) {
-                log('WARN: Validation error/timeout, but bypassing in DEV mode: ' + err.message);
+                const axiosBody = err.response?.data ? JSON.stringify(err.response.data) : '';
+                log(`WARN: Validation error/timeout, but bypassing in DEV mode: ${err.message} ${axiosBody}`);
                 validationResult = { valid: true, source: 'dev-bypass' };
             } else {
                 throw err;

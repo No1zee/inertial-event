@@ -55,7 +55,7 @@ export function CinematicHero({ content, logoPath }: CinematicHeroProps) {
                         className="absolute inset-0"
                     >
                          <div 
-                            className="absolute inset-0 bg-cover bg-center transition-transform duration-[20000ms] ease-linear group-hover:scale-105"
+                            className="absolute inset-0 bg-cover bg-center transition-transform [transition-duration:20000ms] ease-linear group-hover:scale-105"
                             style={{ backgroundImage: `url(${item.backdrop || item.poster})` }}
                         />
                     </motion.div>
