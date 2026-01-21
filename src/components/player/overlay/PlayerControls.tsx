@@ -94,6 +94,15 @@ export default function PlayerControls({
 
             {/* --- TOP BAR --- */}
             <div className={`pointer-events-auto bg-gradient-to-b from-black via-black/90 to-transparent p-6 pb-20 flex items-center transition-transform duration-300 ${show ? 'translate-y-0' : '-translate-y-full'}`}>
+                {/* BACK BUTTON */}
+                <button 
+                    onClick={handleBack}
+                    className="mr-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all group"
+                    aria-label="Go Back"
+                >
+                    <ArrowLeft size={24} className="group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
                 {/* LEFT: Title */}
                 <div className="flex-1">
                     <div className="flex flex-col text-shadow">

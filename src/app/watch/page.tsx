@@ -285,16 +285,21 @@ function WatchContent() {
               Overlay Visibility Logic:
               - Always show if NOT playing (Paused or Initial)
               - If playing, hide it (opacity-0) unless hovered (hover:opacity-100)
+              - Increased z-index to [120] to ensure it sits above the player interaction layers.
             */}
-            <div className={`absolute top-0 left-0 w-full z-20 p-6 bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between pointer-events-none transition-opacity duration-300 ${!isPlaying ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}>
-                <Button
-                    variant="ghost"
-                    className="pointer-events-auto hover:bg-white/10 text-white"
-                    onClick={() => router.back()}
-                >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Back
-                </Button>
+            <div className={`absolute top-0 left-0 w-full z-[120] p-6 bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between pointer-events-none transition-opacity duration-300 ${!isPlaying ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}>
+                {!isEmbed ? (
+                    <Button
+                        variant="ghost"
+                        className="pointer-events-auto hover:bg-white/10 text-white"
+                        onClick={() => router.back()}
+                    >
+                        <ArrowLeft className="mr-2 h-5 w-5" />
+                        Back
+                    </Button>
+                ) : (
+                    <div /> // Placeholder to keep title on the right
+                )}
 
                 <div className="text-right">
                     <h1 className="text-lg font-bold text-white drop-shadow-md">{content.title}</h1>

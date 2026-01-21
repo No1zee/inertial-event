@@ -6,7 +6,7 @@ const crypto = require('crypto');
 // const Store = require('electron-store'); // ESM only
 const { app } = require('electron');
 
-const KEYGEN_SERVER_URL = process.env.KEYGEN_SERVER_URL || 'http://localhost:4000/api';
+const KEYGEN_SERVER_URL = (process.env.KEYGEN_SERVER_URL || 'http://localhost:4000/api').replace(/\/$/, '');
 
 const ENCRYPTION_KEY = Buffer.from('4ee9ccf17e082f9d5a9c3b88e04b4d7f6c3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c', 'hex');
 const IV = Buffer.from('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', 'hex');
@@ -161,7 +161,8 @@ class LicenseManager {
             };
 
             // Online Validation
-            const response = await axios.post(`${process.env.KEYGEN_SERVER_URL || KEYGEN_SERVER_URL}/validate`, {
+            const validationUrl = `${KEYGEN_SERVER_URL}/validate`.replace(/([^:])\/\//g, '$1/');
+            const response = await axios.post(validationUrl, {
                 license_key: licenseKey,
                 device_id: deviceId,
                 machine_info: machineInfo
@@ -230,8 +231,9 @@ class LicenseManager {
             
             logger(`[LicenseManager] Activating key: ${licenseKey.substring(0, 8)}... for device: ${deviceId.substring(0, 8)}...`);
             
-            // Call Keygen server
-            const response = await axios.post(`${KEYGEN_SERVER_URL}/activate`, {
+            // Call Keygen server - using the same standardized URL base
+            const activationUrl = `${KEYGEN_SERVER_URL}/activate`.replace(/([^:])\/\//g, '$1/');
+            const response = await axios.post(activationUrl, {
                 license_key: licenseKey,
                 device_id: deviceId,
                 machine_name: require('os').hostname()
