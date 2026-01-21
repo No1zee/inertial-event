@@ -8,12 +8,16 @@
     ],
     "rewrites": [
         {
+            "source": "/api/keygen/api/:path*",
+            "destination": "/api/keygen/index.mjs"
+        },
+        {
             "source": "/api/keygen/:path*",
-            "destination": "/api/keygen/index"
+            "destination": "/api/keygen/index.mjs"
         },
         {
             "source": "/api/keygen",
-            "destination": "/api/keygen/index"
+            "destination": "/api/keygen/index.mjs"
         }
     ]
 }
