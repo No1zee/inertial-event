@@ -30,8 +30,9 @@ app.use((req, res, next) => {
 
 
 // API Routes
-const apiPrefix = process.env.VERCEL ? '/' : '/api';
-app.get(apiPrefix + (apiPrefix === '/' ? 'health' : '/health'), (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
+const apiPrefix = '/api';
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok', source: 'root', timestamp: new Date().toISOString() }));
+app.get(apiPrefix + '/health', (req, res) => res.status(200).json({ status: 'ok', source: 'api', timestamp: new Date().toISOString() }));
 app.use(apiPrefix, routes);
 
 // DB Connection

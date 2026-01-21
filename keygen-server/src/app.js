@@ -21,8 +21,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes - Unified for Local and Vercel
-// On Vercel, requests are rewritten to this function with the prefix stripped.
-const mountPrefix = process.env.VERCEL ? '' : '/api/keygen';
+const mountPrefix = '/api/keygen';
 const apiRoot = mountPrefix + '/api';
 
 app.use(apiRoot, apiRoutes);
