@@ -28,7 +28,8 @@ async function connectDB() {
 
 // License Schema
 const licenseSchema = new mongoose.Schema({
-    license_key: { type: String, required: true, unique: true, index: true },
+    license_key: { type: String, required: true, unique: true },
+    key_normalized: { type: String, unique: true }, // Added normalized key for matching
     device_id: { type: String, default: null },
     access_type: { type: String, enum: ['permanent', 'trial', 'limited'], required: true },
     expires_at: { type: Date, default: null },
@@ -111,11 +112,17 @@ export default async function handler(req, res) {
                 return res.status(400).json({ valid: false, error: 'License key required' });
             }
             
-            console.log(`[Validate] Searching for key: ${license_key.substring(0, 8)}...`);
-            const license = await License.findOne({ license_key });
+            console.log(`[Validate] Searching for key: ${license_key}`);
+            const normalized = license_key.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            let license = await License.findOne({ 
+                $or: [
+                    { license_key: license_key },
+                    { key_normalized: normalized }
+                ]
+            });
             
             if (!license) {
-                return res.status(200).json({ valid: false, error: 'Invalid license key', message: 'The provided key was not found.' });
+                return res.status(200).json({ valid: false, error: 'Invalid license key', message: `Key not found. Tried: ${license_key} / ${normalized}` });
             }
             
             if (license.status !== 'active') {
@@ -159,10 +166,16 @@ export default async function handler(req, res) {
             }
 
             console.log(`[Activate] Activating key: ${license_key}`);
-            const license = await License.findOne({ license_key });
+            const normalized = license_key.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            let license = await License.findOne({ 
+                $or: [
+                    { license_key: license_key },
+                    { key_normalized: normalized }
+                ]
+            });
 
             if (!license) {
-                return res.status(200).json({ success: false, error: 'Invalid license key' });
+                return res.status(200).json({ success: false, error: 'Invalid license key', message: `Key not found. Tried: ${license_key} / ${normalized}` });
             }
 
             if (license.status === 'revoked') {
