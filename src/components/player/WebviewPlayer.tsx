@@ -1022,7 +1022,7 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
 
         const onDomReady = () => {
              // STEALTH MODE: Cloak the webview (Electron only)
-            const stealthScript = \`
+            const stealthScript = `
                 try {
                     if (!navigator.languages || navigator.languages.length === 0) {
                         Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
@@ -1031,7 +1031,7 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                         window.chrome = { runtime: {} };
                     }
                 } catch(e) {}
-            \`;
+            `;
             // @ts-ignore
             if (webview?.executeJavaScript) {
                 webview.executeJavaScript(stealthScript).catch(() => {});

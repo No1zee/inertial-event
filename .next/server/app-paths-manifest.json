@@ -1,5 +1,6 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/watch/page": "app/watch/page.js",
-  "/(dashboard)/channel/[id]/page": "app/(dashboard)/channel/[id]/page.js",
-  "/(dashboard)/page": "app/(dashboard)/page.js"
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/channel/[id]/page": "app/(dashboard)/channel/[id]/page.js"
 }
