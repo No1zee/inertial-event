@@ -27,16 +27,20 @@ async function connectDB() {
 }
 
 // License Schema
+// License Schema - Permissive for easier management
 const licenseSchema = new mongoose.Schema({
     license_key: { type: String, required: true, unique: true },
-    key_normalized: { type: String, unique: true }, // Added normalized key for matching
+    key_normalized: { type: String, unique: true },
     device_id: { type: String, default: null },
-    access_type: { type: String, enum: ['permanent', 'trial', 'limited'], required: true },
+    // access_type can be anything (premium, standard, etc)
+    access_type: { type: String, default: 'standard' },
     expires_at: { type: Date, default: null },
-    status: { type: String, enum: ['active', 'revoked', 'unused'], default: 'unused' },
+    status: { type: String, default: 'unused' },
+    activated_at: { type: Date },
+    machine_info: { type: mongoose.Schema.Types.Mixed },
     created_at: { type: Date, default: Date.now },
     created_by: { type: String, default: 'admin' }
-});
+}, { strict: false }); // Allow extra fields without crashing
 
 // Get or create the model
 const License = mongoose.models.License || mongoose.model('License', licenseSchema);
