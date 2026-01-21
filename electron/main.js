@@ -75,37 +75,40 @@ function createWindow() {
     // 4. Header Spoofing (Universal Referer Control)
     const applyRequestHeaders = (sess) => {
         sess.webRequest.onBeforeSendHeaders(
-            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.youtube-nocookie.com/*', '*://*.googlevideo.com/*'] },
+            { urls: ['*://*/*'] },
             (details, callback) => {
                 const url = new URL(details.url);
                 const domain = url.hostname;
+                const urlLower = details.url.toLowerCase();
+
+                // Skip internal app/proxy protocols
+                if (urlLower.startsWith('app://') || urlLower.startsWith('proxy://')) {
+                    return callback({});
+                }
 
                 if (domain.includes('tmdb.org') || domain.includes('themoviedb.org')) {
                     details.requestHeaders['Referer'] = 'https://www.themoviedb.org/';
                 } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
-                    // Critical Fix for Error 152: 
-                    // DO NOT send Origin. Sending a fake 'youtube.com' Origin triggers strict CORS checks.
-                    // Sending NO Origin allows the embed to play as if it were a direct browser nav.
                     details.requestHeaders['Referer'] = 'https://www.youtube.com/';
                     if (details.requestHeaders['Origin']) delete details.requestHeaders['Origin'];
-                    
-                    // Strip Sec-Fetch headers to hide "embed" status
                     delete details.requestHeaders['sec-fetch-mode'];
                     delete details.requestHeaders['sec-fetch-site'];
                     delete details.requestHeaders['sec-fetch-dest'];
                     delete details.requestHeaders['sec-fetch-user'];
-
-                    // [DEBUG] Log packet to help user debug functionality
-                    console.log(`[AG Debug] YouTube Req: ${url.pathname} | Ref: ${details.requestHeaders['Referer']} | Origin: ${details.requestHeaders['Origin'] || 'REMOVED'}`);
-                } else {
+                } else if (domain.includes('vidlink.pro') || domain.includes('vidsrc')) {
+                    // Providers often check Referer and sometimes Origin
                     details.requestHeaders['Referer'] = url.origin + '/';
                     details.requestHeaders['Origin'] = url.origin;
+                } else {
+                    // Generic fallback for other potential providers
+                    // Only set if not already present or if we want to force it
+                    if (!details.requestHeaders['Referer']) {
+                        details.requestHeaders['Referer'] = url.origin + '/';
+                    }
                 }
 
-                // Comprehensive browser identity (Downgraded to Chrome 120)
+                // Global overrides for stealth
                 details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-                
-                // Remove 'sec-ch-ua-form-factors' request header
                 if (details.requestHeaders['sec-ch-ua-form-factors']) delete details.requestHeaders['sec-ch-ua-form-factors'];
                 
                 callback({ requestHeaders: details.requestHeaders });

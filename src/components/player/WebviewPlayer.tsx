@@ -52,11 +52,6 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
     const callbacksRef = useRef({ onStateUpdate, onEnded, subtitleStyle });
     const settings = useSettingsStore();
     const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlistStore();
-    
-    // Browser environment check
-    // @ts-ignore
-    const isElectron = typeof window !== 'undefined' && !!window.electron;
-    const [activeSrc, setActiveSrc] = useState("");
 
     const isSaved = contentData ? isInWatchlist(String(contentData.id)) : false;
 
@@ -347,23 +342,8 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
     }, [playerState.isPaused, isLoading]);
 
     useEffect(() => {
-        if (!isElectron) return;
         const webview = webviewRef.current;
         if (!webview) return;
-
-        // Set attributes directly to avoid React warnings and ensure compatibility
-        // Electron webview attributes are case-sensitive and must be lowercase
-        webview.setAttribute('autoplay', 'true');
-        webview.setAttribute('allowpopups', 'false');
-        webview.setAttribute('disablewebsecurity', 'true');
-        webview.setAttribute('partition', 'persist:youtube-player');
-        webview.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        webview.setAttribute('webpreferences', 'contextIsolation=no, nodeIntegration=no, webSecurity=no, autoplayPolicy=no-user-gesture-required');
-
-        // Update active source to trigger the actual load AFTER attributes are set
-        if (activeSrc !== src) {
-            setActiveSrc(src);
-        }
 
 
 
@@ -1095,8 +1075,25 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                 webview.removeEventListener('console-message', onConsole);
             }
         };
-    }, [src, initialVolume, isElectron]);
+    }, [src, initialVolume]);
 
+    useEffect(() => {
+        // Use ref to set attributes to silence React DOM warnings
+        // but keep native Electron webview behavior
+        if (webviewRef.current) {
+            try {
+                webviewRef.current.setAttribute('autoplay', 'true');
+                webviewRef.current.setAttribute('allowpopups', 'false');
+                webviewRef.current.setAttribute('disablewebsecurity', 'true');
+            } catch (e) {
+                console.error('Failed to set webview attributes:', e);
+            }
+        }
+    }, [src]); // Re-set if src changes to be safe
+
+    // Browser environment check
+    // @ts-ignore
+    const isElectron = typeof window !== 'undefined' && !!window.electron;
 
     return (
         <div
@@ -1114,7 +1111,7 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                 /* @ts-ignore */
                 <webview
                     ref={webviewRef}
-                    src={activeSrc}
+                    src={src}
                     className="w-full h-full border-0 transition-opacity duration-500 ease-in-out z-[1] relative"
                     style={{
                         width: '100vw',
@@ -1122,6 +1119,12 @@ const WebviewPlayer = forwardRef<WebviewPlayerRef, WebviewPlayerProps>(({
                         background: '#000',
                         opacity: isLoading ? 0 : 1
                     }}
+                    /* Managed via ref in useEffect to avoid React warnings */
+                    // @ts-ignore
+                    webpreferences="contextIsolation=no, nodeIntegration=no, webSecurity=no, autoplayPolicy=no-user-gesture-required"
+                    // @ts-ignore
+                    partition="persist:youtube-player"
+                    useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 />
             ) : (
                 <iframe
