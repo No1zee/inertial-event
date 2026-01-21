@@ -22,8 +22,15 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
+    // Normalization: Strip prefixes so routing is agnostic of environment
+    const originalUrl = req.url;
+    if (req.url.startsWith('/api')) {
+        req.url = req.url.replace(/^\/api/, '');
+        if (req.url === '') req.url = '/';
+    }
+
     if (process.env.DEBUG_REQUESTS || process.env.NODE_ENV !== 'production') {
-        console.log(`[REQUEST] ${req.method} ${req.url}`);
+        console.log(`[REQUEST] ${req.method} ${originalUrl} -> ${req.url}`);
     }
     next();
 });

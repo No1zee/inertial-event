@@ -20,34 +20,43 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Routes - Unified for Local and Vercel
-const apiRoot = '/api/keygen/api';
-
-// Mount at standardized locations
-app.use(apiRoot, apiRoutes);
-app.use('/api/keygen/admin', adminRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api', apiRoutes); // Fallback mount
-
-// Fallback 404 for Keygen
 app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) {
-        return res.status(404).json({
-            error: 'Not Found',
-            message: `No route matches ${req.url} in Keygen Server`,
-            expected_prefix: apiRoot
-        });
+    // Normalization: Strip prefixes so routing is agnostic of environment
+    const originalUrl = req.url;
+    if (req.url.startsWith('/api/keygen')) {
+        req.url = req.url.replace(/^\/api\/keygen/, '');
+    }
+    if (req.url.startsWith('/api')) {
+        req.url = req.url.replace(/^\/api/, '');
+    }
+    if (req.url === '') req.url = '/';
+
+    if (process.env.DEBUG_REQUESTS || process.env.NODE_ENV !== 'production') {
+        console.log(`[Keygen] ${req.method} ${originalUrl} -> ${req.url}`);
     }
     next();
 });
 
+// Mount at root ( normalization handles prefixes)
+app.use('/admin', adminRoutes);
+app.use('/', apiRoutes);
+
 app.get('/admin-panel', (req, res) => {
-    // On Vercel, we serve this as a static route from the public folder
-    if (process.env.VERCEL) {
-        return res.redirect('/keygen-admin/index.html');
+    return res.redirect('/keygen-admin/index.html');
+});
+
+// Fallback 404 for Keygen
+app.use((req, res, next) => {
+    // Only intercept if it looks like an API call
+    if (req.url.startsWith('/api') || req.url.length > 1) {
+        return res.status(404).json({
+            error: 'Not Found',
+            message: `No route matches ${req.url} in Keygen Server after normalization`,
+            original_url: req.originalUrl,
+            vercel: !!process.env.VERCEL
+        });
     }
-    // Locally, we can still serve it if needed or redirect
-    res.redirect('/keygen-admin/index.html');
+    next();
 });
 
 app.get('/', (req, res) => {
