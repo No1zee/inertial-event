@@ -22,15 +22,13 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-    // Normalization: Strip prefixes so routing is agnostic of environment
+    // Bulletproof Normalization: Strip environment prefixes with regex
     const originalUrl = req.url;
-    if (req.url.startsWith('/api')) {
-        req.url = req.url.replace(/^\/api/, '');
-        if (req.url === '') req.url = '/';
-    }
+    req.url = req.url.replace(/^\/api/, '');
+    if (req.url === '' || req.url.startsWith('?')) req.url = '/' + req.url;
 
     if (process.env.DEBUG_REQUESTS || process.env.NODE_ENV !== 'production') {
-        console.log(`[REQUEST] ${req.method} ${originalUrl} -> ${req.url}`);
+        console.log(`[Backend] ${req.method} ${originalUrl} -> ${req.url}`);
     }
     next();
 });

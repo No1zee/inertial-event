@@ -536,7 +536,7 @@ app.on('ready', async () => {
                 'outbrain', 'taboola', 'mgid', 'revcontent', 'adroll', 'adform', 'opera',
                 'click', 'redirect', 'popup', 'adbox', 'ad-cache', 'analytics',
                 'luckyorange', 'hotjar', 'histats', 'statcounter', 'quantserve',
-                'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront'
+                'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront', 'yandex'
             ].join('|'), 'i');
 
             // Surgical Exception: Allow DoubleClick if it's for YouTube (Referrer check)
