@@ -54,12 +54,17 @@ export default async function handler(req, res) {
     const url = new URL(req.url, `https://${req.headers.host}`);
     let path = url.pathname;
     
-    // Normalize path (strip /api/keygen/api prefix)
+    // Normalize path (strip /api/keygen/api prefix and index.mjs)
     const originalPath = path;
-    path = path.replace(/^\/api\/keygen\/api/, '').replace(/^\/api\/keygen/, '').replace(/^\/api/, '');
+    path = path.replace(/^\/api\/keygen\/api/, '')
+               .replace(/^\/api\/keygen/, '')
+               .replace(/^\/api/, '')
+               .replace(/\/index\.mjs$/, '');
+               
     if (!path || path === '') path = '/';
     
     console.log(`[Vercel Diagnostics] Method: ${req.method} | Path: ${path} | Original: ${originalPath} | URL: ${req.url}`);
+    console.log(`[Headers] x-matched-path: ${req.headers['x-matched-path']} | host: ${req.headers.host}`);
     
     // Route handling
     if (path === '/ping') {
@@ -135,11 +140,16 @@ export default async function handler(req, res) {
         }
     }
     
-    // 404 for unknown routes
+    // Fallback 404
+    console.log(`[Vercel 404] No match for Path: ${path} | Original: ${originalPath}`);
     return res.status(404).json({ 
         error: 'Not Found', 
-        path: path,
-        method: req.method 
+        message: `Keygen handler: Route ${req.method} ${path} not found`,
+        debug: {
+            path,
+            originalPath,
+            method: req.method
+        }
     });
 }
 
