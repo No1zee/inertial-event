@@ -8,6 +8,11 @@ export interface Channel {
     logo?: string;
     fetcher: () => Promise<Content[]>;
     description?: string;
+    branding?: {
+        color: string; // Theme color (e.g. #FF0000)
+        icon?: string; // Icon identifier or name
+        theme: 'dark' | 'light' | 'vibrant';
+    };
 }
 
 export interface Program {
@@ -26,39 +31,52 @@ export interface CurrentProgramStatus {
 
 const CHANNELS: Channel[] = [
     {
+        id: "ch_adult_swim",
+        name: "Adult Swim",
+        genre: "Animation",
+        fetcher: () => contentApi.getAnimeByGenre('with_genres=16,35&without_keywords=210024'), // Fun/Adult Animation (Non-Anime)
+        description: "The home for late-night animation and off-beat comedy.",
+        branding: { color: "#000000", theme: "dark" }
+    },
+    {
         id: "ch_action",
         name: "Adrenaline",
         genre: "Action",
-        fetcher: () => contentApi.getByGenre(28, 'movie'),
-        description: "Non-stop explosions and chase scenes."
+        fetcher: () => contentApi.getByGenre(10759, 'tv'), // Action TV
+        description: "Non-stop explosions and chase scenes.",
+        branding: { color: "#ef4444", theme: "vibrant" }
     },
     {
         id: "ch_comedy",
         name: "Giggles",
         genre: "Comedy",
-        fetcher: () => contentApi.getByGenre(35, 'movie'),
-        description: "Laugh until it hurts."
+        fetcher: () => contentApi.getByGenre(35, 'tv'), // Comedy TV
+        description: "Laugh until it hurts.",
+        branding: { color: "#facc15", theme: "light" }
     },
     {
         id: "ch_scifi",
         name: "Warp Speed",
         genre: "Sci-Fi",
-        fetcher: () => contentApi.getByGenre(878, 'movie'),
-        description: "The future is now."
+        fetcher: () => contentApi.getByGenre(10765, 'tv'), // Sci-Fi TV
+        description: "The future is now.",
+        branding: { color: "#3b82f6", theme: "vibrant" }
     },
     {
         id: "ch_horror",
         name: "Scream Stream",
         genre: "Horror",
         fetcher: () => contentApi.getByGenre(27, 'movie'),
-        description: "Keep the lights on."
+        description: "Keep the lights on.",
+        branding: { color: "#7c3aed", theme: "dark" }
     },
     {
         id: "ch_anime",
         name: "Otaku TV",
         genre: "Anime",
         fetcher: contentApi.getAnime,
-        description: "The best from Japan."
+        description: "The best from Japan.",
+        branding: { color: "#db2777", theme: "vibrant" }
     }
 ];
 

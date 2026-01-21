@@ -1,8 +1,8 @@
-version: 0.1.0
+version: 0.1.1
 files:
-  - url: NovaStream Setup 0.1.0.exe
-    sha512: 04M1dRffiZeUGmyQfQmWbSxONJb+MRo3guZW04GqSc8SRk5nfvxL/yCXtsUMuRIVNSHLmALWb8SsjYekFzuJVw==
-    size: 154954945
-path: NovaStream Setup 0.1.0.exe
-sha512: 04M1dRffiZeUGmyQfQmWbSxONJb+MRo3guZW04GqSc8SRk5nfvxL/yCXtsUMuRIVNSHLmALWb8SsjYekFzuJVw==
-releaseDate: '2026-01-21T14:28:30.176Z'
+  - url: NovaStream Setup 0.1.1.exe
+    sha512: NMrIzNI2S+WkpySW3t3Py0aJTu+ofcZ+/XMUorENQABiTOHzajiVcd34FGwpaFsKIzwyomc+FZELVuT2S8zZ+w==
+    size: 154943167
+path: NovaStream Setup 0.1.1.exe
+sha512: NMrIzNI2S+WkpySW3t3Py0aJTu+ofcZ+/XMUorENQABiTOHzajiVcd34FGwpaFsKIzwyomc+FZELVuT2S8zZ+w==
+releaseDate: '2026-01-21T18:43:08.144Z'
