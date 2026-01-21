@@ -30,10 +30,22 @@ app.use((req, res, next) => {
 
 
 // API Routes
-const apiPrefix = '/api';
-app.get('/health', (req, res) => res.status(200).json({ status: 'ok', source: 'root', timestamp: new Date().toISOString() }));
-app.get(apiPrefix + '/health', (req, res) => res.status(200).json({ status: 'ok', source: 'api', timestamp: new Date().toISOString() }));
-app.use(apiPrefix, routes);
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok', source: 'root', env: process.env.VERCEL ? 'vercel' : 'local', timestamp: new Date().toISOString() }));
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', source: 'api', timestamp: new Date().toISOString() }));
+
+// Mount routes at both root and /api to be safe with Vercel rewrites
+app.use('/api', routes);
+app.use('/', routes);
+
+// Fallback 404 for debugging
+app.use((req, res) => {
+    console.warn(`[Backend 404] ${req.method} ${req.url}`);
+    res.status(404).json({ 
+        error: 'Not Found', 
+        message: `No route matches ${req.url} in Backend Server`,
+        vercel: !!process.env.VERCEL
+    });
+});
 
 // DB Connection
 const MONGODB_URI = process.env.MONGODB_URI;

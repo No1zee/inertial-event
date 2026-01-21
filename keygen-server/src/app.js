@@ -21,11 +21,25 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes - Unified for Local and Vercel
-const mountPrefix = '/api/keygen';
-const apiRoot = mountPrefix + '/api';
+const apiRoot = '/api/keygen/api';
 
+// Mount at standardized locations
 app.use(apiRoot, apiRoutes);
-app.use(apiRoot + '/admin', adminRoutes);
+app.use('/api/keygen/admin', adminRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api', apiRoutes); // Fallback mount
+
+// Fallback 404 for Keygen
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({
+            error: 'Not Found',
+            message: `No route matches ${req.url} in Keygen Server`,
+            expected_prefix: apiRoot
+        });
+    }
+    next();
+});
 
 app.get('/admin-panel', (req, res) => {
     // On Vercel, we serve this as a static route from the public folder
