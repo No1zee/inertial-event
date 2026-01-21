@@ -37,5 +37,5 @@ const accessRequestSchema = new mongoose.Schema({
     }
 });
 
-const AccessRequest = mongoose.model('AccessRequest', accessRequestSchema);
+const AccessRequest = mongoose.models.AccessRequest || mongoose.model('AccessRequest', accessRequestSchema);
 export { AccessRequest };

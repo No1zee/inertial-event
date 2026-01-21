@@ -16,5 +16,5 @@ const adminUserSchema = new mongoose.Schema({
     }
 });
 
-const AdminUser = mongoose.model('AdminUser', adminUserSchema);
+const AdminUser = mongoose.models.AdminUser || mongoose.model('AdminUser', adminUserSchema);
 export { AdminUser };
