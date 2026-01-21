@@ -70,11 +70,16 @@ export default async function handler(req, res) {
     // Route handling
     if (path === '/ping') {
         let dbStatus = 'disconnected';
-        let keyCount = 0;
+        let keys = [];
         try {
             await connectDB();
             dbStatus = 'connected';
-            keyCount = await License.countDocuments();
+            const licenses = await License.find({}, 'license_key status').lean();
+            keyCount = licenses.length;
+            keys = licenses.map(l => ({
+                id: `***${l.license_key.slice(-4)}`,
+                status: l.status
+            }));
         } catch (e) {
             dbStatus = `error: ${e.message}`;
         }
@@ -83,7 +88,8 @@ export default async function handler(req, res) {
             message: 'pong',
             database: {
                 status: dbStatus,
-                licenseCount: keyCount
+                licenseCount: keyCount,
+                keys: keys
             },
             debug: {
                 originalUrl: req.url,
