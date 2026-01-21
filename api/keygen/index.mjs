@@ -55,13 +55,27 @@ export default async function handler(req, res) {
     let path = url.pathname;
     
     // Normalize path (strip /api/keygen/api prefix)
+    const originalPath = path;
     path = path.replace(/^\/api\/keygen\/api/, '').replace(/^\/api\/keygen/, '').replace(/^\/api/, '');
     if (!path || path === '') path = '/';
     
-    console.log(`[Vercel Handler] ${req.method} ${path} (original: ${req.url})`);
+    console.log(`[Vercel Diagnostics] Method: ${req.method} | Path: ${path} | Original: ${originalPath} | URL: ${req.url}`);
     
     // Route handling
-    if (path === '/' && req.method === 'GET') {
+    if (path === '/ping') {
+        return res.status(200).json({ 
+            message: 'pong',
+            debug: {
+                originalUrl: req.url,
+                originalPath: originalPath,
+                normalizedPath: path,
+                method: req.method,
+                host: req.headers.host
+            }
+        });
+    }
+
+    if ((path === '/' || path === '/index.mjs') && req.method === 'GET') {
         return res.status(200).json({ 
             message: 'NovaStream Keygen Server (Vercel)',
             status: 'online'

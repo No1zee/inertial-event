@@ -8,6 +8,10 @@
     },
     "rewrites": [
         {
+            "source": "/api/keygen/ping",
+            "destination": "/api/keygen/index.mjs"
+        },
+        {
             "source": "/api/keygen/api/:path*",
             "destination": "/api/keygen/index.mjs"
         },
