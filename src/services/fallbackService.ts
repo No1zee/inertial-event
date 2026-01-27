@@ -23,7 +23,7 @@ class FallbackService {
         // 1. Priority: Torrent (Electron Only)
         if (typeof window !== 'undefined' && (window as any).electron) {
             try {
-                logger.info('Attempting Torrent resolution...');
+                logger.info('FallbackService', 'Attempting Torrent resolution...');
                 const torrentSources = sources.get('torrent') || [];
                 if (torrentSources.length > 0) {
                     return {
@@ -34,14 +34,14 @@ class FallbackService {
                     };
                 }
             } catch (err) {
-                logger.warn('Torrent resolution failed, falling back...');
+                logger.warn('FallbackService', 'Torrent resolution failed, falling back...');
             }
         }
 
         // 2. Priority: Vidlink
         const vidlinkSources = sources.get('vidlink') || [];
         if (vidlinkSources.length > 0) {
-            logger.info('Switching to Vidlink provider');
+            logger.info('FallbackService', 'Switching to Vidlink provider');
             return {
                 url: vidlinkSources[0].url,
                 type: 'hls',
@@ -53,7 +53,7 @@ class FallbackService {
         // 3. Priority: Consumet / Mirrors
         const consumetSources = sources.get('consumet') || [];
         if (consumetSources.length > 0) {
-            logger.info('Switching to Consumet/Mirror provider');
+            logger.info('FallbackService', 'Switching to Consumet/Mirror provider');
             return {
                 url: consumetSources[0].url,
                 type: 'hls',
@@ -62,7 +62,7 @@ class FallbackService {
             };
         }
 
-        logger.error('No viable sources found for content');
+        logger.error('FallbackService', 'No viable sources found for content');
         return null;
     }
 
@@ -72,11 +72,11 @@ class FallbackService {
         this.retryCounts.set(key, count);
 
         if (count <= this.MAX_RETRIES) {
-            logger.warn(`Source error on ${source.provider}. Retry ${count}/${this.MAX_RETRIES}`);
+            logger.warn('FallbackService', `Source error on ${source.provider}. Retry ${count}/${this.MAX_RETRIES}`);
             return true; // Should retry
         }
 
-        logger.error(`Source ${source.provider} failed after ${this.MAX_RETRIES} retries. Triggering fallback.`);
+        logger.error('FallbackService', `Source ${source.provider} failed after ${this.MAX_RETRIES} retries. Triggering fallback.`);
         return false; // Should fallback
     }
 }

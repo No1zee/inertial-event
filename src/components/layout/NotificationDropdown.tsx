@@ -4,14 +4,14 @@ import { useState, Fragment, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { Bell, Loader2 } from "lucide-react";
 import { useHistoryStore } from "@/lib/store/historyStore";
-import { useUIStore } from "@/lib/store/uiStore";
+import { useModalStore } from "@/lib/store/modalStore";
 import { contentApi } from "@/lib/api/content";
 import { Content } from "@/lib/types/content";
 import { cn } from "@/lib/utils";
 
 export function NotificationDropdown() {
     const { history } = useHistoryStore();
-    const { openModal } = useUIStore();
+    const { openModal } = useModalStore();
     const [recs, setRecs] = useState<Content[]>([]);
     const [newEpisodes, setNewEpisodes] = useState<Content[]>([]);
     const [hotDrops, setHotDrops] = useState<Content[]>([]);
@@ -178,7 +178,7 @@ export function NotificationDropdown() {
 }
 
 function NotificationItem({ item, label }: { item: Content, label: string }) {
-    const { openModal } = useUIStore();
+    const { openModal } = useModalStore();
     
     // Determine badge color based on label
     const getBadgeStyle = (label: string) => {

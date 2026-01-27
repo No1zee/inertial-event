@@ -9,11 +9,12 @@ import { contentApi } from "@/lib/api/content";
 import sourceProvider from "@/services/sourceProvider";
 import { usePlayerStore } from "@/lib/store/playerStore";
 import { useHistoryStore } from "@/lib/store/historyStore";
+import { useSeriesTrackingStore } from "@/lib/store/seriesTrackingStore";
 import { VideoPlayer } from "@/components/player/VideoPlayer";
 import WebviewPlayer from "@/components/player/WebviewPlayer";
 import { Button } from "@/components/UI/button";
 import { Content } from "@/lib/types/content";
-import { useContentDetails } from "@/hooks/queries/useContent";
+import { useContentDetails, useSeasonDetails } from "@/hooks/queries/useContent";
 import { useSources } from "@/hooks/queries/useSources";
 import { useTorrentEngine } from "@/hooks/useTorrentEngine";
 import { motion } from "framer-motion";
@@ -59,7 +60,7 @@ function WatchContent() {
     
     // Get ID and Type from Query Params
     const id = searchParams.get("id");
-    const type = (searchParams.get("type") as 'movie' | 'tv') || 'movie';
+    const type = (searchParams.get("type") as 'movie' | 'tv' | 'anime') || 'movie';
     const initialSeason = Number(searchParams.get("season")) || 1;
     const initialEpisode = Number(searchParams.get("episode")) || 1;
 
@@ -80,6 +81,7 @@ function WatchContent() {
     }, [searchParams]);
 
     const addToHistory = useHistoryStore((state: any) => state.addToHistory);
+    const trackSeries = useSeriesTrackingStore((state: any) => state.trackSeries);
 
     // Redirect if no ID
     useEffect(() => {
@@ -109,6 +111,11 @@ function WatchContent() {
         error: sourcesError
     } = useSources(content || null, currentSeason, currentEpisode);
 
+    // 2.5 Fetch Season Details for Availability Indicators
+    const {
+        data: seasonDetails
+    } = useSeasonDetails(id || '', currentSeason);
+
     // Calculate Best Source
     const [sourceUrl, setSourceUrl] = useState<string | null>(null);
     const [isEmbed, setIsEmbed] = useState(false);
@@ -130,10 +137,11 @@ function WatchContent() {
 
             if (bestSourceObj) {
                 setSourceUrl(bestSourceObj.url);
-                // Robust detection: if type is embed OR URL looks like an embed
                 const looksLikeEmbed = bestSourceObj.url.includes('/embed/') || 
                                      bestSourceObj.url.includes('vidsrc') || 
                                      bestSourceObj.url.includes('vidlink.pro');
+                
+                console.log('[WatchPage] Selected Source URL:', bestSourceObj.url);
                 setIsEmbed(bestSourceObj.type === 'embed' || looksLikeEmbed);
                 setSourceError(null);
             } else {
@@ -311,6 +319,7 @@ function WatchContent() {
                 {resolvedStreamUrl ? (
                     isEmbed ? (
                         <WebviewPlayer
+                            key={resolvedStreamUrl}
                             src={resolvedStreamUrl}
                             title={content.title}
                             contentData={content}
@@ -320,6 +329,7 @@ function WatchContent() {
                             season={currentSeason.toString()}
                             episode={currentEpisode.toString()}
                             seasons={content.seasonsList}
+                            episodeDetails={seasonDetails?.episodes}
                             onSeasonChange={handleSeasonChange}
                             onEpisodeChange={handleEpisodeChange}
                             onStateUpdate={(state: any) => {
@@ -335,10 +345,13 @@ function WatchContent() {
                                             ...content,
                                             progress,
                                             duration,
-                                            // @ts-ignore
                                             season: currentSeason,
                                             episode: currentEpisode
                                         });
+
+                                        if (type === 'tv' || type === 'anime') {
+                                            trackSeries(content, currentSeason, currentEpisode);
+                                        }
                                     }
                                 }
                             }}

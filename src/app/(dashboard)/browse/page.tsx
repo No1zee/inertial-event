@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { ContentCard } from "@/components/content/ContentCard";
 import { ContentCardSkeleton } from "@/components/content/ContentCardSkeleton";
 import { Filter } from "lucide-react";
@@ -13,15 +14,28 @@ interface FilterState {
     genres: string[];
     type: 'movie' | 'tv' | 'all';
     sort: 'popularity.desc' | 'vote_average.desc' | 'primary_release_date.desc';
+    company?: number;
 }
 
 export default function BrowsePage() {
+    const searchParams = useSearchParams();
+    const companyId = searchParams.get('company');
+    const brandName = searchParams.get('name');
+    
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<FilterState>({
         genres: [],
         type: 'all',
-        sort: 'popularity.desc'
+        sort: 'popularity.desc',
+        company: companyId ? parseInt(companyId) : undefined
     });
+
+    // Update filters when URL params change
+    useEffect(() => {
+        if (companyId) {
+            setFilters(prev => ({ ...prev, company: parseInt(companyId) }));
+        }
+    }, [companyId]);
 
     const { data: items, isLoading } = useQuery({
         queryKey: ["browse", filters],
@@ -34,10 +48,13 @@ export default function BrowsePage() {
             if (filters.genres.length > 0) {
                 params.with_genres = filters.genres.join(",");
             }
+            if (filters.company) {
+                params.with_companies = filters.company;
+            }
 
             // Decide fetcher based on type
             if (filters.type === 'all') {
-                if (filters.genres.length === 0 && filters.sort === 'popularity.desc') {
+                if (filters.genres.length === 0 && filters.sort === 'popularity.desc' && !filters.company) {
                     return contentApi.getTrending();
                 } else {
                     const [movies, tv] = await Promise.all([
@@ -57,9 +74,11 @@ export default function BrowsePage() {
         <div className="space-y-6 pt-24 px-4 md:px-12 pb-20">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Browse</h1>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">
+                        {brandName || 'Browse'}
+                    </h1>
                     <p className="text-zinc-400 text-sm mt-1">
-                        {filters.type === 'all' ? 'All Content' : filters.type === 'movie' ? 'Movies' : 'TV Shows'}
+                        {brandName ? 'Complete Collection' : filters.type === 'all' ? 'All Content' : filters.type === 'movie' ? 'Movies' : 'TV Shows'}
                         {filters.genres.length > 0 && ` • ${filters.genres.length} filters active`}
                     </p>
                 </div>

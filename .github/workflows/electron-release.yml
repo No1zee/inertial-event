@@ -1,0 +1,278 @@
+name: Electron Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      prerelease:
+        description: 'Is this a prerelease?'
+        required: true
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '22.x'
+
+jobs:
+  # Build and sign Electron apps for multiple platforms
+  build-electron:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: windows-latest
+            platform: windows
+            arch: x64
+          - os: macos-latest
+            platform: mac
+            arch: x64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build Next.js application
+      run: npm run build
+
+    - name: Build backend
+      run: npm run build:server
+
+    - name: Setup for code signing (macOS)
+      if: matrix.platform == 'mac'
+      run: |
+        # Import certificates and provisioning profiles
+        echo ${{ secrets.APPLE_CERT }} | base64 --decode > certificate.p12
+        security create-keychain -p build keychain
+        security default-keychain -s keychain
+        security unlock-keychain -p build keychain
+        security import certificate.p12 -k ~/Library/Keychains/keychain-db -P ${{ secrets.APPLE_CERT_PASSWORD }} -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k build keychain
+
+    - name: Setup for code signing (Windows)
+      if: matrix.platform == 'windows'
+      run: |
+        # Import Windows certificate
+        echo ${{ secrets.WINDOWS_CERT }} | base64 --decode > certificate.pfx
+        certutil -importpfx certificate.pfx -p ${{ secrets.WINDOWS_CERT_PASSWORD }}
+
+    - name: Build Electron application
+      run: npm run electron-build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        APPLE_ID: ${{ secrets.APPLE_ID }}
+        APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        CSC_LINK: certificate.p12
+        CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        WINDOWS_CERT_LINK: certificate.pfx
+        WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: electron-${{ matrix.platform }}-${{ matrix.arch }}
+        path: |
+          dist/*.exe
+          dist/*.dmg
+          dist/*.AppImage
+          dist/*.deb
+          dist/*.rpm
+        retention-days: 30
+
+  # Create Notarized macOS Build
+  notarize-macos:
+    runs-on: macos-latest
+    needs: build-electron
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: electron-mac-x64
+        path: mac-artifacts
+
+    - name: Notarize macOS app
+      run: |
+        # Notarize the .dmg file
+        xcrun altool --notarize-app \
+          --primary-bundle-id "com.novastream.app" \
+          --username "${{ secrets.APPLE_ID }}" \
+          --password "${{ secrets.APPLE_PASSWORD }}" \
+          --file mac-artifacts/*.dmg \
+          --output-format json
+
+    - name: Staple macOS app
+      run: |
+        # Staple the notarization ticket to the app
+        xcrun stapler staple mac-artifacts/*.dmg
+
+    - name: Upload notarized macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: electron-mac-notarized
+        path: mac-artifacts/
+        retention-days: 30
+
+  # Auto-update server deployment
+  deploy-updates:
+    runs-on: ubuntu-latest
+    needs: [build-electron, notarize-macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: all-artifacts
+
+    - name: Deploy update files to server
+      run: |
+        # Create update manifest
+        cat > update-manifest.json << EOF
+        {
+          "version": "${{ github.ref_name }}",
+          "files": {
+            "win32": {
+              "url": "https://inertial-event.vercel.app/updates/NovaStream Setup ${{ github.ref_name }}.exe",
+              "sha512": "$(sha512sum all-artifacts/electron-windows-x64/*.exe | cut -d' ' -f1)"
+            },
+            "darwin": {
+              "url": "https://inertial-event.vercel.app/updates/NovaStream-${{ github.ref_name }}.dmg",
+              "sha512": "$(sha512sum all-artifacts/electron-mac-notarized/*.dmg | cut -d' ' -f1)"
+            },
+            "linux": {
+              "url": "https://inertial-event.vercel.app/updates/NovaStream-${{ github.ref_name }}.AppImage",
+              "sha512": "$(sha512sum all-artifacts/electron-linux-x64/*.AppImage | cut -d' ' -f1)"
+            }
+          },
+          "releaseNotes": "Release ${{ github.ref_name }}",
+          "releaseDate": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+        }
+        EOF
+
+    - name: Deploy update manifest to Vercel
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        vercel-args: '--prod'
+        working-directory: ./updates
+
+  # Create GitHub Release
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-electron, notarize-macos, deploy-updates]
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release-artifacts
+
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        # Generate changelog from git commits
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$PREV_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s")
+        fi
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release-artifacts/**/*
+        body: |
+          # NovaStream ${{ github.ref_name }}
+          
+          ## 🚀 Installation
+          
+          ### Windows
+          Download `NovaStream Setup ${{ github.ref_name }}.exe`
+          
+          ### macOS
+          Download `NovaStream-${{ github.ref_name }}.dmg`
+          
+          ### Linux
+          Download `NovaStream-${{ github.ref_name }}.AppImage` or `NovaStream-${{ github.ref_name }}.deb`
+          
+          ## 📝 Changes
+          ${{ steps.release_notes.outputs.changelog }}
+          
+          ---
+          Auto-generated from commit ${{ github.sha }}
+        draft: false
+        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || github.event.inputs.prerelease == 'true' }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Update Homebrew formula (for macOS)
+  update-homebrew:
+    runs-on: ubuntu-latest
+    needs: [create-release]
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha')
+    
+    steps:
+    - name: Update Homebrew formula
+      run: |
+        # Clone homebrew tap
+        git clone https://${{ secrets.HOMEBREW_TOKEN }}@github.com/novastream/homebrew-tap.git
+        cd homebrew-tap
+        
+        # Update formula with new version
+        sed -i.bak "s/version \"[^\"]*\"/version \"${{ github.ref_name }}\"/" novastream.rb
+        sed -i.bak "s/sha256 \"[^\"]*\"/sha256 \"$(curl -sL https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/NovaStream-${{ github.ref_name }}.dmg | sha256sum | cut -d' ' -f1)\"/" novastream.rb
+        
+        # Commit and push
+        git config user.name "NovaStream CI"
+        git config user.email "ci@novastream.app"
+        git add novastream.rb
+        git commit -m "Update novastream to ${{ github.ref_name }}"
+        git push origin main
+
+  # Notify users
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: [create-release]
+    if: always()
+    
+    steps:
+    - name: Notify on success
+      if: needs.create-release.result == 'success'
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"🎉 NovaStream ${{ github.ref_name }} has been released!\\n\\nDownload now:\\n• Windows: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/NovaStream%20Setup%20${{ github.ref_name }}.exe\\n• macOS: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/NovaStream-${{ github.ref_name }}.dmg\\n• Linux: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/NovaStream-${{ github.ref_name }}.AppImage\"}" \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Notify on failure
+      if: needs.create-release.result == 'failure'
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"❌ NovaStream release ${{ github.ref_name }} failed!\"}" \
+        ${{ secrets.SLACK_WEBHOOK_URL }}

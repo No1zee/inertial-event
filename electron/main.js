@@ -26,13 +26,7 @@ protocol.registerSchemesAsPrivileged([
 
 // Hardware Acceleration (Blueprint: GPU caching and performance optimization)
 // Usually enabled by default, but we can enforce some flags if needed.
-// app.disableHardwareAcceleration();
-// app.commandLine.appendSwitch('enable-gpu-rasterization');
-// app.commandLine.appendSwitch('enable-zero-copy');
-
-// Hardware Acceleration (Blueprint: GPU caching and performance optimization)
-// Usually enabled by default, but we can enforce some flags if needed.
-// app.disableHardwareAcceleration();
+app.disableHardwareAcceleration();
 // app.commandLine.appendSwitch('enable-gpu-rasterization');
 // app.commandLine.appendSwitch('enable-zero-copy');
 
@@ -41,8 +35,19 @@ ipcMain.on('frontend-log', (event, msg) => {
 });
 
 const log = (msg, ...args) => console.log(`[Main] ${msg}`, ...args);
-
 let mainWindow;
+
+// --- NovaSync Core Handlers (Must be Global/Sync) ---
+const getPreloadPath = () => {
+    console.log('[AG] IPC Invoke: get-player-preload-path (Universal)');
+    const p = path.join(__dirname, 'player-preload.js');
+    console.log('[AG] Resolved Preload Path (RAW):', p);
+    console.log('[AG] Resolved Preload Path (URL):', pathToFileURL(p).href);
+    return pathToFileURL(p).href;
+};
+
+ipcMain.handle('get-player-preload-path-v2', getPreloadPath);
+ipcMain.handle('get-player-preload-path', getPreloadPath); // Component Alias for Stale Builds
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -65,7 +70,8 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             webviewTag: true,
             spellcheck: false,
-            sandbox: true, // Security: Enabling sandbox per Spec
+            spellcheck: false,
+            sandbox: false, // Disabling Sandbox to allow file:// preload access
             autoplayPolicy: 'no-user-gesture-required' // Critical for background trailers
         }
     });
@@ -123,12 +129,18 @@ function createWindow() {
                 if (details.responseHeaders) {
                     const url = details.url;
                     const domain = new URL(url).hostname;
-                    
-                    // Shallow copy to ensure modification works
                     const newHeaders = { ...details.responseHeaders };
 
-                    // A. YouTube/Google Video Cleanup (Aggressive Stripping)
-                    if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
+                    // 1. YouTube/Google Video/Providers - Remove restrictive policies to allow embedding and scripting
+                    const isProvider = domain.includes('youtube.com') || 
+                                     domain.includes('googlevideo.com') ||
+                                     domain.includes('vidlink.pro') ||
+                                     domain.includes('vidsrc') ||
+                                     domain.includes('onstream') ||
+                                     domain.includes('superembed') ||
+                                     domain.includes('2embed');
+
+                    if (isProvider) {
                         const keysToDelete = [
                             'permissions-policy',
                             'content-security-policy',
@@ -142,21 +154,44 @@ function createWindow() {
                                 delete newHeaders[header];
                             }
                         });
+                        
+                        // For non-YouTube providers, we also want to allow framing from our app specifically
+                        if (!domain.includes('youtube.com')) {
+                            newHeaders['Access-Control-Allow-Origin'] = ['*'];
+                        }
                     }
 
-                    // B. General CSP Injection
-                    if (newHeaders['content-security-policy']) {
-                        let csp = newHeaders['content-security-policy'][0];
-                        csp = csp.replace(/connect-src/g, "connect-src proxy: app: http: ");
-                        csp = csp.replace(/img-src/g, "img-src proxy: app: http: ");
-                        csp = csp.replace(/media-src/g, "media-src proxy: app: http: blob: ");
-                        // Fallback if media-src is missing (it falls back to default-src)
-                        if (!csp.includes('media-src')) {
-                            csp += "; media-src proxy: app: http: blob: 'self' https:;";
-                        }
-                        newHeaders['content-security-policy'] = [csp];
-                    }
-                    
+// 2. Inject Robust CSP for ALL domains to allow NovaStream features (Torrent/Sources/Proxy)
+let csp = "";
+if (isDev) {
+    // Development: Allow Next.js HMR, unsafe-eval for devtools, and localhost
+    csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000;";
+} else {
+    // Production: NO unsafe-eval, strict origin
+    csp = "default-src 'self' 'unsafe-inline' https:;";
+}
+
+const domains = "https://inertial-event.vercel.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://localhost:5000";
+
+// Rebuild script-src
+const scriptSrc = isDev 
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https: blob: app: proxy: file: http://localhost:3000` 
+    : `'self' 'unsafe-inline' https: blob: app: proxy: file:`;
+csp += ` script-src ${scriptSrc} ${domains};`;
+
+                    // Add styles, connect, img, media, frame, font (Condensed)
+                    csp += ` style-src 'self' 'unsafe-inline' https: app: proxy: file: http://localhost:3000 ${domains};`;
+                    csp += ` connect-src 'self' ws: wss: https: proxy: app: file: http: ${domains} http://localhost:3000 ws://localhost:3000;`;
+                    csp += ` img-src 'self' data: blob: proxy: app: file: http: https://* http://localhost:3000;`;
+                    csp += ` media-src 'self' blob: proxy: app: file: http: https: http://localhost:3000;`;
+                    csp += ` frame-src 'self' 'unsafe-inline' https://*.youtube.com https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.googlevideo.com data: blob: app: file: http://localhost:3000;`;
+                    csp += ` font-src 'self' https://fonts.gstatic.com data: app: proxy: file: http://localhost:3000;`;
+
+                    // Remove existing CSP to prevent duplicates
+                    const existingCspKey = Object.keys(newHeaders).find(k => k.toLowerCase() === 'content-security-policy');
+                    if (existingCspKey) delete newHeaders[existingCspKey];
+
+                    newHeaders['content-security-policy'] = [csp];
                     callback({ responseHeaders: newHeaders });
                 } else {
                     callback({ responseHeaders: details.responseHeaders });
@@ -169,32 +204,53 @@ function createWindow() {
     applyResponseHeaders(session.fromPartition('persist:youtube-player'));
 
 
-    // 6. Global Popup & Navigation Lockdown (Soften)
+    // 6. Global Popup & Navigation Lockdown (Surgical)
+    // 6. Global Popup & Navigation Lockdown (Surgical)
     mainWindow.webContents.setWindowOpenHandler((details) => {
         const url = details.url.toLowerCase();
-        // Allow common video provider domains to open windows if really needed, 
-        // but generally we want to block them. However, "scrap global popup" suggests
-        // we should be less restrictive or at least not block EVERYTHING.
-        const blockedHostnames = ['ad', 'click', 'pop', 'redirect', 'promot', 'bet', 'casino'];
-        if (blockedHostnames.some(h => url.includes(h))) {
-            console.log(`[AG] BLOCKED SUSPICIOUS POPUP: ${details.url}`);
+        
+        // 1. Block known ad domains and suspicious patterns
+        const blockedPatterns = [
+            'ad', 'click', 'pop', 'redirect', 'promot', 'bet', 'casino', 
+            'doubleclick', 'syndication', 'analytics', 'tracker', 'pixel',
+            'taboola', 'outbrain', 'mgid', 'revcontent', 'popads', 'popcash',
+            'chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play'
+        ];
+        
+        if (blockedPatterns.some(p => url.includes(p)) && !url.includes('google.com')) {
+            console.log(`[AG] BLOCKED AD/POPUP: ${details.url}`);
             return { action: 'deny' };
         }
 
-        console.log(`[AG] ALLOWING WINDOW OPEN: ${details.url}`);
-        // Instead of denial, we can use 'allow' but it opens a new window.
-        // Or we can use shell.openExternal(details.url) and return { action: 'deny' }
-        shell.openExternal(details.url);
+        // 2. Allow specific user-solicited external links (e.g., Discord, Wiki)
+        const allowedExternals = ['discord.gg', 'github.com', 'wikipedia.org', 'themoviedb.org'];
+        if (allowedExternals.some(h => url.includes(h))) {
+            console.log(`[AG] OPENING EXTERNAL LINK: ${details.url}`);
+            shell.openExternal(details.url);
+            return { action: 'deny' };
+        }
+
+        // 3. Default: Deny any other popup to stay in-app
+        // Changing default to DENY prevents the "flash" of a new window appearing then closing
+        console.warn(`[AG] BLOCKED UNSOLICITED POPUP (Default Deny): ${details.url}`);
         return { action: 'deny' };
     });
 
     // Emergency Window Destroyer (if any window slips through)
-    // app.on('browser-window-created', (event, window) => {
-    //     if (window !== mainWindow) {
-    //         console.log(`[AG] DESTROYING ROGUE WINDOW: ${window.getURL()}`);
-    //         window.destroy();
-    //     }
-    // });
+    app.on('browser-window-created', (event, window) => {
+        // Allow DevTools (they have their own type usually, but we check ID or title)
+        // We only want ONE main window.
+        if (mainWindow && window !== mainWindow) {
+            // Check if it's a devtools window (often title is DevTools)
+            const title = window.getTitle();
+            if (title.includes('DevTools') || title.includes('Extension')) return;
+
+            console.log(`[AG] DESTROYING ROGUE WINDOW: ${title}`);
+            window.close(); // Polite close first
+            // Force destroy if it persists
+            setTimeout(() => { if (!window.isDestroyed()) window.destroy(); }, 100);
+        }
+    });
 
     // 7. Download Lockdown (Blocks "Opera" and other unwanted downloads)
     session.defaultSession.on('will-download', (event, item, webContents) => {
@@ -205,7 +261,7 @@ function createWindow() {
     // Block only highly suspicious main frame navigations
     mainWindow.webContents.on('will-navigate', (event, url) => {
         const lowUrl = url.toLowerCase();
-        const suspiciousPatterns = ['redirect', 'click', 'pop', 'ad', 'bet', 'casino'];
+        const suspiciousPatterns = ['redirect', 'click', 'pop', 'ad', 'bet', 'casino', 'chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play'];
         if (suspiciousPatterns.some(p => lowUrl.includes(p)) && !url.includes('localhost')) {
             console.warn(`[AG] BLOCKED SUSPICIOUS MAIN FRAME NAV: ${url}`);
             event.preventDefault();
@@ -214,12 +270,69 @@ function createWindow() {
 
     // Block any SUBFRAME navigation (iframe) to unknown domains
     mainWindow.webContents.on('will-frame-navigate', (event, url) => {
-        const allowedHostnames = ['localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'dicebear.com'];
-        const isAllowed = allowedHostnames.some(h => url.includes(h));
+        const allowedHostnames = [
+            'localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.to', 'vidsrc.pro',
+            'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 
+            'dicebear.com', 'googlevideo.com', 'ytimg.com', 'cloudflare.com'
+        ];
+        
+        // Critical Fix: Allow data:, blob:, and about: schemes (Used by players for sandboxing)
+        const isSchemeAllowed = url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('about:');
+        const isHostAllowed = allowedHostnames.some(h => url.includes(h));
 
-        if (!isAllowed) {
+        if (!isSchemeAllowed && !isHostAllowed) {
             console.warn(`[AG] BLOCKED IFRAME HIJACK: ${url}`);
             event.preventDefault();
+        }
+    });
+
+    // 7. Global Webview Lockdown (The "Nuclear" Option)
+    // This attaches the same strict rules to any <webview> or guest content created by the app
+    app.on('web-contents-created', (event, contents) => {
+        if (contents.getType() === 'webview') {
+             // 1. Popup Handler
+             contents.setWindowOpenHandler((details) => {
+                const url = details.url.toLowerCase();
+                const blockedPatterns = ['chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play', 'ad', 'bet', 'casino'];
+                
+                if (blockedPatterns.some(p => url.includes(p)) && !url.includes('google.com')) {
+                    console.log(`[AG] BLOCKED WEBVIEW POPUP: ${details.url}`);
+                    return { action: 'deny' };
+                }
+                
+                // Allow specific externals from webviews (like clicking a cast actor link)
+                const allowedExternals = ['imdb.com', 'themoviedb.org', 'wikipedia.org', 'youtube.com'];
+                if (allowedExternals.some(h => url.includes(h))) {
+                     console.log(`[AG] OPENING EXTERNAL WEBVIEW LINK: ${details.url}`);
+                     shell.openExternal(details.url);
+                     return { action: 'deny' };
+                }
+
+                // Default Deny for Webview Popups too
+                console.log(`[AG] BLOCKED UNKNOWN WEBVIEW POPUP: ${details.url}`);
+                return { action: 'deny' };
+             });
+
+             // 2. Navigation Filter
+             contents.on('will-navigate', (event, url) => {
+                const lowUrl = url.toLowerCase();
+                const suspiciousPatterns = ['redirect', 'click', 'pop', 'ad', 'bet', 'casino', 'chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play'];
+                if (suspiciousPatterns.some(p => lowUrl.includes(p)) && !url.includes('localhost') && !url.includes('youtube.com')) {
+                    console.warn(`[AG] BLOCKED WEBVIEW NAV: ${url}`);
+                    event.preventDefault();
+                }
+             });
+             
+             // 3. Frame Navigation Filter
+             contents.on('will-frame-navigate', (event, url) => {
+                 // Reuse allowed logic or just block ads
+                 const lowUrl = url.toLowerCase();
+                 const adPatterns = ['doubleclick', 'adservice', 'pixel', 'tracker', 'analytics'];
+                 if (adPatterns.some(p => lowUrl.includes(p))) {
+                     console.warn(`[AG] BLOCKED WEBVIEW FRAME: ${url}`);
+                     event.preventDefault();
+                 }
+             });
         }
     });
 
@@ -572,77 +685,82 @@ app.on('ready', async () => {
         // 2. ASYNC VALIDATION (Critical Security Path)
         // ---------------------------------------------------
         
-        log('Loading env...');
-        await licenseManager.loadSecureEnv();
-        
-        log('Validating license...');
-        // Safety timeout for validation
-        let validationResult;
-        try {
-            validationResult = await Promise.race([
-                licenseManager.validate(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (15s)')), 15000))
-            ]);
-        } catch (err) {
-            if (err.message && err.message.includes('LICENSE_REVOKED')) {
-                log('License revoked. Prompting for new key.');
-                dialog.showMessageBoxSync({
-                    type: 'error',
-                    title: 'License Revoked',
-                    message: 'Your license validation failed.\n\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\n\nPlease enter a new key to continue.',
-                    buttons: ['OK']
-                });
-                // Force activation flow
-                validationResult = { requiresActivation: true };
-            } else {
-                throw err;
-            }
-        }
-        
-        // Check if activation is required
-        if (validationResult.requiresActivation) {
-            log('No license found. Showing activation window...');
+        // Skip license validation in development mode
+        if (isDev) {
+            log('Development mode: Skipping license validation');
+        } else {
+            log('Loading env...');
+            await licenseManager.loadSecureEnv();
             
-            // Import activation window module
-            const { createActivationWindow } = require('./activationWindow');
-            
-            // Create standalone activation window (no hidden parent needed)
-            const activationWin = createActivationWindow(null);
-            
-            // Wait for activation to complete or window close
-            const activationSuccess = await new Promise((resolve) => {
-                let wasActivated = false;
-                
-                // Listen for successful activation signal
-                ipcMain.once('activation-success', () => {
-                    wasActivated = true;
-                    log('Activation signal received!');
-                    activationWin.close();
-                });
-                
-                activationWin.on('closed', () => {
-                    resolve(wasActivated);
-                });
-            });
-            
-            if (!activationSuccess) {
-                log('User closed activation without completing. Exiting.');
-                dialog.showMessageBoxSync({
-                    type: 'warning',
-                    title: 'Activation Required',
-                    message: 'NovaStream requires activation to run. Please restart the app and enter a valid license key.',
-                    buttons: ['OK']
-                });
-                app.quit();
-                return;
+            log('Validating license...');
+            // Safety timeout for validation
+            let validationResult;
+            try {
+                validationResult = await Promise.race([
+                    licenseManager.validate(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (15s)')), 15000))
+                ]);
+            } catch (err) {
+                if (err.message && err.message.includes('LICENSE_REVOKED')) {
+                    log('License revoked. Prompting for new key.');
+                    dialog.showMessageBoxSync({
+                        type: 'error',
+                        title: 'License Revoked',
+                        message: 'Your license validation failed.\\n\\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\\n\\nPlease enter a new key to continue.',
+                        buttons: ['OK']
+                    });
+                    // Force activation flow
+                    validationResult = { requiresActivation: true };
+                } else {
+                    throw err;
+                }
             }
             
-            log('Activation completed. Proceeding...');
-        } else if (!validationResult.valid) {
-            throw new Error('License validation failed');
+            // Check if activation is required
+            if (validationResult.requiresActivation) {
+                log('No license found. Showing activation window...');
+                
+                // Import activation window module
+                const { createActivationWindow } = require('./activationWindow');
+                
+                // Create standalone activation window (no hidden parent needed)
+                const activationWin = createActivationWindow(null);
+                
+                // Wait for activation to complete or window close
+                const activationSuccess = await new Promise((resolve) => {
+                    let wasActivated = false;
+                    
+                    // Listen for successful activation signal
+                    ipcMain.once('activation-success', () => {
+                        wasActivated = true;
+                        log('Activation signal received!');
+                        activationWin.close();
+                    });
+                    
+                    activationWin.on('closed', () => {
+                        resolve(wasActivated);
+                    });
+                });
+                
+                if (!activationSuccess) {
+                    log('User closed activation without completing. Exiting.');
+                    dialog.showMessageBoxSync({
+                        type: 'warning',
+                        title: 'Activation Required',
+                        message: 'NovaStream requires activation to run. Please restart the app and enter a valid license key.',
+                        buttons: ['OK']
+                    });
+                    app.quit();
+                    return;
+                }
+                
+                log('Activation completed. Proceeding...');
+            } else if (!validationResult.valid) {
+                throw new Error('License validation failed');
+            }
+            
+            log('Validation OK. Launching UI.');
         }
-        
-        log('Validation OK. Launching UI.');
 
         // 3. START BACKEND SERVER (Production Only)
         // ---------------------------------------------------

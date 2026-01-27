@@ -4,6 +4,7 @@ import { Content } from '../models/Content.js';
 import { consumetService } from '../services/consumetService.js';
 import { sourceService } from '../services/sourceService.js';
 import { tmdbService } from '../services/tmdbService.js';
+import { semanticSearchService } from '../services/semanticSearchService.js';
 import { MOCK_CONTENT } from '../data/MockContent.js';
 
 // Helper to check DB status
@@ -160,6 +161,37 @@ export const searchContent = async (req: Request, res: Response) => {
         const localResults = await (Content as any).find({ title: { $regex: q as string, $options: 'i' } });
         const externalResults = await (consumetService as any).search(q);
         res.json({ local: localResults, external: externalResults });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const semanticSearch = async (req: Request, res: Response) => {
+    try {
+        const { q, limit } = req.query;
+        if (!q) return res.status(400).json({ error: 'Query required' });
+        
+        if (!isDbConnected()) {
+            // Fallback for no DB
+            const results = MOCK_CONTENT.filter(c => 
+                c.title.toLowerCase().includes((q as string).toLowerCase()) || 
+                c.description.toLowerCase().includes((q as string).toLowerCase())
+            ).slice(0, Number(limit) || 10);
+            return res.json(results);
+        }
+
+        const results = await semanticSearchService.search(q as string, Number(limit) || 10);
+        res.json(results);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const syncEmbeddings = async (req: Request, res: Response) => {
+    try {
+        // Trigger sync in background
+        semanticSearchService.syncEmbeddings();
+        res.json({ message: 'Sync started in background' });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

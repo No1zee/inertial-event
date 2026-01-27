@@ -1,13 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const { promisify } = require('util');
+import { Request, Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import { promisify } from 'util';
 
 const statAsync = promisify(fs.stat);
 const readdirAsync = promisify(fs.readdir);
 
-exports.streamFile = async (req, res) => {
+export const streamFile = async (req: Request, res: Response) => {
     try {
-        const filePath = req.query.path;
+        const filePath = req.query.path as string;
         if (!filePath) {
             return res.status(400).json({ error: 'File path required' });
         }
@@ -49,13 +50,13 @@ exports.streamFile = async (req, res) => {
         }
     } catch (error) {
         console.error('File Stream Error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
 
-exports.listFiles = async (req, res) => {
+export const listFiles = async (req: Request, res: Response) => {
     try {
-        const dirPath = req.query.path || '/'; // Default to root if not spec
+        const dirPath = (req.query.path as string) || '/'; // Default to root if not spec
         const decodedPath = decodeURIComponent(dirPath);
 
         const items = await readdirAsync(decodedPath, { withFileTypes: true });
@@ -70,6 +71,6 @@ exports.listFiles = async (req, res) => {
         res.json({ path: decodedPath, files });
     } catch (error) {
         console.error('List Files Error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };

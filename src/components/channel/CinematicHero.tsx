@@ -34,7 +34,7 @@ export function CinematicHero({ item }: CinematicHeroProps) {
             {/* Background Layer */}
             <div className="absolute inset-0">
                 <div 
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] ease-linear group-hover:scale-105"
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-[20000ms] ease-linear group-hover:scale-105"
                     style={{ backgroundImage: `url(${item.backdrop || item.poster})` }}
                 />
                 

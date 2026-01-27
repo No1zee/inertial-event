@@ -4,6 +4,7 @@ import React from 'react';
 import { ArrowLeft, HeartHandshake, Heart, Download, ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause, PictureInPicture, Zap, Maximize, Settings, Cast } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Seekbar from './Seekbar';
 
 // Local Helper
 const formatTimeLocal = (seconds: number) => {
@@ -25,11 +26,9 @@ interface PlayerControlsProps {
     isMuted: boolean;
     isSaved: boolean;
     downloadUrl: string | null;
-    isSeeking: boolean;
-    seekValue: number;
 
     // Series Specific
-    type: 'movie' | 'tv' | 'local' | 'torrent';
+    type: 'movie' | 'tv' | 'anime' | 'local' | 'torrent';
     isTorrent?: boolean;
     season: string;
     episode: string;
@@ -37,8 +36,7 @@ interface PlayerControlsProps {
 
     // Actions
     onTogglePlay: () => void;
-    onSeekChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onSeekCommit: () => void;
+    onSeek: (time: number) => void;
     onVolumeChange: (volume: number) => void;
     onToggleMute: () => void;
     onToggleLibrary: () => void;
@@ -61,25 +59,22 @@ interface PlayerControlsProps {
     skipParams?: { type: 'intro' | 'credits'; to: number } | null;
     onSkip?: (time: number) => void;
     hideBottom?: boolean;
+    episodeDetails?: any[];
 }
 
 export default function PlayerControls({
     show, title, subTitle, backUrl, currentTime, duration, isPaused, volume, isMuted, isSaved, downloadUrl,
-    isSeeking, seekValue, type, isTorrent, season, episode, seasons,
-    onTogglePlay, onSeekChange, onSeekCommit, onVolumeChange, onToggleMute,
+    type, isTorrent, season, episode, seasons,
+    onTogglePlay, onSeek, onVolumeChange, onToggleMute,
     onToggleLibrary, onDownload, onToggleSettings, onTogglePiP, onToggleCast,
     onNext, onPrev, onSeasonChange, onEpisodeChange, onToggleFullscreen,
-    hideBottom,
+    hideBottom, episodeDetails,
     ...props // Capture debug props
 }: PlayerControlsProps) {
 
     const router = useRouter();
     const currentSeasonNum = parseInt(season);
     const currentEpisodeNum = parseInt(episode);
-
-    const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
-    const safeTime = Number.isFinite(currentTime) && currentTime >= 0 ? currentTime : 0;
-    const displayTime = isSeeking ? seekValue : safeTime;
 
     const handleBack = () => {
         if (backUrl) {
@@ -167,9 +162,23 @@ export default function PlayerControls({
                                     {(() => {
                                         const seasonData = seasons.find((s: any) => s.season_number === currentSeasonNum);
                                         const count = seasonData?.episode_count || 1;
-                                        return Array.from({ length: count }, (_, i) => i + 1).map(ep => (
-                                            <option key={ep} value={ep} className="bg-zinc-900">E{ep}</option>
-                                        ));
+                                        return Array.from({ length: count }, (_, i) => i + 1).map(epNum => {
+                                            const epDetail = episodeDetails?.find((ed: any) => ed.episode_number === epNum);
+                                            const airDate = epDetail?.air_date ? new Date(epDetail.air_date) : null;
+                                            const isAired = airDate ? airDate <= new Date() : true;
+                                            
+                                            return (
+                                                <option 
+                                                    key={epNum} 
+                                                    value={epNum} 
+                                                    className="bg-zinc-900"
+                                                    style={{ color: isAired ? '#fff' : '#666' }}
+                                                    disabled={!isAired}
+                                                >
+                                                    E{epNum}
+                                                </option>
+                                            );
+                                        });
                                     })()}
                                 </select>
                             </div>
@@ -192,15 +201,9 @@ export default function PlayerControls({
                         <div className="absolute -top-12 left-6 animate-fade-in-up">
                             <button
                                 onClick={() => {
-                                    // Calculate seek target
-                                    if (props.skipParams?.to) {
-                                    // Seek to end of intro
-                                    const target = props.skipParams.to + 0.5;
-                                    // We need to trigger the seek via prop, but onChange handles slider event.
-                                    // We can fake an event or use a new prop. For now, use onSeekCommit hacks or expose a direct seek method.
-                                    // Actually, the parent handles commands. We should lift this up or use onSeekChange directly?
-                                    // Better: add onSkip prop.
-                                    if (props.onSkip) props.onSkip(target);
+                                    if (props.skipParams?.to && props.onSkip) {
+                                        const target = props.skipParams.to + 0.5;
+                                        props.onSkip(target);
                                     }
                                 }}
                                 className="flex items-center gap-2 bg-white/90 hover:bg-white text-black px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-transform hover:scale-105"
@@ -213,21 +216,12 @@ export default function PlayerControls({
 
                     {/* Progress Bar - Only functional on Electron */}
                     {!hideBottom && (
-                        <div className="flex items-center gap-3 mb-4 group/progress">
-                            <span className="text-xs font-medium text-white/80 w-10 text-right">{formatTimeLocal(displayTime)}</span>
-                            <input
-                                type="range"
-                                min={0}
-                                max={safeDuration || 100}
-                                value={Math.min(displayTime, safeDuration || 100)}
-                                step={0.1}
-                                onChange={onSeekChange}
-                                onMouseUp={onSeekCommit}
-                                onTouchEnd={onSeekCommit} // For mobile
-                                aria-label="Seek slider"
-                                className="flex-1 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:rounded-full hover:[&::-webkit-slider-thumb]:scale-125 transition-all"
+                        <div className="mb-4">
+                            <Seekbar 
+                                currentTime={currentTime} 
+                                duration={duration} 
+                                onSeek={onSeek} 
                             />
-                            <span className="text-xs font-medium text-white/60 w-10">{formatTimeLocal(safeDuration)}</span>
                         </div>
                     )}
 
@@ -295,9 +289,23 @@ export default function PlayerControls({
                                             {(() => {
                                                 const seasonData = seasons.find((s: any) => s.season_number === currentSeasonNum);
                                                 const count = seasonData?.episode_count || 1;
-                                                return Array.from({ length: count }, (_, i) => i + 1).map(ep => (
-                                                    <option key={ep} value={ep} className="bg-zinc-900 text-left">E{ep}</option>
-                                                ));
+                                                return Array.from({ length: count }, (_, i) => i + 1).map(epNum => {
+                                                    const epDetail = episodeDetails?.find((ed: any) => ed.episode_number === epNum);
+                                                    const airDate = epDetail?.air_date ? new Date(epDetail.air_date) : null;
+                                                    const isAired = airDate ? airDate <= new Date() : true;
+                                                    
+                                                    return (
+                                                        <option 
+                                                            key={epNum} 
+                                                            value={epNum} 
+                                                            className="bg-zinc-900 text-left"
+                                                            style={{ color: isAired ? '#fff' : '#666' }}
+                                                            disabled={!isAired}
+                                                        >
+                                                            E{epNum}
+                                                        </option>
+                                                    );
+                                                });
                                             })()}
                                         </select>
                                     </div>
@@ -314,7 +322,10 @@ export default function PlayerControls({
                             {/* Settings Button (Languages/Quality) - Only functional on Electron */}
                             {!hideBottom && (
                                 <button
-                                    onClick={onToggleSettings}
+                                    onClick={() => {
+                                        console.log('[PlayerControls] Settings Button Clicked');
+                                        onToggleSettings();
+                                    }}
                                     aria-label="Settings"
                                     className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
                                     title="Settings (Audio & Subtitles)"

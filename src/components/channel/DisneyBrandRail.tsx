@@ -56,7 +56,21 @@ export function DisneyBrandRail() {
                             "border border-white/10 shadow-lg bg-gradient-to-br from-[#30323e] to-[#1e1f2a]",
                             "hover:scale-105 hover:border-white transition-all duration-300 hover:shadow-2xl"
                         )}
-                        onClick={() => router.push(`/browse?q=${brand.name}`)}
+                        onClick={() => {
+                            // Navigate to browse page with company filter
+                            // Using TMDB company IDs: Disney=2, Pixar=3, Marvel=420, Lucasfilm=1, National Geographic=7521
+                            const companyIds: Record<string, number> = {
+                                'disney': 2,
+                                'pixar': 3,
+                                'marvel': 420,
+                                'starwars': 1,
+                                'natgeo': 7521
+                            };
+                            const companyId = companyIds[brand.id];
+                            if (companyId) {
+                                router.push(`/browse?company=${companyId}&name=${encodeURIComponent(brand.name)}`);
+                            }
+                        }}
                     >
                         <video 
                             src={brand.video}

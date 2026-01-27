@@ -42,6 +42,32 @@ export function Sidebar() {
     const { sidebarOpen, setSidebarOpen } = useUIStore();
     const pathname = usePathname();
 
+    // Auto-hide logic
+    const hideTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    const resetHideTimer = React.useCallback(() => {
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+        }
+        
+        // Only auto-hide on desktop/large screens where sidebar is a meaningful overlay
+        if (sidebarOpen && window.innerWidth >= 1024) {
+            hideTimeoutRef.current = setTimeout(() => {
+                setSidebarOpen(false);
+            }, 2500); // 2.5 seconds of inactivity
+        }
+    }, [sidebarOpen, setSidebarOpen]);
+
+    // Handle initial open and mouse moves
+    React.useEffect(() => {
+        if (sidebarOpen) {
+            resetHideTimer();
+        }
+        return () => {
+            if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+        };
+    }, [sidebarOpen, resetHideTimer]);
+
     // Close sidebar with right arrow key
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -51,6 +77,17 @@ export function Sidebar() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [sidebarOpen, setSidebarOpen]);
+
+    // Handle scroll to hide
+    React.useEffect(() => {
+        const handleScroll = () => {
+             if (sidebarOpen && window.scrollY > 150) {
+                 setSidebarOpen(false);
+             }
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [sidebarOpen, setSidebarOpen]);
 
     return (
@@ -63,21 +100,46 @@ export function Sidebar() {
                 />
             )}
 
+            {/* Sensor Zone for Peek/Reveal */}
+            {!sidebarOpen && (
+                <div 
+                    className="fixed top-0 left-0 w-4 h-screen z-[45] cursor-pointer"
+                    onMouseEnter={() => setSidebarOpen(true)}
+                />
+            )}
+
             {/* Sidebar Container */}
-            <aside className={cn(
-                "fixed top-0 left-0 z-50 h-screen bg-zinc-950 border-r border-white/10 shadow-2xl transition-all duration-300",
-                sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full"
-            )}>
-                <div className="flex flex-col h-full overflow-hidden">
+            <aside 
+                onMouseMove={resetHideTimer}
+                onMouseEnter={resetHideTimer}
+                onMouseLeave={() => {
+                    // Start a faster hide when leaving the sidebar specifically
+                    if (sidebarOpen) {
+                        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+                        hideTimeoutRef.current = setTimeout(() => setSidebarOpen(false), 800);
+                    }
+                }}
+                className={cn(
+                    "fixed top-4 z-50 h-[calc(100vh-2rem)] glass-sidebar rounded-3xl shadow-2xl transition-all duration-700 ease-out border border-white/5 overflow-hidden",
+                    sidebarOpen 
+                        ? "left-4 w-[280px] translate-x-0 opacity-100 scale-100" 
+                        : "left-[-100px] w-[280px] -translate-x-full opacity-0 scale-95 pointer-events-none"
+                )}
+            >
+                <div className="flex flex-col h-full w-full">
                     {/* Logo Area */}
                     <div className="h-16 flex items-center px-6 border-b border-white/5 mx-2 justify-between shrink-0">
-                        <Link href="/" onClick={() => setSidebarOpen(false)}>
-                            <Logo 
-                                size="md" 
-                                showText={sidebarOpen} 
-                                className={cn(!sidebarOpen && "lg:ml-1")}
-                                aria-label="NovaStream Logo"
-                            />
+                        <Link href="/" onClick={() => setSidebarOpen(false)} className="mx-auto lg:mx-0">
+                            <div className={cn(
+                                "flex items-center transition-all duration-300",
+                                sidebarOpen ? "px-6" : "px-0 justify-center"
+                            )}>
+                                <Logo 
+                                    size="md" 
+                                    showText={sidebarOpen} 
+                                    aria-label="NovaStream Logo"
+                                />
+                            </div>
                         </Link>
                         {sidebarOpen && (
                             <button
@@ -106,22 +168,26 @@ export function Sidebar() {
                                         }
                                     }}
                                     className={cn(
-                                        "flex items-center px-3 py-3 rounded-xl transition-all duration-200 group/item whitespace-nowrap outline-none",
+                                        "flex items-center rounded-xl transition-all duration-300 group/item whitespace-nowrap outline-none relative mx-2",
                                         isActive
-                                            ? "bg-red-600/10 text-red-500"
+                                            ? "bg-primary/20 text-primary"
                                             : "text-zinc-400 hover:text-white hover:bg-white/5",
-                                        "focus:bg-white/10 focus:text-white focus:ring-2 focus:ring-red-600/50",
-                                        !sidebarOpen && "justify-center px-0"
+                                        "focus:bg-white/10 focus:text-white focus:ring-2 focus:ring-primary/50",
+                                        sidebarOpen ? "px-4 py-3" : "justify-center p-3"
                                     )}
                                     title={!sidebarOpen ? item.label : undefined}
                                 >
                                     <item.icon size={22} className={cn(
-                                        "shrink-0",
-                                        isActive && "fill-current"
+                                        "shrink-0 transition-transform duration-300",
+                                        isActive && "fill-current",
+                                        !sidebarOpen && "group-hover/item:scale-110"
                                     )} />
-                                    <span className={cn("ml-4 font-medium text-base transition-opacity duration-200", !sidebarOpen && "lg:opacity-0 lg:hidden")}>
+                                    <div className={cn(
+                                        "ml-4 font-bold text-sm tracking-wide transition-all duration-300",
+                                        sidebarOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none w-0 overflow-hidden"
+                                    )}>
                                         {item.label}
-                                    </span>
+                                    </div>
                                 </Link>
                             );
                         })}
@@ -157,7 +223,7 @@ export function Sidebar() {
                                 >
                                     <div className={cn(
                                         "relative flex items-center justify-start transition-all duration-200",
-                                        ['disney', 'max', 'peacock'].includes(provider.slug) ? "h-9 w-32" : "h-7 w-28"
+                                        ['disney', 'max', 'peacock', 'adult-swim'].includes(provider.slug) ? "h-9 w-32" : "h-7 w-28"
                                     )}>
                                         <img 
                                             src={provider.logo} 
@@ -182,25 +248,37 @@ export function Sidebar() {
                         {/* Toggle Button for Desktop */}
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="hidden lg:flex w-full items-center justify-center px-3 py-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1"
+                            className={cn(
+                                "hidden lg:flex w-full items-center mb-2 overflow-hidden transition-all duration-300",
+                                sidebarOpen ? "justify-center px-3 py-1" : "justify-center px-0 py-2"
+                            )}
                             aria-label={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
                         >
-                            {sidebarOpen ? <X size={22} /> : <div className="w-1 h-8 bg-zinc-800 rounded-full group-hover:bg-zinc-600" />}
+                            {sidebarOpen ? (
+                                <div className="p-2 hover:bg-white/10 rounded-full text-zinc-500 hover:text-white transition-colors">
+                                    <X size={18} />
+                                </div>
+                            ) : (
+                                <div className="w-10 h-1 bg-zinc-800 rounded-full hover:bg-primary transition-colors cursor-pointer" />
+                            )}
                         </button>
 
                         <Link
                             href="/settings"
                             onClick={() => setSidebarOpen(false)}
                             className={cn(
-                                "flex items-center px-3 py-3 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1 whitespace-nowrap",
-                                !sidebarOpen && "justify-center px-0"
+                                "flex items-center rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1 whitespace-nowrap mx-2",
+                                sidebarOpen ? "px-4 py-3" : "justify-center p-3"
                             )}
                             title={!sidebarOpen ? "Settings" : undefined}
                         >
                             <Settings size={22} className="shrink-0" />
-                            <span className={cn("ml-4 font-medium transition-opacity duration-200", !sidebarOpen && "lg:opacity-0 lg:hidden")}>
+                            <div className={cn(
+                                "ml-4 font-bold text-sm tracking-wide transition-all duration-300",
+                                sidebarOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none w-0 overflow-hidden"
+                            )}>
                                 Settings
-                            </span>
+                            </div>
                         </Link>
                     </div>
                 </div>

@@ -25,6 +25,10 @@ export default function SettingsOverlay({
 }: SettingsOverlayProps) {
     const [activeTab, setActiveTab] = useState<Tab>('main');
 
+    React.useEffect(() => {
+        console.log(`[SettingsOverlay] Rendered. Show=${show}`);
+    }, [show]);
+
     if (!show) {
         if (activeTab !== 'main') setTimeout(() => setActiveTab('main'), 300);
         return null;

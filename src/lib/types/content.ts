@@ -9,10 +9,14 @@ export interface Content {
     type: 'movie' | 'tv' | 'anime';
     genres: string[];
     lastAirDate?: string;
+    originalLanguage?: string;
+    originCountry?: string[];
     progress?: number; // Current playback time in seconds
     lastWatched?: number; // Timestamp
     addedAt?: number; // Timestamp
     duration?: number; // Total duration in seconds (already exists, verify type)
+    season?: number;
+    episode?: number;
     seasons?: number;
     episodes?: number;
     status: 'ongoing' | 'completed';

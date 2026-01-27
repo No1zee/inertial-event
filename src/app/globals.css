@@ -3,39 +3,47 @@
 @tailwind utilities;
 
 :root {
-  /* Default Theme: "Type Nova" (Red/Dark) */
-  --background: 240 10% 3.9%;
+  /* Premium Cinematic Theme */
+  --background: 240 10% 2%;
   --foreground: 0 0% 98%;
 
-  --card: 240 10% 3.9%;
+  --card: 240 10% 4%;
   --card-foreground: 0 0% 98%;
  
-  --popover: 240 10% 3.9%;
+  --popover: 240 10% 4%;
   --popover-foreground: 0 0% 98%;
  
-  --primary: 346 87% 43%; /* Rose 600 - #e11d48 */
+  --primary: 346 87% 43%; 
   --primary-foreground: 0 0% 98%;
  
-  --secondary: 240 3.7% 15.9%;
+  --secondary: 240 4% 10%;
   --secondary-foreground: 0 0% 98%;
  
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 240 4% 15%;
+  --muted-foreground: 240 5% 65%;
  
-  --accent: 240 3.7% 15.9%;
+  --accent: 240 4% 15%;
   --accent-foreground: 0 0% 98%;
  
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 63% 31%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
+  --border: 240 4% 12%;
+  --input: 240 4% 12%;
   --ring: 346 87% 43%;
+
+  /* Cinematic Effects */
+  --glass-opacity: 0.15;
+  --glass-blur: 24px;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glow-primary: 0 0 20px rgba(225, 29, 72, 0.3);
 
   /* Enterprise Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --glass: rgba(255, 255, 255, 0.05);
+  --glass: rgba(0, 0, 0, 0.4);
+  /* --glass-border: rgba(255, 255, 255, 0.1); */ /* This was moved/updated above */
+  /* --glass-blur: blur(12px); */ /* This was moved/updated above */
 }
 
 /* Theme: "Ocean" (Blue/Teal) */
@@ -115,6 +123,41 @@ body {
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-nav {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-sidebar {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(32px) saturate(160%);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .cinematic-shadow {
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  .aura-blur {
+    filter: blur(100px);
+    opacity: 0.4;
+    mix-blend-mode: plus-lighter;
   }
 }
 

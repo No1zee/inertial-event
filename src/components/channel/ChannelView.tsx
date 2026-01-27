@@ -12,6 +12,11 @@ import { Content } from '@/lib/types/content';
 import { useRouter } from 'next/navigation';
 import { useUIStore } from '@/lib/store/uiStore';
 import { DisneyBrandRail } from './DisneyBrandRail';
+import { AdultSwimHero } from './AdultSwimHero';
+import { AuntiesHero } from './AuntiesHero';
+import { useViralAdultSwim, useAdultSwimOriginals, useShorts, useAdultSwimDarkComedy, useAdultSwimHorror, useAdultSwimSciFi, useAdultSwimSatire, useAdultSwimCultClassics, useAdultSwimExperimental, useAdultSwimAnime, useAdultSwimAction, useAdultSwimMusic, useAdultSwimMidnight, useAdultSwimSurreal, useAdultSwimBritish, useAdultSwimRetro, useKoreanDramas, useAfricanMovies, useClassicSitcoms, useSoapOperas, useFamilyDramas, useTelenovelas, useBollywoodMovies, useFamilyComedies, useCookingShows, useRomanticMovies } from '@/hooks/queries/useContent';
+import { BumpBlock } from './BumpBlock';
+import { Top10Rail } from './Top10Rail';
 
 export default function ChannelView({ id }: { id: string }) {
     const provider = getProviderById(id);
@@ -63,6 +68,35 @@ export default function ChannelView({ id }: { id: string }) {
     const { data: underrated } = useProviderUnderrated(id, 'movie');
     // We already have newTV, let's add Popular TV specifically
     const { data: popularTV } = useProviderContent(id, 'tv', 'popularity.desc');
+    const { data: viralAdultSwim } = useViralAdultSwim();
+    const { data: asAnimated } = useAdultSwimOriginals('animated');
+    const { data: asLiveAction } = useAdultSwimOriginals('live-action');
+    const { data: shorts } = useShorts();
+    const { data: asDarkComedy } = useAdultSwimDarkComedy();
+    const { data: asHorror } = useAdultSwimHorror();
+    const { data: asSciFi } = useAdultSwimSciFi();
+    const { data: asSatire } = useAdultSwimSatire();
+    const { data: asCultClassics } = useAdultSwimCultClassics();
+    const { data: asExperimental } = useAdultSwimExperimental();
+    const { data: asAnime } = useAdultSwimAnime();
+    const { data: asAction } = useAdultSwimAction();
+    const { data: asMusic } = useAdultSwimMusic();
+    const { data: asMidnight } = useAdultSwimMidnight();
+    const { data: asSurreal } = useAdultSwimSurreal();
+    const { data: asBritish } = useAdultSwimBritish();
+    const { data: asRetro } = useAdultSwimRetro();
+    
+    // Aunties Channel Content
+    const { data: koreanDramas } = useKoreanDramas();
+    const { data: africanMovies } = useAfricanMovies();
+    const { data: classicSitcoms } = useClassicSitcoms();
+    const { data: soapOperas } = useSoapOperas();
+    const { data: familyDramas } = useFamilyDramas();
+    const { data: telenovelas } = useTelenovelas();
+    const { data: bollywoodMovies } = useBollywoodMovies();
+    const { data: familyComedies } = useFamilyComedies();
+    const { data: cookingShows } = useCookingShows();
+    const { data: romanticMovies } = useRomanticMovies();
 
 
     // Derived Hero Items
@@ -122,23 +156,42 @@ export default function ChannelView({ id }: { id: string }) {
     const isNetflix = id === '8'; // Netflix
     const isPrime = id === '9'; // Prime
     const isHulu = id === '15'; // Hulu
+    const isAdultSwim = id === '80';
+    const isAunties = id === 'aunties'; // Aunties
 
     // Determine Background Gradient
     let bgGradient = 'bg-[#141414]';
-    if (isDisney) bgGradient = 'bg-radial-disney'; // Need to add to tailwind or use arbitrary
+    if (isDisney) bgGradient = 'bg-radial-disney'; 
     else if (isHulu) bgGradient = 'bg-gradient-to-b from-[#1CE783]/20 to-[#141414]';
-    else if (isApple) bgGradient = 'bg-zinc-950';
-    else if (isNetflix) bgGradient = 'bg-black';
+    else if (isApple) bgGradient = 'bg-gradient-to-b from-black via-zinc-950 to-black';
+    else if (isNetflix) bgGradient = 'bg-gradient-to-b from-black via-zinc-950 to-black';
     else if (isPrime) bgGradient = 'bg-gradient-to-b from-[#00A8E1]/20 to-[#0F171E]';
+    else if (isAdultSwim) bgGradient = 'bg-black'; // Pure black for Adult Swim contrast
+    else if (isAunties) bgGradient = 'bg-gradient-to-b from-amber-950/20 via-black to-purple-950/20'; // Warm gradient
 
     return (
         <div className={`min-h-screen pb-20 ${bgGradient} selection:bg-[var(--channel-color)] selection:text-white`} style={themeStyles}>
             {/* Load Provider Font */}
             {fontUrl && <link rel="stylesheet" href={fontUrl} />}
             
+            {/* Brand Essence Overlays */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                {isAdultSwim && (
+                    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
+                )}
+                {isAunties && (
+                    <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] mix-blend-multiply" />
+                )}
+            </div>
+
             {/* Custom Background for Disney (Radial) */}
             {isDisney && (
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_#1a1d29,_#0f1014)] -z-10" />
+            )}
+
+            {/* Adult Swim "Late Night" Grain */}
+            {isAdultSwim && (
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-50 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
             )}
             
             {trendingLoading ? (
@@ -146,8 +199,16 @@ export default function ChannelView({ id }: { id: string }) {
                     <Loader2 className="animate-spin text-zinc-500" style={{ color: provider.color }} size={40} />
                 </div>
             ) : (
-                // Use Cinematic Hero for Channels
-                heroItems.length > 0 && <CinematicHero item={heroItems[0]} />
+                // Use Specialized Hero for Adult Swim, Cinematic for others
+                heroItems.length > 0 && (
+                    isAdultSwim ? (
+                    <AdultSwimHero item={heroItems[0]} />
+                ) : isAunties ? (
+                    <AuntiesHero item={heroItems[0]} />
+                ) : (
+                    <CinematicHero item={heroItems[0]} />
+                )
+                )
             )}
 
             <div className="relative z-10 -mt-12 sm:-mt-24 space-y-8 md:space-y-10 pb-24">
@@ -183,16 +244,231 @@ export default function ChannelView({ id }: { id: string }) {
                 {isDisney && <DisneyBrandRail />}
 
                 {/* CONTENT RAILS */}
+                {/* Netflix Top 10 */}
+                {isNetflix && (
+                    <Top10Rail title="Top 10 in the US Today" items={trending} />
+                )}
+
+                {/* Viral Hits for Adult Swim */}
+                {isAdultSwim && (
+                    <>
+                        <ContentRail 
+                            title="Viral Hits" 
+                            items={viralAdultSwim} 
+                            aspectRatio="portrait"
+                            railId="adult-swim-viral"
+                        />
+                        <BumpBlock 
+                            text="We spent the budget for this rail on a subscription to a cat magazine. We don't even have a cat."
+                            subtext="[ADULT SWIM] NONSENSE"
+                            alignment="left"
+                        />
+                    </>
+                )}
+
+                {/* Adult Swim Pillars */}
+                {isAdultSwim && (
+                    <>
+                        <ContentRail 
+                            title="Original Animated Series" 
+                            items={asAnimated} 
+                            railId="adult-swim-animated"
+                        />
+                        <ContentRail 
+                            title="Dark Comedy & Satire" 
+                            items={asDarkComedy} 
+                            railId="adult-swim-dark-comedy"
+                        />
+                        <BumpBlock 
+                            text="YOUR SENSE OF HUMOR IS BROKEN. WE LIKE THAT."
+                            subtext="[ADULT SWIM] QUALITY ASSURANCE"
+                            alignment="right"
+                        />
+                        <ContentRail 
+                            title="Offbeat Live-Action" 
+                            items={asLiveAction} 
+                            railId="adult-swim-live"
+                        />
+                        <ContentRail 
+                            title="Sci-Fi & Fantasy" 
+                            items={asSciFi} 
+                            railId="adult-swim-scifi"
+                        />
+                        <ContentRail 
+                            title="Horror & Mystery" 
+                            items={asHorror} 
+                            railId="adult-swim-horror"
+                        />
+                        <BumpBlock 
+                            text="STARE BLANKLY AT THE SCREEN. IT'S GOOD FOR YOUR POSTURE."
+                            subtext="[ADULT SWIM] HEALTH TIPS"
+                            alignment="center"
+                        />
+                        <ContentRail 
+                            title="Satirical Masterpieces" 
+                            items={asSatire} 
+                            railId="adult-swim-satire"
+                        />
+                        <BumpBlock 
+                            text="YOU ARE NOW WATCHING [ADULT SWIM]. ENJOY YOUR EYEBALLS WHILE YOU STILL HAVE THEM."
+                            subtext="[ADULT SWIM] PSA"
+                            alignment="center"
+                        />
+                        <ContentRail 
+                            title="Cult Classics" 
+                            items={asCultClassics} 
+                            railId="adult-swim-cult"
+                        />
+                        <ContentRail 
+                            title="Experimental & Weird" 
+                            items={asExperimental} 
+                            railId="adult-swim-experimental"
+                        />
+                        <ContentRail 
+                            title="Mature Anime" 
+                            items={asAnime} 
+                            railId="adult-swim-anime"
+                        />
+                        <ContentRail 
+                            title="Action-Packed" 
+                            items={asAction} 
+                            railId="adult-swim-action"
+                        />
+                        <ContentRail 
+                            title="Music & Beats" 
+                            items={asMusic} 
+                            railId="adult-swim-music"
+                        />
+                        <BumpBlock 
+                            text="IT'S 4AM. DO YOU KNOW WHERE YOUR BRAIN IS?"
+                            subtext="[ADULT SWIM] MIDNIGHT"
+                            alignment="right"
+                        />
+                        <ContentRail 
+                            title="Midnight Munchies" 
+                            items={asMidnight} 
+                            railId="adult-swim-midnight"
+                        />
+                        <ContentRail 
+                            title="Surrealist Nightmares" 
+                            items={asSurreal} 
+                            railId="adult-swim-surreal"
+                        />
+                        <BumpBlock 
+                            text="THIS IS A TEST. IF THIS HAD BEEN AN ACTUAL EMERGENCY, YOU WOULD HAVE BEEN FED TO THE WOLVES."
+                            subtext="TEST PATTERN"
+                            alignment="center"
+                        />
+                        <ContentRail 
+                            title="The British Invasion" 
+                            items={asBritish} 
+                            railId="adult-swim-british"
+                        />
+                        <ContentRail 
+                            title="Retro Bumps & Classics" 
+                            items={asRetro} 
+                            railId="adult-swim-retro"
+                        />
+                        <ContentRail 
+                            title="Shorts & Specials" 
+                            items={shorts} 
+                            aspectRatio="landscape" 
+                            railId="adult-swim-shorts"
+                        />
+                    </>
+                )}
+
+                {/* Aunties Channel */}
+                {isAunties && (
+                    <>
+                        <ContentRail 
+                            title="K-Drama Favorites ❤️" 
+                            items={koreanDramas} 
+                            railId="aunties-korean"
+                        />
+                        <ContentRail 
+                            title="Telenovelas & Spanish Drama 🌹" 
+                            items={telenovelas} 
+                            railId="aunties-telenovelas"
+                        />
+                        <div className="py-8 px-6 md:px-12 lg:px-16 bg-gradient-to-r from-amber-900/10 to-purple-900/10 border-y border-amber-500/20">
+                            <p className="text-amber-100 text-center text-lg md:text-xl font-serif italic">
+                                "Stories that bring families together, one episode at a time."
+                            </p>
+                        </div>
+                        <ContentRail 
+                            title="Bollywood Magic 🎬" 
+                            items={bollywoodMovies} 
+                            railId="aunties-bollywood"
+                            aspectRatio="landscape"
+                        />
+                        <ContentRail 
+                            title="African Cinema 🌍" 
+                            items={africanMovies} 
+                            railId="aunties-african"
+                            aspectRatio="landscape"
+                        />
+                        <ContentRail 
+                            title="Classic Sitcoms 😂" 
+                            items={classicSitcoms} 
+                            railId="aunties-sitcoms"
+                        />
+                        <ContentRail 
+                            title="Family Comedies 👨‍👩‍👧" 
+                            items={familyComedies} 
+                            railId="aunties-comedies"
+                        />
+                        <ContentRail 
+                            title="Soap Operas & Dramas 💫" 
+                            items={soapOperas} 
+                            railId="aunties-soaps"
+                        />
+                        <ContentRail 
+                            title="Cooking & Lifestyle 🍳" 
+                            items={cookingShows} 
+                            railId="aunties-cooking"
+                        />
+                        <ContentRail 
+                            title="Romance & Love Stories 💕" 
+                            items={romanticMovies} 
+                            railId="aunties-romance"
+                            aspectRatio="landscape"
+                        />
+                        <ContentRail 
+                            title="Family Dramas 👪" 
+                            items={familyDramas} 
+                            railId="aunties-family"
+                        />
+                    </>
+                )}
+
                 {/* Using landscape cards for Disney/Apple/Prime for premium feel */}
                 {/* Always render trending rail, pass undefined if loading */}
-                <ContentRail title={`Trending on ${provider.name}`} items={trending} aspectRatio={isDisney || isApple || isPrime ? 'landscape' : 'portrait'} />
+                {!isNetflix && (
+                    <ContentRail 
+                        title={isDisney ? "Disney+ Originals" : isApple ? "Apple Originals" : `Trending on ${provider.name}`} 
+                        items={trending} 
+                        aspectRatio={isDisney || isApple || isPrime ? 'landscape' : 'portrait'} 
+                        railId={`${provider.slug}-trending`}
+                    />
+                )}
                 
                 {visibleCount >= 1 && (
-                    <ContentRail title="New Movies" items={newMovies} aspectRatio="portrait" />
+                    <ContentRail 
+                        title={isDisney ? "Disney Classics" : "New Movies"} 
+                        items={isDisney ? animation : newMovies} 
+                        aspectRatio={isDisney ? 'landscape' : 'portrait'} 
+                        railId={`${provider.slug}-new-movies`}
+                    />
                 )}
                 
                 {visibleCount >= 2 && (
-                    <ContentRail title="New TV Shows" items={newTV} aspectRatio={isDisney ? 'landscape' : 'portrait'} />
+                    <ContentRail 
+                        title={isDisney ? "Pixar Favorites" : "New TV Shows"} 
+                        items={isDisney ? familyMovies : newTV} 
+                        aspectRatio={isDisney ? 'landscape' : 'portrait'} 
+                        railId={`${provider.slug}-new-tv`}
+                    />
                 )}
 
                 {visibleCount >= 3 && (

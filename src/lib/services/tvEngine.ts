@@ -34,7 +34,7 @@ const CHANNELS: Channel[] = [
         id: "ch_adult_swim",
         name: "Adult Swim",
         genre: "Animation",
-        fetcher: () => contentApi.getAnimeByGenre('with_genres=16,35&without_keywords=210024'), // Fun/Adult Animation (Non-Anime)
+        fetcher: contentApi.getAdultAnimation,
         description: "The home for late-night animation and off-beat comedy.",
         branding: { color: "#000000", theme: "dark" }
     },

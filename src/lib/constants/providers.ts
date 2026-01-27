@@ -7,6 +7,8 @@ export const PROVIDERS = [
     { id: '350', name: 'Apple TV+', color: '#F5F5F7', slug: 'apple', logo: '/providers/apple.svg', font: 'Inter' },
     { id: '1899', name: 'Max', color: '#002BE7', slug: 'max', logo: '/providers/max.svg', font: 'Koulen' },
     { id: '386', name: 'Peacock', color: '#E5E5E5', slug: 'peacock', logo: '/providers/peacock.svg', font: 'Raleway' },
+    { id: '80', name: 'Adult Swim', color: '#FFFFFF', slug: 'adult-swim', logo: '/providers/adult-swim.png', font: 'Inter' },
+    { id: 'aunties', name: 'For the Aunties', color: '#D4AF37', slug: 'aunties', logo: '/providers/aunties.svg', font: 'Georgia' },
 ];
 
 export const getProviderBySlug = (slug: string) => PROVIDERS.find(p => p.slug === slug);

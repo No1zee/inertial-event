@@ -22,6 +22,7 @@ interface ContentState {
     genreRails: Record<string, Content[]>;
     loading: boolean;
     error: string | null;
+    library: string[];
 
     fetchTrending: () => Promise<void>;
     fetchRecent: () => Promise<void>;
@@ -97,7 +98,7 @@ export const useContentStore = create<ContentState>()(
             addToLibrary: async (contentId) => {
                 try {
                     await api.post('/user/library/add', { contentId });
-                    set((state) => ({ library: [...state.library, contentId] }));
+                    set((state: ContentState) => ({ library: [...state.library, contentId] }));
                 } catch (err: any) {
                     console.error('Failed to add to library:', err);
                 }
@@ -106,7 +107,7 @@ export const useContentStore = create<ContentState>()(
             removeFromLibrary: async (contentId) => {
                 try {
                     await api.post('/user/library/remove', { contentId });
-                    set((state) => ({
+                    set((state: ContentState) => ({
                         library: state.library.filter((id) => id !== contentId)
                     }));
                 } catch (err: any) {

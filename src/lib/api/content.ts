@@ -1,4 +1,5 @@
 import axios from "axios";
+import api from "@/services/api";
 import { Content } from "@/lib/types/content";
 import { Capacitor } from "@capacitor/core";
 import { generateMockContent, MOCK_MOVIES, MOCK_TV_SHOWS } from "./mockData";
@@ -7,9 +8,13 @@ const API_URL = (typeof process !== 'undefined' && process.env && process.env.NE
     ? process.env.NEXT_PUBLIC_API_URL 
     : "";
 // Hardcoded for static export - TMDB keys are meant to be public anyway
+// Hardcoded for static export - TMDB keys are meant to be public anyway
 const TMDB_KEY = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_TMDB_API_KEY && process.env.NEXT_PUBLIC_TMDB_API_KEY !== 'your_tmdb_key_here')
     ? process.env.NEXT_PUBLIC_TMDB_API_KEY
-    : "6594af88c7e3a157c33d352d5efc74ba";
+    : "";
+
+// Use direct TMDB URL as primary. In Next.js App Router, the proxy isn't always needed for client fetches
+// and can lead to 404s if not configured in next.config.js for rewrites.
 const BASE_URL = "https://api.themoviedb.org/3";
 
 // Helper to handle URL switching between Proxy (Dev) and Direct (Prod/Android)
@@ -30,7 +35,7 @@ export const contentApi = {
         try {
             const res = await axios.get(getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`));
             const data = res.data.results || [];
-            return data.map((item: any) => transformToContent(item));
+            return prioritizeContent(data.map((item: any) => transformToContent(item)));
         } catch (error) {
             console.error("Failed to fetch trending:", error);
             return generateMockContent(10);
@@ -41,7 +46,7 @@ export const contentApi = {
         try {
             const res = await axios.get(getTmdbUrl('/tv/popular', `language=en-US&page=${page}`));
             const data = res.data.results || [];
-            return data.map((item: any) => transformToContent({ ...item, type: 'tv' }));
+            return prioritizeContent(data.map((item: any) => transformToContent({ ...item, type: 'tv' })));
         } catch (error) {
             console.error("Failed to fetch popular tv:", error);
             // Fallback to mock on error only
@@ -54,7 +59,7 @@ export const contentApi = {
             const endpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
             const randomPage = page || 1;
             const res = await axios.get(getTmdbUrl(endpoint, `with_genres=${genreId}&sort_by=popularity.desc&language=en-US&page=${randomPage}`));
-            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type }));
+            return prioritizeContent((res.data.results || []).map((item: any) => transformToContent({ ...item, type })));
         } catch (error) {
             // Fallback
             return generateMockContent(10);
@@ -216,6 +221,321 @@ export const contentApi = {
         }
     },
 
+    getAdultAnimation: async (page?: number): Promise<Content[]> => {
+        try {
+            const randomPage = page || 1;
+            // Animation (16) + Comedy (35) WITHOUT Anime (210024)
+            const res = await axios.get(getTmdbUrl('/discover/tv', `with_genres=16,35&without_keywords=210024&language=en-US&sort_by=popularity.desc&page=${randomPage}`));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getViralAdultSwim: async (): Promise<Content[]> => {
+        try {
+            // Specific TMDB IDs for viral hits: 
+            // Rick and Morty (60625), Primal (90027), Smiling Friends (119253), Eric Andre (41926), Robot Chicken (421)
+            const hits = [60625, 90027, 119253, 41926, 421];
+            const results = await Promise.all(
+                hits.map(id => axios.get(getTmdbUrl(`/tv/${id}`, 'language=en-US')))
+            );
+            return results.map(res => transformToContent({ ...res.data, type: 'tv' }));
+        } catch (error) {
+            console.error("Failed to fetch viral adult swim:", error);
+            return [];
+        }
+    },
+
+    getAdultSwimOriginals: async (type: 'animated' | 'live-action'): Promise<Content[]> => {
+        try {
+            // Network 80 is Adult Swim/Cartoon Network
+            const genreFilter = type === 'animated' ? '&with_genres=16' : '&without_genres=16';
+            // Filter for shows from 2010 onwards to avoid 90s content
+            const dateFilter = '&first_air_date.gte=2010-01-01';
+            
+            // Fetch multiple pages to get more content
+            const [page1, page2] = await Promise.all([
+                axios.get(getTmdbUrl('/discover/tv', `with_networks=80${genreFilter}${dateFilter}&language=en-US&sort_by=popularity.desc&page=1`)),
+                axios.get(getTmdbUrl('/discover/tv', `with_networks=80${genreFilter}${dateFilter}&language=en-US&sort_by=popularity.desc&page=2`))
+            ]);
+            
+            const results = [...(page1.data.results || []), ...(page2.data.results || [])];
+            return results.map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getShorts: async (): Promise<Content[]> => {
+        try {
+            // No direct "shorts" filter in TMDB but we can filter by runtime for movies or look at "Short" genre if available
+            // Usually runtime <= 40 mins is considered short
+            const res = await axios.get(getTmdbUrl('/discover/movie', 'with_runtime.lte=40&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'movie' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    // Adult Swim Genre-Specific Content
+    getAdultSwimByGenre: async (genres: number[]): Promise<Content[]> => {
+        try {
+            const genreString = genres.join(',');
+            const dateFilter = '&first_air_date.gte=2000-01-01';
+            
+            // Fetch from multiple sources: Network 80 (Adult Swim) + Adult Animation (16+35 Comedy)
+            const [network, adultAnim] = await Promise.all([
+                axios.get(getTmdbUrl('/discover/tv', `with_networks=80&with_genres=${genreString}${dateFilter}&language=en-US&sort_by=popularity.desc&page=1`)),
+                axios.get(getTmdbUrl('/discover/tv', `with_genres=16,${genreString}&without_keywords=210024${dateFilter}&vote_average.gte=6.5&language=en-US&sort_by=popularity.desc&page=1`))
+            ]);
+            
+            const results = [...(network.data.results || []), ...(adultAnim.data.results || [])];
+            // Remove duplicates by ID
+            const unique = results.filter((item, index, self) => 
+                index === self.findIndex((t) => t.id === item.id)
+            );
+            return unique.map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimDarkComedy: async (): Promise<Content[]> => {
+        return contentApi.getAdultSwimByGenre([35]); // Comedy
+    },
+
+    getAdultSwimHorror: async (): Promise<Content[]> => {
+        return contentApi.getAdultSwimByGenre([27, 9648]); // Horror + Mystery
+    },
+
+    getAdultSwimSciFi: async (): Promise<Content[]> => {
+        return contentApi.getAdultSwimByGenre([878, 10765]); // Sci-Fi + Sci-Fi & Fantasy
+    },
+
+    getAdultSwimSatire: async (): Promise<Content[]> => {
+        return contentApi.getAdultSwimByGenre([35, 18]); // Comedy + Drama (for satirical content)
+    },
+
+    // More Adult Swim Content
+    getAdultSwimCultClassics: async (): Promise<Content[]> => {
+        try {
+            // Cult animation classics 
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_networks=80&vote_average.gte=7.5&sort_by=vote_average.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimExperimental: async (): Promise<Content[]> => {
+        try {
+            // Experimental/weird animation
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=16,35&vote_average.gte=7&with_keywords=10683&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimAnime: async (): Promise<Content[]> => {
+        try {
+            // Mature anime for adult swim
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=16&with_keywords=210024&vote_average.gte=7&first_air_date.gte=2000-01-01&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimAction: async (): Promise<Content[]> => {
+        return contentApi.getAdultSwimByGenre([10759]); // Action & Adventure
+    },
+
+    getAdultSwimMusic: async (): Promise<Content[]> => {
+        try {
+            // Music-themed animation
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=16,10402&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimMidnight: async (): Promise<Content[]> => {
+        try {
+            // "Midnight Munchies" - Chill/trippy animation
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=16,10765&with_keywords=10683&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimSurreal: async (): Promise<Content[]> => {
+        try {
+            // Surrealist/Absurdist humor
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_keywords=10332,10683&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimBritish: async (): Promise<Content[]> => {
+        try {
+            // British comedy/alt shows often seen on AS
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_origin_country=GB&with_genres=35&vote_average.gte=7.5&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAdultSwimRetro: async (): Promise<Content[]> => {
+        try {
+            // Older 2000s era classics
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_networks=80&first_air_date.lte=2010-01-01&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    // Aunties Channel Content
+    getKoreanDramas: async (): Promise<Content[]> => {
+        try {
+            // Korean dramas with romance/drama
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_original_language=ko&with_genres=18&sort_by=popularity.desc&vote_average.gte=7&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getAfricanMovies: async (): Promise<Content[]> => {
+        try {
+            // African cinema - Nigeria (Nollywood), South Africa, Kenya
+            const [nigeria, southAfrica] = await Promise.all([
+                axios.get(getTmdbUrl('/discover/movie', 'with_origin_country=NG&sort_by=popularity.desc&language=en-US&page=1')),
+                axios.get(getTmdbUrl('/discover/movie', 'with_origin_country=ZA&sort_by=popularity.desc&language=en-US&page=1'))
+            ]);
+            const results = [...(nigeria.data.results || []), ...(southAfrica.data.results || [])];
+            return results.map((item: any) => transformToContent({ ...item, type: 'movie' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getClassicSitcoms: async (): Promise<Content[]> => {
+        try {
+            // Classic comedy TV shows
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=35&vote_average.gte=7&first_air_date.lte=2010-01-01&sort_by=vote_average.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getSoapOperas: async (): Promise<Content[]> => {
+        try {
+            // Soap operas and long-running dramas
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=10766&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getFamilyDramas: async (): Promise<Content[]> => {
+        try {
+            // Family-friendly dramas
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=18,10751&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getTelenovelas: async (): Promise<Content[]> => {
+        try {
+            // Spanish-language telenovelas and dramas
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_original_language=es&with_genres=18&sort_by=popularity.desc&vote_average.gte=6&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getBollywoodMovies: async (): Promise<Content[]> => {
+        try {
+            // Hindi/Indian cinema
+            const res = await axios.get(getTmdbUrl('/discover/movie', 'with_original_language=hi&sort_by=popularity.desc&vote_average.gte=6&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'movie' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getFamilyComedies: async (): Promise<Content[]> => {
+        try {
+            // Family-friendly comedy shows
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=35,10751&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getCookingShows: async (): Promise<Content[]> => {
+        try {
+            // Reality/cooking shows
+            const res = await axios.get(getTmdbUrl('/discover/tv', 'with_genres=10764&with_keywords=9840&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    getRomanticMovies: async (): Promise<Content[]> => {
+        try {
+            // Romantic movies
+            const res = await axios.get(getTmdbUrl('/discover/movie', 'with_genres=10749&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'));
+            return (res.data.results || []).map((item: any) => transformToContent({ ...item, type: 'movie' }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    // Hero Heavy Hitters - Premium content for carousels
+    getHeroHeavyHitters: async (type: 'movie' | 'tv' | 'all' = 'all'): Promise<Content[]> => {
+        try {
+            const currentYear = new Date().getFullYear();
+            const params = `vote_average.gte=7.5&vote_count.gte=1000&primary_release_date.gte=${currentYear - 2}-01-01&sort_by=popularity.desc&language=en-US&page=1`;
+            
+            if (type === 'all') {
+                const [movies, tv] = await Promise.all([
+                    axios.get(getTmdbUrl('/discover/movie', params)),
+                    axios.get(getTmdbUrl('/discover/tv', params.replace('primary_release_date', 'first_air_date')))
+                ]);
+                const results = [
+                    ...(movies.data.results || []).map((item: any) => transformToContent({ ...item, type: 'movie' })),
+                    ...(tv.data.results || []).map((item: any) => transformToContent({ ...item, type: 'tv' }))
+                ];
+                // Sort by rating and popularity
+                return results.sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0)).slice(0, 10);
+            } else if (type === 'movie') {
+                const res = await axios.get(getTmdbUrl('/discover/movie', params));
+                return (res.data.results || []).slice(0, 10).map((item: any) => transformToContent({ ...item, type: 'movie' }));
+            } else {
+                const res = await axios.get(getTmdbUrl('/discover/tv', params.replace('primary_release_date', 'first_air_date')));
+                return (res.data.results || []).slice(0, 10).map((item: any) => transformToContent({ ...item, type: 'tv' }));
+            }
+        } catch (error) {
+            return [];
+        }
+    },
+
     // --- specialized "Candy Store" categories ---
 
     getShortAndSweet: async (page?: number): Promise<Content[]> => {
@@ -287,9 +607,23 @@ export const contentApi = {
             // Filter out 'person' results
             const results = (res.data.results || []).filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv');
 
-            return results.map(transformToContent);
+            return prioritizeContent(results.map(transformToContent));
         } catch (error) {
             console.error("Search failed:", error);
+            return [];
+        }
+    },
+
+    semanticSearch: async (query: string, limit: number = 10): Promise<Content[]> => {
+        try {
+            if (!query) return [];
+            // Use our custom backend for semantic search
+            const res = await api.get(`/content/semantic-search`, {
+                params: { q: query, limit }
+            });
+            return res.data;
+        } catch (error) {
+            console.error("Semantic search failed:", error);
             return [];
         }
     },
@@ -306,7 +640,7 @@ export const contentApi = {
         }
     },
 
-    getDetails: async (id: string | number, type: 'movie' | 'tv' = 'movie'): Promise<Content | null> => {
+    getDetails: async (id: string | number, type: 'movie' | 'tv' | 'anime' = 'movie'): Promise<Content | null> => {
         try {
             const idStr = String(id);
             // Handle mock IDs
@@ -327,7 +661,7 @@ export const contentApi = {
                     seasonsList: [],
                     cast: [],
                     recommendations: [],
-                    trailer: null
+                    trailer: undefined
                 };
             }
 
@@ -367,6 +701,49 @@ export const contentApi = {
         }
     }
 };
+ 
+export const prioritizeContent = (contents: Content[]): Content[] => {
+    // Geographic Priority Tiers
+    const getGeoScore = (c: Content): number => {
+        // US First
+        if (c.originCountry?.includes('US')) return 100;
+        // UK Second
+        if (c.originCountry?.includes('GB')) return 80;
+        // English Speaking Third
+        if (['AU', 'CA', 'NZ', 'IE'].some(code => c.originCountry?.includes(code))) return 60;
+        // Africa Fourth
+        if (['NG', 'ZA', 'KE', 'ET', 'GH', 'UG', 'DZ', 'MA', 'EG'].some(code => c.originCountry?.includes(code))) return 40;
+        // Korean Fifth
+        if (c.originalLanguage === 'ko' || c.originCountry?.includes('KR')) return 20;
+        // Rest of the World Last
+        return 0;
+    };
+
+    const getRecencyScore = (c: Content): number => {
+        const year = parseInt(c.releaseDate);
+        if (isNaN(year)) return 0;
+        const currentYear = new Date().getFullYear();
+        // Give boost if within last 2 years
+        return (year >= currentYear - 2) ? 50 : 0;
+    };
+
+    const getPremiumScore = (c: Content): number => {
+        // High rating (>8.0) is premium
+        return (c.rating >= 8.0) ? 50 : 0;
+    };
+
+    return [...contents].sort((a, b) => {
+        const scoreA = getGeoScore(a) + getRecencyScore(a) + getPremiumScore(a);
+        const scoreB = getGeoScore(b) + getRecencyScore(b) + getPremiumScore(b);
+        
+        // Secondary sort by popularity/rating if scores are equal
+        if (scoreB === scoreA) {
+            return (b.rating || 0) - (a.rating || 0);
+        }
+        
+        return scoreB - scoreA;
+    });
+};
 
 const transformToContent = (item: any): Content => {
     // Use direct TMDB images with smaller sizes for performance
@@ -394,6 +771,8 @@ const transformToContent = (item: any): Content => {
         type: (item.type || item.media_type || "movie") as 'movie' | 'tv' | 'anime',
         genres: (item.genres || []).map((g: any) => typeof g === 'object' ? g.name : g),
         lastAirDate: item.last_air_date || null,
+        originalLanguage: item.original_language || null,
+        originCountry: item.origin_country || (item.production_countries?.map((c: any) => c.iso_3166_1)) || [],
         status: 'ongoing',
         isAdult: false,
         seasonsList: item.seasons?.map((s: any) => ({

@@ -87,7 +87,7 @@ export function Hero({ items = [] }: HeroProps) {
             </AnimatePresence>
 
             {/* Content Overlay */}
-            <div className="absolute bottom-0 left-0 z-20 p-6 pb-24 md:p-12 md:pb-32 lg:p-16 lg:pb-40 w-full max-w-4xl space-y-4 md:space-y-6 pointer-events-none">
+            <div className="absolute bottom-0 left-0 z-20 p-6 pb-24 md:p-12 md:pb-32 lg:p-16 lg:pb-40 w-full max-w-5xl xl:max-w-6xl space-y-4 md:space-y-6 pointer-events-none">
                 <AnimatePresence mode="wait">
                     {uiVisible && (
                         <motion.div
@@ -145,7 +145,7 @@ export function Hero({ items = [] }: HeroProps) {
                                     onMouseEnter={() => {
                                          queryClient.prefetchQuery({
                                             queryKey: ['content', 'details', String(currentItem.id), currentItem.type],
-                                            queryFn: () => contentApi.getDetails(currentItem.id, currentItem.type),
+                                             queryFn: () => contentApi.getDetails(currentItem.id, currentItem.type as any),
                                             staleTime: 10 * 60 * 1000
                                         });
                                     }}
