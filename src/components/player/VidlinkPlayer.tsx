@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useHistoryStore } from "@/lib/store/historyStore";
 import { useSeriesTrackingStore } from "@/lib/store/seriesTrackingStore";
 
@@ -14,11 +14,43 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
     const addToHistory = useHistoryStore((state: any) => state.addToHistory);
     const trackSeries = useSeriesTrackingStore((state: any) => state.trackSeries);
 
-    // Build URL
-    let baseUrl = 'https://vidlink.pro';
-    
-    // Fallback Anime to TV endpoint using TMDB ID
-    let endpoint = type === 'movie' ? `/movie/${tmdbId}` : `/tv/${tmdbId}/${season}/${episode}`;
+    const [animeEndpoint, setAnimeEndpoint] = useState<string | null>(null);
+    const [isFetchingMalId, setIsFetchingMalId] = useState<boolean>(type === 'anime');
+
+    // Fetch MAL ID for Anime to support English Dub preference
+    useEffect(() => {
+        if (type === 'anime' && content?.title) {
+            const fetchMalId = async () => {
+                try {
+                    // Clean title for better search results (remove "Season 2", etc)
+                    const cleanTitle = content.title.replace(/Season \d+/i, '').trim();
+                    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanTitle)}&limit=1`);
+                    const data = await res.json();
+                    
+                    if (data?.data?.[0]?.mal_id) {
+                        const malId = data.data[0].mal_id;
+                        // Use Vidlink's dedicated anime endpoint requesting 'dub'
+                        // Vidlink uses absolute episode logic for this endpoint mostly, but we pass what we have
+                        setAnimeEndpoint(`/anime/${malId}/${episode}/dub`);
+                    } else {
+                        throw new Error('No MAL ID found');
+                    }
+                } catch (error) {
+                    console.error("Failed to map TMDB to MAL for Anime play. Falling back to generic TV endpoint.", error);
+                    setAnimeEndpoint(`/tv/${tmdbId}/${season}/${episode}`);
+                } finally {
+                    setIsFetchingMalId(false);
+                }
+            };
+            fetchMalId();
+        }
+    }, [type, content?.title, tmdbId, season, episode]);
+
+    // Build URL endpoint
+    let endpoint = '';
+    if (type === 'movie') endpoint = `/movie/${tmdbId}`;
+    else if (type === 'tv') endpoint = `/tv/${tmdbId}/${season}/${episode}`;
+    else if (type === 'anime') endpoint = animeEndpoint || '';
 
     // Apply parameters
     const params = new URLSearchParams({
@@ -33,8 +65,14 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
         nextbutton: 'true'
     });
 
-    const src = `${baseUrl}${endpoint}?${params.toString()}`;
+    if (type === 'anime') {
+        params.append('fallback', 'true'); // Fallback to sub if dub is unavailable
+    }
 
+    const baseUrl = 'https://vidlink.pro';
+    const src = endpoint ? `${baseUrl}${endpoint}?${params.toString()}` : '';
+
+    // Message listener for tracking progress
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== 'https://vidlink.pro') return;
@@ -83,11 +121,19 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
         return () => window.removeEventListener('message', handleMessage);
     }, [content, type, season, episode, addToHistory, trackSeries]);
 
+    if (isFetchingMalId || !src) {
+        return (
+            <div className="w-full h-full bg-black flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-red-600/30 border-t-red-600 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     return (
         <div className="w-full h-full bg-black relative">
             <iframe
                 src={src}
-                className="w-full h-full border-0 absolute inset-0"
+                className="w-full h-full border-0 absolute inset-0 transition-opacity duration-500"
                 allow="autoplay; encrypted-media; fullscreen"
                 allowFullScreen
             />
