@@ -95,6 +95,7 @@ jobs:
           dist/*.AppImage
           dist/*.deb
           dist/*.rpm
+          dist/latest*.yml
         retention-days: 30
 
   # Create Notarized macOS Build

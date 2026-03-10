@@ -1,6 +1,7 @@
 {
     "name": "novastream",
-    "version": "0.1.1",
+    "version": "0.1.2",
+    "description": "An AI-powered video streaming platform leveraging next-gen semantic discovery.",
     "private": true,
     "engines": {
         "node": "22.x"
