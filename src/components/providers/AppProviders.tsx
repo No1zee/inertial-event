@@ -6,8 +6,19 @@ import ContentModal from '@/components/content/ContentModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { logger } from '@/lib/logger';
 import { ExperimentProvider } from './ExperimentProvider';
+import { useEffect } from 'react';
+import { CloudSyncService } from '@/services/cloudSyncService';
+import { useAuthStore } from '@/lib/store/authStore';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated } = useAuthStore();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            CloudSyncService.pullFromCloud();
+            CloudSyncService.initBackgroundSync();
+        }
+    }, [isAuthenticated]);
     return (
         <ErrorBoundary
             onError={(error, errorInfo) => {

@@ -13,6 +13,7 @@ export interface IUser extends Document {
         subtitleLanguage: string;
         theme: 'dark' | 'light';
     };
+    appState?: any; // Generic bucket for storing frontend Zustand states (history, series tracking)
     comparePassword(password: string): Promise<boolean>;
 }
 
@@ -27,7 +28,8 @@ const UserSchema: Schema = new Schema({
         quality: { type: String, enum: ['auto', '1080p', '720p', '480p', '360p'], default: 'auto' },
         subtitleLanguage: { type: String, default: 'en' },
         theme: { type: String, enum: ['dark', 'light'], default: 'dark' }
-    }
+    },
+    appState: { type: Schema.Types.Mixed, default: {} } // Flexible JSON structure
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next: any) {

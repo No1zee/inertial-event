@@ -23,6 +23,8 @@ router.get('/user/library', verifyToken, userController.getLibrary);
 router.post('/user/library/add', verifyToken, userController.addToLibrary);
 router.post('/user/library/remove', verifyToken, userController.removeFromLibrary);
 router.post('/user/preferences', verifyToken, userController.updatePreferences);
+router.get('/user/sync', verifyToken, userController.getSyncState);
+router.post('/user/sync', verifyToken, userController.updateSyncState);
 
 // Source/Streaming Routes
 router.get('/sources', sourceController.getSources);

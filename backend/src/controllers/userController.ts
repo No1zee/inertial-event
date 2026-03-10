@@ -82,3 +82,37 @@ export const updatePreferences = async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const getSyncState = async (req: Request, res: Response) => {
+    try {
+        if (!isDbConnected()) {
+            return res.json({});
+        }
+
+        const userId = (req as any).user.id;
+        const user = await (User as any).findById(userId).select('appState');
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        res.json(user.appState || {});
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const updateSyncState = async (req: Request, res: Response) => {
+    try {
+        if (!isDbConnected()) {
+            return res.json({ success: true, mock: true });
+        }
+
+        const { appState } = req.body;
+        const userId = (req as any).user.id;
+
+        const user = await (User as any).findByIdAndUpdate(userId, { appState }, { new: true });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        res.json({ success: true, updated: true });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+};
