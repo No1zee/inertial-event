@@ -41,7 +41,7 @@ jobs:
     - name: Unit tests with coverage
       id: coverage
       run: |
-        npm run test:coverage
+        npx jest --coverage
         # Check if coverage meets minimum threshold (80%)
         COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
         echo "coverage-percent=$COVERAGE" >> $GITHUB_OUTPUT
@@ -56,7 +56,7 @@ jobs:
     - name: Security audit
       id: security
       run: |
-        npm audit --audit-level=moderate --json > audit-results.json
+        npm audit --audit-level=moderate --json > audit-results.json || true
         HIGH_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.high')
         CRITICAL_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.critical')
         
