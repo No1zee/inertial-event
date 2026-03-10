@@ -115,23 +115,7 @@ function WatchContent() {
     const cleanTmdbId = id!.replace('tmdb_', '');
 
     return (
-        <div className="relative h-screen w-full bg-black overflow-hidden flex flex-col group">
-            <div className={`absolute top-0 left-0 w-full z-[120] p-6 bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between transition-opacity duration-300 opacity-0 group-hover:opacity-100`}>
-                <Button
-                    variant="ghost"
-                    className="hover:bg-white/10 text-white shadow-sm"
-                    onClick={() => router.back()}
-                >
-                    <ArrowLeft className="mr-2 h-5 w-5" />
-                    Back
-                </Button>
-
-                <div className="text-right pointer-events-none">
-                    <h1 className="text-lg font-bold text-white drop-shadow-md">{content.title}</h1>
-                    {type !== 'movie' && <p className="text-sm text-zinc-300">Season {currentSeason} • Episode {currentEpisode}</p>}
-                </div>
-            </div>
-
+        <div className="relative h-screen w-full bg-black overflow-hidden flex flex-col">
             <div className="flex-1 w-full h-full relative z-[100]"> 
                 <VidlinkPlayer
                     tmdbId={cleanTmdbId}
@@ -141,22 +125,6 @@ function WatchContent() {
                     content={content}
                 />
             </div>
-
-            <PostPlayOverlay 
-                show={showPostPlay} 
-                onClose={() => router.push('/')}
-                currentId={id!}
-                type={type}
-                nextEpisode={nextEpisode}
-                onPlay={(newId: string, newType: string, season?: number, episode?: number) => {
-                    setShowPostPlay(false);
-                    if (season && episode) {
-                        router.push(`/watch?id=${newId}&type=${newType}&season=${season}&episode=${episode}`);
-                    } else {
-                        router.push(`/watch?id=${newId}&type=${newType}`);
-                    }
-                }}
-            />
         </div>
     );
 }
