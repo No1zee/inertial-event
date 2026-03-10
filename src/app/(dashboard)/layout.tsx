@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
     children,
+    modal,
 }: {
     children: React.ReactNode;
+    modal: React.ReactNode;
 }) {
     const { sidebarOpen } = useUIStore();
 
@@ -34,6 +36,7 @@ export default function DashboardLayout({
                     </Suspense>
                 </main>
             </div>
+            {modal}
         </div>
     );
 }
