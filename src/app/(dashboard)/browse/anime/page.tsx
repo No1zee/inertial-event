@@ -12,7 +12,10 @@ import { Content } from "@/lib/types/content";
 import { useHistoryStore } from "@/lib/store/historyStore";
 import { useHydrated } from "@/hooks/useHydrated";
 
+const currentYear = new Date().getFullYear();
+
 const ANIME_RAILS = [
+    { id: "hottest_this_year", title: `Hottest Anime This Year 🔥`, fetcher: () => contentApi.getAnimeByGenre(`first_air_date_year=${currentYear}`) },
     { id: "english_original", title: "Dubbed Hits & English Originals 🎤", fetcher: () => contentApi.getEnglishAnime(1) },
     { id: "popular", title: "All Time Legends 🌟", fetcher: () => contentApi.getAnime(1) },
     { id: "shonen", title: "Shonen Power 👊", fetcher: () => contentApi.getAnimeByGenre("with_genres=10759") }, // Action/Adventure
@@ -43,10 +46,11 @@ export default function AnimePage() {
     const hydrated = useHydrated();
 
     useEffect(() => {
-        // Boost English hits to the top, shuffle the rest
-        const englishHits = ANIME_RAILS[0];
-        const others = [...ANIME_RAILS.slice(1)].sort(() => Math.random() - 0.5);
-        setRails([englishHits, ...others]);
+        // Hottest this year and English hits at the top, shuffle the rest
+        const hottestThisYear = ANIME_RAILS[0];
+        const englishHits = ANIME_RAILS[1];
+        const others = [...ANIME_RAILS.slice(2)].sort(() => Math.random() - 0.5);
+        setRails([hottestThisYear, englishHits, ...others]);
     }, []);
 
     const heroItems = anime?.slice(0, 5) || [];
