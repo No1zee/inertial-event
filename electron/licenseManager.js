@@ -96,6 +96,17 @@ class LicenseManager {
         if (this.deviceId) return this.deviceId;
 
         try {
+            const store = await this.getStore();
+            const cachedId = store.get('device_id');
+            if (cachedId) {
+                this.deviceId = cachedId;
+                return this.deviceId;
+            }
+        } catch (e) {
+            logger('[LicenseManager] Failed to read cached device_id:', e.message);
+        }
+
+        try {
             // Use a timeout for hardware queries to prevent boot hang
             const timeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
             
@@ -115,6 +126,14 @@ class LicenseManager {
             ].join('|');
 
             this.deviceId = crypto.createHash('sha256').update(rawId).digest('hex');
+            
+            try {
+                const store = await this.getStore();
+                store.set('device_id', this.deviceId);
+            } catch (e) {
+                logger('[LicenseManager] Failed to cache device_id:', e.message);
+            }
+            
             return this.deviceId;
         } catch (error) {
             console.error('Failed to generate machine ID:', error);
