@@ -21,15 +21,17 @@ class SourceProvider {
             ? process.env.NEXT_PUBLIC_API_URL 
             : "";
         try {
-            console.log(`[SourceProvider] Fetching: ${API_URL}/api/sources?id=${contentId}&type=${type}&title=${title}`);
-            const response = await fetch(`${API_URL}/api/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`);
+            // Normalize URL to prevent double /api/api
+            const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
+            const endpoint = baseUrl.endsWith('/api') && baseUrl.endsWith('/api/api') ? baseUrl.replace('/api/api', '/api') : baseUrl;
+            
+            const response = await fetch(`${endpoint}/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`);
             if (!response.ok) {
                 const errorBody = await response.text();
                 console.error("[SourceProvider] API error:", response.status, response.statusText, "Body:", errorBody);
                 return [];
             }
             const data = await response.json();
-            console.log("[SourceProvider] Raw API Data:", data);
             return data.sources || [];
         } catch (error) {
             console.error('Source fetch error:', error);
@@ -55,8 +57,8 @@ class SourceProvider {
             : "";
 
         // Single call to backend which handles aggregator logic (Vidlink + Torrent + etc)
-        const url = `${API_URL}/api/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;
-        console.log(`[SourceProvider] Fetching: ${url}`);
+        const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
+        const url = `${baseUrl}/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;
 
         try {
             const response = await fetch(url);
@@ -65,22 +67,13 @@ class SourceProvider {
                 console.error("[SourceProvider] API error:", response.status, response.statusText, "Body:", errorBody);
                 return sources;
             }
-            console.log("[SourceProvider] Response Status:", response.status);
             const data = await response.json();
             const allSources = data.sources || [];
             
-            console.log(`[SourceProvider] Found ${allSources.length} total sources for ${content.title}`);
-            console.log("[SourceProvider] Raw Sources Summary:", allSources.map((s: any) => `${s.type}: ${s.quality || 'N/A'}`));
-
             if (allSources.length > 0) {
                 // Group by type for the UI
                 const vidlink = allSources.filter((s: any) => s.type === 'hls' || s.type === 'embed');
                 const torrent = allSources.filter((s: any) => s.type === 'torrent' || s.type === 'mp4');
-
-                console.log(`[SourceProvider] Categorized: ${vidlink.length} Vidlink, ${torrent.length} Torrent`);
-                if (torrent.length > 0) {
-                     console.log("[SourceProvider] Torrent Candidates:", torrent);
-                }
 
                 if (vidlink.length > 0) sources.set('vidlink', vidlink);
                 if (torrent.length > 0) sources.set('torrent', torrent);

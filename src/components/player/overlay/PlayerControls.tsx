@@ -62,7 +62,7 @@ interface PlayerControlsProps {
     episodeDetails?: any[];
 }
 
-export default function PlayerControls({
+const PlayerControls = React.memo(function PlayerControls({
     show, title, subTitle, backUrl, currentTime, duration, isPaused, volume, isMuted, isSaved, downloadUrl,
     type, isTorrent, season, episode, seasons,
     onTogglePlay, onSeek, onVolumeChange, onToggleMute,
@@ -323,7 +323,7 @@ export default function PlayerControls({
                             {!hideBottom && (
                                 <button
                                     onClick={() => {
-                                        console.log('[PlayerControls] Settings Button Clicked');
+                                        // console.log('[PlayerControls] Settings Button Clicked');
                                         onToggleSettings();
                                     }}
                                     aria-label="Settings"
@@ -348,7 +348,7 @@ export default function PlayerControls({
                             <button
                                 onClick={onTogglePiP}
                                 aria-label="Toggle Picture in Picture"
-                                className="p-2 rounded-full transition-colors text-white/70 hover:text-white"
+                                className="p-2 rounded-full transition-colors text-white/70 hover:text-white pointer-events-auto z-50 relative"
                                 title="Picture in Picture"
                             >
                                 <PictureInPicture size={20} aria-hidden="true" />
@@ -369,4 +369,6 @@ export default function PlayerControls({
             )}
         </div >
     );
-}
+});
+
+export default PlayerControls;

@@ -127,27 +127,34 @@ class LicenseManager {
         const PROD_LICENSE_PATH = 'C:\\ProgramData\\NovaStream\\license.dat';
         const DEV_LICENSE_PATH = path.join(app.getPath('userData'), 'license.dat');
 
+        logger(`[LicenseManager] Checking for license at: "${PROD_LICENSE_PATH}" and "${DEV_LICENSE_PATH}"`);
+
         // Try Prod path first
         if (fs.existsSync(PROD_LICENSE_PATH)) {
+            logger('[LicenseManager] Found license in ProgramData');
             return fs.readFileSync(PROD_LICENSE_PATH, 'utf8').trim();
         }
         // Try Dev/UserData path
         if (fs.existsSync(DEV_LICENSE_PATH)) {
+            logger('[LicenseManager] Found license in UserData');
             return fs.readFileSync(DEV_LICENSE_PATH, 'utf8').trim();
         }
+        
+        logger('[LicenseManager] No license file found in any standard location.');
         return null;
     }
 
     async validate() {
-        const deviceId = await this.getMachineId();
         const licenseKey = this.getLicenseKey();
-        const store = await this.getStore();
 
         if (!licenseKey) {
-            // No license file - require activation
+            // No license file - require activation immediately (skip slow machine ID gen)
             logger('[LicenseManager] No license file found. Activation required.');
             return { valid: false, requiresActivation: true };
         }
+
+        const deviceId = await this.getMachineId();
+        const store = await this.getStore();
 
         try {
             console.log(`[LicenseManager] Validating key: ${licenseKey.substring(0, 8)}... for Device: ${deviceId.substring(0, 8)}...`);

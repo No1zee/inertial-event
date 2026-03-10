@@ -72,7 +72,7 @@ export default function RootLayout({
                 />
                 <meta
                     httpEquiv="Content-Security-Policy"
-                    content="default-src 'self' app: proxy: http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-eval' 'unsafe-inline' app: http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com app: http://localhost:3000; font-src 'self' https://fonts.gstatic.com data: app: http://localhost:3000; img-src 'self' data: blob: https://*.tmdb.org https://*.themoviedb.org https://*.youtube.com https://i.ytimg.com https://* app: proxy: http://localhost:3000; connect-src 'self' ws: wss: https://inertial-event.vercel.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://localhost:3000 ws://localhost:3000 http://localhost:5000 app: proxy:; media-src 'self' blob: https: http: app: proxy: http://localhost:3000; frame-src 'self' https://*.youtube.com https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu app: http://localhost:3000; object-src 'none'; child-src 'none'; worker-src 'self' blob: app: http://localhost:3000; manifest-src 'self' app: http://localhost:3000; upgrade-insecure-requests;"
+                    content="default-src 'self' app: proxy: http://localhost:3000 ws://localhost:3000; script-src 'self' 'unsafe-eval' 'unsafe-inline' app: http://localhost:3000; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com app: http://localhost:3000; font-src 'self' https://fonts.gstatic.com data: app: http://localhost:3000; img-src 'self' data: blob: https://*.tmdb.org https://*.themoviedb.org https://*.youtube.com https://i.ytimg.com https://* app: proxy: http://localhost:3000; connect-src 'self' ws: wss: https://inertial-event.vercel.app https://novastream.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://localhost:3000 ws://localhost:3000 http://localhost:5000 app: proxy:; media-src 'self' blob: https: http: app: proxy: http://localhost:3000; frame-src 'self' https://*.youtube.com https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu app: http://localhost:3000; object-src 'none'; child-src 'none'; worker-src 'self' blob: app: http://localhost:3000; manifest-src 'self' app: http://localhost:3000; upgrade-insecure-requests;"
                 />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -84,7 +84,7 @@ export default function RootLayout({
                     <SeriesTracker />
                     <LivingBackground />
                     <BrowserInit />
-                    <StatsOverlay />
+                    {process.env.NODE_ENV === 'development' && <StatsOverlay />}
                     {children}
                 </AppProviders>
             </body>

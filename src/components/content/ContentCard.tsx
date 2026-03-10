@@ -12,6 +12,7 @@ import { useSeriesTrackingStore } from "@/lib/store/seriesTrackingStore";
 import { useModalStore } from "@/lib/store/modalStore";
 import { useHydrated } from "@/hooks/useHydrated";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useRef } from "react";
 
 interface ContentCardProps {
     item: Content;
@@ -23,6 +24,9 @@ interface ContentCardProps {
 export function ContentCard({ item, aspectRatio = "portrait", className }: ContentCardProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
+    // Simplified Hover Logic
+    // Removed expensive 3D tilt calculations for performance
+
     const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlistStore();
     const { openModal } = useModalStore();
     const isHydrated = useHydrated();
@@ -30,33 +34,6 @@ export function ContentCard({ item, aspectRatio = "portrait", className }: Conte
 
     const inWatchlist = isInWatchlist(String(item.id));
     const contentType = item.type || ((item as any).seasonsList?.length > 0 ? 'tv' : 'movie');
-
-    // 3D Tilt Logic
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-
-    const mouseXSpring = useSpring(x);
-    const mouseYSpring = useSpring(y);
-
-    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
-    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const width = rect.width;
-        const height = rect.height;
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        const xPct = mouseX / width - 0.5;
-        const yPct = mouseY / height - 0.5;
-        x.set(xPct);
-        y.set(yPct);
-    };
-
-    const handleMouseLeave = () => {
-        x.set(0);
-        y.set(0);
-    };
 
     const toggleWatchlist = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -74,16 +51,27 @@ export function ContentCard({ item, aspectRatio = "portrait", className }: Conte
         openModal(item);
     };
 
+    // Debounce prefetching
+    const prefetchTimeout = useRef<NodeJS.Timeout | null>(null);
+
     const handleMouseEnter = () => {
-        queryClient.prefetchQuery({
-            queryKey: ['content', 'details', item.id, contentType],
-            queryFn: () => {
-                const apiType = contentType === 'anime' ? 'tv' : contentType;
-                return contentApi.getDetails(item.id, apiType as 'movie' | 'tv');
-            },
-            staleTime: 10 * 60 * 1000
-        });
-        router.prefetch(`/watch?id=${item.id}&type=${contentType}`);
+        if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
+        
+        prefetchTimeout.current = setTimeout(() => {
+            queryClient.prefetchQuery({
+                queryKey: ['content', 'details', item.id, contentType],
+                queryFn: () => {
+                    const apiType = contentType === 'anime' ? 'tv' : contentType;
+                    return contentApi.getDetails(item.id, apiType as 'movie' | 'tv');
+                },
+                staleTime: 10 * 60 * 1000
+            });
+            router.prefetch(`/watch?id=${item.id}&type=${contentType}`);
+        }, 300); // 300ms delay
+    };
+
+    const runOnMouseLeave = () => {
+        if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
     };
 
     const getBadge = () => {
@@ -118,15 +106,8 @@ export function ContentCard({ item, aspectRatio = "portrait", className }: Conte
 
     return (
         <motion.div
-            style={{
-                rotateX,
-                rotateY,
-                transformStyle: "preserve-3d",
-            }}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
             whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            transition={{ duration: 0.2 }}
             tabIndex={0}
             className={cn(
                 "relative rounded-2xl overflow-hidden bg-zinc-900/50 cursor-pointer group shrink-0 border border-white/10 outline-none transition-all duration-300 backdrop-blur-md",
@@ -139,13 +120,14 @@ export function ContentCard({ item, aspectRatio = "portrait", className }: Conte
             )}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
+            onMouseLeave={runOnMouseLeave}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault(); e.stopPropagation(); handleClick();
                 }
             }}
         >
-            <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ transform: "translateZ(0)" }}>
+            <div className="absolute inset-0 w-full h-full overflow-hidden">
                 <img
                     src={item.poster || "/images/placeholder.png"}
                     alt={item.title}
@@ -166,7 +148,6 @@ export function ContentCard({ item, aspectRatio = "portrait", className }: Conte
 
             <div 
                 className="absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0"
-                style={{ transform: "translateZ(40px)" }}
             >
                 <div className="flex gap-2">
                     <button

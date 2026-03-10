@@ -41,6 +41,21 @@ export interface Content {
     };
 }
 
+// Optimized interface for storage (LocalStorage is synchronous!)
+export interface MinifiedContent extends Partial<Content> {
+    id: string;
+    title: string;
+    type: 'movie' | 'tv' | 'anime';
+    poster: string;
+    // Optional extras we might want to keep
+    backdrop?: string;
+    lastWatched?: number;
+    progress?: number;
+    duration?: number;
+    season?: number;
+    episode?: number;
+}
+
 export interface CastMember {
     id: number;
     name: string;

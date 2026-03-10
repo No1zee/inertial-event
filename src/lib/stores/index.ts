@@ -75,58 +75,58 @@ export const initializeTheme = () => {
 };
 
 // Development utilities
-export const debugState = async () => {
-  if (process.env.NODE_ENV === 'development') {
-    console.group('🔍 NovaStream State Debug');
-    
-    try {
-      const { usePlayerStore } = await import('./playerStore');
-      console.group('Player Store');
-      console.log(usePlayerStore.getState());
-      console.groupEnd();
-    } catch (e) {
-      console.warn('Could not load player store:', e);
-    }
-    
-    try {
-      const { useUIStore } = await import('./uiStore');
-      console.group('UI Store');
-      console.log(useUIStore.getState());
-      console.groupEnd();
-    } catch (e) {
-      console.warn('Could not load UI store:', e);
-    }
-    
-    try {
-      const { useUserPreferencesStore } = await import('./preferencesStore');
-      console.group('User Preferences Store');
-      console.log(useUserPreferencesStore.getState());
-      console.groupEnd();
-    } catch (e) {
-      console.warn('Could not load preferences store:', e);
-    }
-    
-    try {
-      const { useLocalDataStore } = await import('./localDataStore');
-      console.group('Local Data Store');
-      console.log(useLocalDataStore.getState());
-      console.groupEnd();
-    } catch (e) {
-      console.warn('Could not load local data store:', e);
-    }
-    
-    try {
-      const { useAuthStore } = await import('./authStore');
-      console.group('Auth Store');
-      console.log(useAuthStore.getState());
-      console.groupEnd();
-    } catch (e) {
-      console.warn('Could not load auth store:', e);
-    }
-    
-    console.groupEnd();
-  }
-};
+// export const debugState = async () => {
+//   if (process.env.NODE_ENV === 'development') {
+//     console.group('🔍 NovaStream State Debug');
+//     
+//     try {
+//       const { usePlayerStore } = await import('./playerStore');
+//       console.group('Player Store');
+//       console.log(usePlayerStore.getState());
+//       console.groupEnd();
+//     } catch (e) {
+//       console.warn('Could not load player store:', e);
+//     }
+//     
+//     try {
+//       const { useUIStore } = await import('./uiStore');
+//       console.group('UI Store');
+//       console.log(useUIStore.getState());
+//       console.groupEnd();
+//     } catch (e) {
+//       console.warn('Could not load UI store:', e);
+//     }
+//     
+//     try {
+//       const { useUserPreferencesStore } = await import('./preferencesStore');
+//       console.group('User Preferences Store');
+//       console.log(useUserPreferencesStore.getState());
+//       console.groupEnd();
+//     } catch (e) {
+//       console.warn('Could not load preferences store:', e);
+//     }
+//     
+//     try {
+//       const { useLocalDataStore } = await import('./localDataStore');
+//       console.group('Local Data Store');
+//       console.log(useLocalDataStore.getState());
+//       console.groupEnd();
+//     } catch (e) {
+//       console.warn('Could not load local data store:', e);
+//     }
+//     
+//     try {
+//       const { useAuthStore } = await import('./authStore');
+//       console.group('Auth Store');
+//       console.log(useAuthStore.getState());
+//       console.groupEnd();
+//     } catch (e) {
+//       console.warn('Could not load auth store:', e);
+//     }
+//     
+//     console.groupEnd();
+//   }
+// };
 
 // State reset utilities
 export const resetAllStores = async () => {
@@ -172,7 +172,7 @@ export const resetAllStores = async () => {
 export default {
   // Utilities
   initializeTheme,
-  debugState,
+  // debugState,
   resetAllStores,
   
   // Lazy-loaded accessors

@@ -5,7 +5,8 @@ declare global {
         electron: {
             ipcRenderer: {
                 invoke: (channel: string, data?: any) => Promise<any>;
-                on: (channel: string, func: (...args: any[]) => void) => void;
+                on: (channel: string, func: (...args: any[]) => void) => any;
+                off: (channel: string, func: any) => void;
                 log: (msg: string) => void;
             }
         }
@@ -34,7 +35,7 @@ export const useTorrentEngine = () => {
 
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                console.log(`[AG] Torrent Attempt ${attempt}/${MAX_RETRIES}`);
+                // console.log(`[AG] Torrent Attempt ${attempt}/${MAX_RETRIES}`);
                 if (window.electron && window.electron.ipcRenderer.log) {
                     window.electron.ipcRenderer.log(`Hooks: Invoke torrent:start-stream (Attempt ${attempt})`);
                 }
@@ -83,10 +84,18 @@ export const useTorrentEngine = () => {
     useEffect(() => {
         if (!window.electron) return;
 
-        const handleStatus = (data: any) => setStatus(data);
-        window.electron.ipcRenderer.on('torrent:status', handleStatus);
+        const handleStatus = (data: any) => {
+            if (data) setStatus(data); // Only update if data exists
+        };
+        
+        // Use a more robust listener attachment if possible, or ensure it's removed
+        // Return value from .on() is the subscription function we need to pass to .off()
+        const subscription = window.electron.ipcRenderer.on('torrent:status', handleStatus);
 
         return () => {
+            if (subscription && window.electron.ipcRenderer.off) {
+                window.electron.ipcRenderer.off('torrent:status', subscription);
+            }
             stopTorrent();
         };
     }, [stopTorrent]);

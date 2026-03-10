@@ -26,7 +26,7 @@ protocol.registerSchemesAsPrivileged([
 
 // Hardware Acceleration (Blueprint: GPU caching and performance optimization)
 // Usually enabled by default, but we can enforce some flags if needed.
-app.disableHardwareAcceleration();
+// app.disableHardwareAcceleration();
 // app.commandLine.appendSwitch('enable-gpu-rasterization');
 // app.commandLine.appendSwitch('enable-zero-copy');
 
@@ -171,7 +171,7 @@ if (isDev) {
     csp = "default-src 'self' 'unsafe-inline' https:;";
 }
 
-const domains = "https://inertial-event.vercel.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://localhost:5000";
+const domains = "https://inertial-event.vercel.app https://novastream.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://127.0.0.1:5000 http://localhost:5000";
 
 // Rebuild script-src
 const scriptSrc = isDev 
@@ -323,6 +323,27 @@ csp += ` script-src ${scriptSrc} ${domains};`;
                 }
              });
              
+             // 3. Relaxed CSP for WebViews (Critical for VidLink/WASM)
+             // We strip the CSP header from the response for WebViews to rely on the page's own CSP 
+             // or our global strict CSP if we want, but for players we often need relaxed rules.
+             contents.session.webRequest.onHeadersReceived((details, callback) => {
+                const responseHeaders = { ...details.responseHeaders };
+                
+                // Allow WASM: Add 'unsafe-eval' to script-src if present, or strip CSP entirely for known players
+                const cspKey = Object.keys(responseHeaders).find(k => k.toLowerCase() === 'content-security-policy');
+                
+                if (cspKey) {
+                    let csp = responseHeaders[cspKey][0];
+                    if (csp.includes('script-src') && !csp.includes("'unsafe-eval'")) {
+                         // Patch existing CSP to allow WASM
+                         csp = csp.replace("script-src", "script-src 'unsafe-eval'");
+                         responseHeaders[cspKey] = [csp];
+                    }
+                }
+                
+                callback({ responseHeaders });
+             });
+             
              // 3. Frame Navigation Filter
              contents.on('will-frame-navigate', (event, url) => {
                  // Reuse allowed logic or just block ads
@@ -430,6 +451,10 @@ app.on('ready', async () => {
         log(`Mode: ${isDev ? 'Development' : 'Production'}`);
         log(`AppPath: ${app.getAppPath()}`);
         log(`UserData: ${userDataPath}`);
+
+        // 1. Load Secure Environment (Decrypted)
+        log('Loading secure environment...');
+        await licenseManager.loadSecureEnv();
 
     // 1. SYNC REGISTRATIONS (Must happen before any awaits)
     // ---------------------------------------------------
@@ -571,18 +596,27 @@ app.on('ready', async () => {
                                     url.pathname.includes('/local');
                 
                 const cloudBase = 'https://inertial-event.vercel.app';
-                const localBase = 'http://localhost:5000';
+                const localBase = 'http://127.0.0.1:5000';
 
+                // Reverted to Local Backend (Vercel deployment is frontend-only)
                 let targetBase = cloudBase;
-                if (isLocalRoute) {
+                 if (isLocalRoute) {
                     targetBase = localBase;
-                    log(`[Proxy Smart] Routing Local Scraper: ${url.pathname} -> ${localBase}`);
+                    log(`[Proxy Smart] Routing Local: ${url.pathname} -> ${localBase}`);
                 } else {
-                    log(`[Proxy Smart] Routing Global Cloud: ${url.pathname} -> ${cloudBase}`);
+                    log(`[Proxy Smart] Routing Cloud: ${url.pathname} -> ${cloudBase}`);
                 }
-
+                
                 const BACKEND_URL = `${targetBase}${url.pathname}${url.search}`;
-                response = await net.fetch(BACKEND_URL);
+                log(`[Proxy Exec] Fetching: ${BACKEND_URL}`);
+                
+                try {
+                    response = await net.fetch(BACKEND_URL);
+                    log(`[Proxy Exec] Done: ${response.status}`);
+                } catch (fetchErr) {
+                    log(`[Proxy Exec ERROR] Failed to fetch ${BACKEND_URL}: ${fetchErr.message}`);
+                    throw fetchErr;
+                }
             }
 
             if (response) {
@@ -603,10 +637,11 @@ app.on('ready', async () => {
                 });
             }
         } catch (err) {
-            log(`[Proxy Error] ${err.message}`);
+            log(`[Proxy FATAL] ${err.message}`);
+            return new Response(`Proxy Error: ${err.message}`, { status: 502 });
         }
 
-        return new Response('Not Found', { status: 404 });
+        return new Response('Proxy Error: Unhandled Path', { status: 404 });
     });
 
     // Unified Network Filter (Adblock + Proxy Reroute)
@@ -619,6 +654,7 @@ app.on('ready', async () => {
             // 1. Critical Reroute: Intercept absolute cloud URLs, app://, or localhost:3000 -> proxy://
             const isLocal = url.includes('localhost:3000') || url.includes('127.0.0.1:3000');
             const isVercelApi = url.startsWith('https://inertial-event.vercel.app/api/');
+            const isNovaStreamApi = url.startsWith('https://novastream.app/api/');
             
             if (url.startsWith('app://-/tmdb-api/') || (isLocal && url.includes('/tmdb-api/'))) {
                 const redirected = `proxy://-/tmdb-api/${url.split('/tmdb-api/')[1]}`;
@@ -629,7 +665,7 @@ app.on('ready', async () => {
                 const redirected = `proxy://-/tmdb-img/${url.split('/tmdb-img/')[1]}`;
                 return callback({ redirectURL: redirected });
             }
-            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi) {
+            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi || isNovaStreamApi) {
                 const pathPart = url.split('/api/')[1];
                 const redirected = `proxy://-/api/${pathPart}`;
                 
@@ -689,16 +725,13 @@ app.on('ready', async () => {
         if (isDev) {
             log('Development mode: Skipping license validation');
         } else {
-            log('Loading env...');
-            await licenseManager.loadSecureEnv();
-            
             log('Validating license...');
             // Safety timeout for validation
             let validationResult;
             try {
                 validationResult = await Promise.race([
                     licenseManager.validate(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (15s)')), 15000))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (30s)')), 30000))
                 ]);
             } catch (err) {
                 if (err.message && err.message.includes('LICENSE_REVOKED')) {
@@ -769,6 +802,12 @@ app.on('ready', async () => {
                 const serverPath = path.join(app.getAppPath(), 'dist-server', 'index.js');
                 log(`[AG] Starting Backend Server from: ${serverPath}`);
                 
+                if (!fs.existsSync(serverPath)) {
+                    log(`[AG CRITICAL] Backend file NOT FOUND at: ${serverPath}`);
+                } else {
+                    log(`[AG] Backend file found. Size: ${fs.statSync(serverPath).size} bytes`);
+                }
+                
                 // Inherit env (which now has decrypted keys) and set PORT
                 const serverEnv = { ...process.env, BACKEND_PORT: '5000', NODE_ENV: 'production' };
                 
@@ -779,6 +818,10 @@ app.on('ready', async () => {
 
                 global.serverProcess.on('error', (err) => {
                     log(`[Backend Error] Failed to start: ${err.message}`);
+                });
+
+                global.serverProcess.on('exit', (code, signal) => {
+                    log(`[Backend CRASH] Process exited with code ${code} signal ${signal}`);
                 });
 
                 global.serverProcess.stdout.on('data', (data) => {
@@ -809,9 +852,21 @@ app.on('ready', async () => {
     }
 
     // Cleanup on exit - MUST kill child processes or installer will fail
-    app.on('before-quit', () => {
+    app.on('before-quit', async (e) => {
         console.log('[AG] Before quit - cleaning up...');
+        e.preventDefault(); // Prevent quit until cleanup finishes
+        
+        try {
+            await torrentService.stopStream();
+            console.log('[AG] Torrent service stopped.');
+        } catch (err) {
+            console.error('[AG] Failed to stop torrent service:', err);
+        }
+
         killAllChildProcesses();
+        
+        // Proceed with quit
+        app.exit(0);
     });
 
     app.on('will-quit', (e) => {

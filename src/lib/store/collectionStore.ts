@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Content } from '@/lib/types/content';
+import { minifyContent } from '@/utils/contentHelpers';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface Collection {
@@ -60,7 +61,10 @@ export const useCollectionStore = create<CollectionState>()(
                         if (c.id !== collectionId) return c;
                         // Avoid duplicates
                         if (c.items.some(i => String(i.id) === String(item.id))) return c;
-                        return { ...c, items: [item, ...c.items] };
+                        
+                        // Optimize storage
+                        const minifiedItem = minifyContent(item) as Content;
+                        return { ...c, items: [minifiedItem, ...c.items] };
                     })
                 }));
             },

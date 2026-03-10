@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Content } from '@/lib/types/content';
+import { minifyContent } from '@/utils/contentHelpers';
 
 interface HistoryState {
     history: Content[];
@@ -16,9 +17,14 @@ export const useHistoryStore = create<HistoryState>()(
             history: [],
             addToHistory: (content) => set((state) => {
                 // Remove if already exists to move to top
-                const filtered = state.history.filter(i => i.id !== content.id);
-                // Ensure we keep the latest progress
-                const newItem = { ...content, lastWatched: Date.now() };
+                const filtered = state.history.filter(i => String(i.id) !== String(content.id));
+                
+                // Ensure we keep the latest progress and minify
+                const newItem = minifyContent({ 
+                    ...content, 
+                    lastWatched: Date.now() 
+                }) as Content; // Cast back to Content for type compatibility, though runtime is smaller
+
                 // Keep only last 50
                 return { history: [newItem, ...filtered].slice(0, 50) };
             }),

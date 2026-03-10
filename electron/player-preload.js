@@ -14,6 +14,7 @@ window.AG_HAS_NUDGED = false;
 window.AG_INSTALLED = true;
 window.AG_VERSION = AG_VERSION;
 window.AG_SUB_PREF = -1; // Default off
+window.AG_VIRTUAL_VOL = -1;
 
 // --- 2. COMMANDS EXPORT (For WebviewPlayer.tsx executeJavaScript) ---
 // We attach these to window so the host can still call them via legacy executeJavaScript if desired, 
@@ -22,6 +23,7 @@ window.AG_SUB_PREF = -1; // Default off
 window.AG_CMD_SEEK = (t) => { if(window.AG_VIDEO) window.AG_VIDEO.currentTime = t; };
 
 window.AG_CMD_VOL = (v) => { 
+    window.AG_VIRTUAL_VOL = v;
     if(window.AG_VIDEO) {
         // Standard Volume
         if (v <= 1) {
@@ -88,7 +90,24 @@ window.AG_CMD_QUALITY = (idx) => {
      }
 };
 
-window.AG_CMD_PIP = () => { if(window.AG_VIDEO) { if (document.pictureInPictureElement) document.exitPictureInPicture(); else window.AG_VIDEO.requestPictureInPicture(); } };
+window.AG_CMD_PIP = () => { 
+    console.log('[NovaSync] AG_CMD_PIP Triggered');
+    if(window.AG_VIDEO) { 
+        if (document.pictureInPictureElement) {
+             document.exitPictureInPicture().catch(console.error);
+        } else {
+             window.AG_VIDEO.requestPictureInPicture().catch(console.error);
+        }
+    } else {
+        console.warn('[NovaSync] AG_CMD_PIP: No Video Element Found');
+    }
+};
+
+// IPC Listener for Robustness
+ipcRenderer.on('AG_CMD_PIP', () => {
+    console.log('[NovaSync] IPC AG_CMD_PIP Received');
+    window.AG_CMD_PIP();
+});
 
 window.AG_CMD_SPEED = (s) => { if(window.AG_VIDEO) window.AG_VIDEO.playbackRate = s; };
 
@@ -98,6 +117,7 @@ window.AG_CMD_SPEED = (s) => { if(window.AG_VIDEO) window.AG_VIDEO.playbackRate 
 window.addEventListener('message', (e) => {
     const msg = e.data;
     if (!msg || !msg.type) return;
+    console.log('[NovaSync] Message Received:', msg.type);
     if (typeof window[msg.type] === 'function') {
         window[msg.type](msg.data);
     }
@@ -189,11 +209,17 @@ const updateState = () => {
     const v = window.AG_VIDEO;
     if (!v) return;
 
+    // Calc Volume (Handle Boost)
+    let vol = v.muted ? 0 : v.volume;
+    if (window.AG_VIRTUAL_VOL > 1 && vol >= 0.99) {
+        vol = window.AG_VIRTUAL_VOL;
+    }
+
     // Build State Object
     const s = {
         currentTime: v.currentTime,
         duration: Number.isFinite(v.duration) ? v.duration : 0,
-        volume: v.muted ? 0 : v.volume,
+        volume: vol,
         isPaused: v.paused,
         isMuted: v.muted,
         tracks: [], audioTracks: [], qualities: [],
@@ -209,7 +235,7 @@ const updateState = () => {
 };
 
 // Run loop
-setInterval(updateState, 800);
+setInterval(updateState, 250);
 
 // --- 5. AD BLOCKING & CSS INJECTION ---
 // (Simplified version of the heavy script)
@@ -222,7 +248,21 @@ const css = `
 
 const style = document.createElement('style');
 style.textContent = css;
-(document.head || document.documentElement).appendChild(style);
+
+const injectStyle = () => {
+    const target = document.head || document.documentElement;
+    if (target) {
+        target.appendChild(style);
+    } else {
+        requestAnimationFrame(injectStyle);
+    }
+};
+
+if (document.head || document.documentElement) {
+    injectStyle();
+} else {
+    document.addEventListener('DOMContentLoaded', injectStyle);
+}
 
 // Kill popups
 window.open = function() { return null; };

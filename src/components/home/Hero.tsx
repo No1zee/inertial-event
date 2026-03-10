@@ -61,7 +61,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.5 }}  // Faster transition
                     className="absolute inset-0 bg-black"
                 >
                     {showTrailer && content.trailerUrl && !trailerError ? (
@@ -70,7 +70,8 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                                 src={`${content.trailerUrl}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${content.trailerUrl.split('/').pop()}`}
                                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none border-none"
                                 allow="autoplay"
-                                onLoad={() => console.log('Trailer loaded')}
+                                loading="lazy"
+                                onLoad={() => {}}
                                 onError={() => setTrailerError(true)}
                             />
                         </div>
@@ -80,9 +81,10 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                                 initial={{ scale: 1.1 }}
                                 animate={{ scale: 1 }}
                                 transition={{ duration: 10, ease: "linear" }}
+                                style={{ willChange: "transform" }} // GPU hint
                                 src={content.backdropUrl}
                                 alt={content.title}
-                                className="w-full h-full object-cover transition-transform duration-1000 group-hover/hero:scale-110"
+                                className="w-full h-full object-cover"
                             />
                         </div>
                     )}

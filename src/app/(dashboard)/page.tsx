@@ -92,11 +92,9 @@ export default function DashboardPage() {
     const [heroItems, setHeroItems] = useState<Content[]>([]);
 
     useEffect(() => {
-        console.log("[DashboardPage] heavyHitters changed:", heavyHitters?.length);
         if (heavyHitters && heavyHitters.length > 0) {
             // Shuffle to keep it fresh on each visit
             const shuffled = [...heavyHitters].sort(() => Math.random() - 0.5).slice(0, 5);
-            console.log("[DashboardPage] Setting heroItems:", shuffled.length);
             setHeroItems(shuffled);
         }
     }, [heavyHitters]);
