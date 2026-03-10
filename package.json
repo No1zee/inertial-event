@@ -24,8 +24,9 @@
         ],
         "publish": [
             {
-                "provider": "generic",
-                "url": "https://inertial-event.vercel.app/updates"
+                "provider": "github",
+                "owner": "No1zee",
+                "repo": "inertial-event"
             }
         ],
         "win": {
