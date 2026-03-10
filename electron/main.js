@@ -982,7 +982,10 @@ async function initAutoUpdater() {
         });
 
         autoUpdater.on('update-downloaded', (info) => {
-            log('[Updater] Update downloaded; will install on quit.');
+            log('[Updater] Update downloaded; installing seamlessly now.');
+            // This will forcefully restart the app and apply the update without the user 
+            // having to manually quit. The 'true, true' flags tell it to be silent and restart immediately.
+            autoUpdater.quitAndInstall(true, true);
         });
 
         // Check for updates every 2 hours or on startup
