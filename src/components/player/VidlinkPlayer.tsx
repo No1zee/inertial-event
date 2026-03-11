@@ -8,9 +8,10 @@ interface VidlinkPlayerProps {
     season?: string | number;
     episode?: string | number;
     content?: any;
+    subtitles?: string;
 }
 
-export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }: VidlinkPlayerProps) {
+export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content, subtitles }: VidlinkPlayerProps) {
     const addToHistory = useHistoryStore((state: any) => state.addToHistory);
     const trackSeries = useSeriesTrackingStore((state: any) => state.trackSeries);
 
@@ -124,6 +125,10 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
 
     if (startAt > 0) {
         params.append('startAt', startAt.toString());
+    }
+
+    if (subtitles) {
+        params.append('sub', subtitles);
     }
 
     const baseUrl = 'https://vidlink.pro';
