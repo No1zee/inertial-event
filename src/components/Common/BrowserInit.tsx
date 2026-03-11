@@ -60,7 +60,8 @@ export default function BrowserInit() {
     }, []);
 
     // Safe "process" check
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    if (apiUrl && !apiUrl.startsWith('http')) apiUrl = `https://${apiUrl}`;
 
     // Active TMDB & Google Ping
     useEffect(() => {

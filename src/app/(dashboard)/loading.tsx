@@ -9,6 +9,11 @@ export default function Loading() {
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60" />
             </div>
 
+            {/* Version Text */}
+            <div className="absolute top-4 right-6 text-zinc-500 text-xs font-medium tracking-wider">
+                v{process.env.APP_VERSION}
+            </div>
+
             {/* Content Rails Skeletons */}
             <div className="space-y-10">
                 {[1, 2].map((rail) => (

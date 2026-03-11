@@ -7,6 +7,10 @@ const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: true,
 
+  env: {
+    APP_VERSION: require('./package.json').version,
+  },
+
   images: {
     unoptimized: true,
     remotePatterns: [

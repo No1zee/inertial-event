@@ -22,7 +22,7 @@ const UserSchema: Schema = new Schema({
     email: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
     name: String,
-    library: [{ type: Schema.Types.ObjectId, ref: 'Content' }],
+    library: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content' }],
     preferences: {
         autoplay: { type: Boolean, default: true },
         quality: { type: String, enum: ['auto', '1080p', '720p', '480p', '360p'], default: 'auto' },

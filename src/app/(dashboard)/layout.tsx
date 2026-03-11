@@ -19,7 +19,7 @@ export default function DashboardLayout({
         <div className="min-h-screen bg-zinc-950 text-white overflow-x-hidden selection:bg-primary/30">
             <Sidebar />
             <div className={cn(
-                "flex flex-col min-h-screen transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-x-hidden",
+                "flex flex-col min-h-screen transition-all duration-700 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] overflow-x-hidden",
                 sidebarOpen ? "lg:pl-72" : "lg:pl-0"
             )}>
                 <Navbar />

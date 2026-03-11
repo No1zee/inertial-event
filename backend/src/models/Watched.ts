@@ -11,9 +11,9 @@ export interface IWatched extends Document {
 }
 
 const WatchedSchema: Schema = new Schema({
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    contentId: { type: Schema.Types.ObjectId, ref: 'Content', required: true, index: true },
-    episodeId: { type: Schema.Types.ObjectId, ref: 'Episode' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    contentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Content', required: true, index: true },
+    episodeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Episode' },
     position: { type: Number, default: 0 },
     duration: { type: Number, default: 0 },
     completed: { type: Boolean, default: false },

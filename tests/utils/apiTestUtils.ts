@@ -15,7 +15,7 @@ export const setupTestDatabase = async () => {
 }
 
 export const teardownTestDatabase = async () => {
-  await mongoose.disconnect()
+  await mongoose.connection.close()
   await mongoServer.stop()
 }
 
@@ -29,11 +29,11 @@ export const setupTestApp = () => {
 
 // Authentication helpers
 export const createTestUser = async (userData = {}) => {
-  const User = require('../../backend/src/models/User').default
+  const User = require('../../backend/src/models/User').User
   const defaultUser = {
     email: 'test@example.com',
     username: 'testuser',
-    password: 'hashedPassword',
+    passwordHash: 'hashedPassword',
   }
   const user = new User({ ...defaultUser, ...userData })
   return await user.save()

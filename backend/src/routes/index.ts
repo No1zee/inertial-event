@@ -8,6 +8,7 @@ import * as userController from '../controllers/userController.js';
 const router = express.Router();
 
 // Content Routes
+router.get('/content', contentController.getAllContent);
 router.get('/content/trending', contentController.getTrending);
 router.get('/content/recent', contentController.getRecentlyAdded);
 router.get('/content/featured', contentController.getFeatured);
@@ -15,8 +16,11 @@ router.get('/content/genre/:genre', contentController.getByGenre);
 router.get('/content/search', contentController.searchContent);
 router.get('/content/semantic-search', contentController.semanticSearch);
 router.post('/content/sync-embeddings', verifyToken, contentController.syncEmbeddings);
-router.get('/content/:id', contentController.getContentById);
+router.get('/content/recommended', contentController.getRecommended);
+router.get('/content/:id', verifyToken, contentController.getContentById);
 router.get('/content/:id/watch', contentController.getWatchMetadata);
+router.post('/content/:id/watch', verifyToken, contentController.updateWatchProgress);
+router.post('/content/:id/rating', verifyToken, contentController.rateContent);
 
 // User Routes
 router.get('/user/library', verifyToken, userController.getLibrary);

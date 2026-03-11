@@ -3,8 +3,8 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: [
-    '<rootDir>/tests/unit/**/*.test.ts',
-    '<rootDir>/tests/integration/**/*.test.ts',
+    '**/tests/unit/**/*.test.ts',
+    '**/tests/integration/**/*.test.ts',
   ],
   transform: {
     '^.+\\.ts$': 'ts-jest',
@@ -17,8 +17,9 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup/backend.setup.js'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   testTimeout: 30000,
 }

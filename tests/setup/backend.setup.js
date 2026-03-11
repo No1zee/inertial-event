@@ -1,14 +1,4 @@
-// Mock MongoDB connection
-jest.mock('mongoose', () => ({
-  connect: jest.fn(),
-  connection: {
-    on: jest.fn(),
-    once: jest.fn(),
-    close: jest.fn(),
-  },
-  Schema: jest.fn(),
-  model: jest.fn(),
-}))
+// Mongoose mock removed for integration tests using MongoMemoryServer
 
 // Mock JWT
 jest.mock('jsonwebtoken', () => ({
@@ -20,6 +10,7 @@ jest.mock('jsonwebtoken', () => ({
 jest.mock('bcrypt', () => ({
   hash: jest.fn(() => Promise.resolve('hashed-password')),
   compare: jest.fn(() => Promise.resolve(true)),
+  genSalt: jest.fn(() => Promise.resolve('mock-salt')),
 }))
 
 // Mock Express middleware

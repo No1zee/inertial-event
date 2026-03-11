@@ -36,6 +36,18 @@ describe('Content API', () => {
     })
 
     it('should filter content by type', async () => {
+      const Content = require('../../backend/src/models/Content').Content
+      const testContent = new Content({
+        title: 'Filter Movie',
+        slug: 'filter-movie',
+        type: 'movie',
+        description: 'A test movie',
+        posterUrl: '/test-poster.jpg',
+        backdropUrl: '/test-backdrop.jpg',
+        year: 2024,
+      })
+      await testContent.save()
+
       const response = await request(app)
         .get('/api/content')
         .set('Authorization', `Bearer ${authToken}`)
@@ -71,13 +83,15 @@ describe('Content API', () => {
   describe('GET /api/content/:id', () => {
     it('should return content details for valid ID', async () => {
       // First, create some test content
-      const Content = require('../../backend/src/models/Content').default
+      const Content = require('../../backend/src/models/Content').Content
       const testContent = new Content({
         title: 'Test Movie',
+        slug: 'test-movie-1',
         type: 'movie',
-        overview: 'A test movie',
-        poster: '/test-poster.jpg',
-        releaseDate: '2024-01-01',
+        description: 'A test movie',
+        posterUrl: '/test-poster.jpg',
+        backdropUrl: '/test-backdrop.jpg',
+        year: 2024,
         rating: 8.5,
       })
       await testContent.save()
@@ -144,11 +158,15 @@ describe('Content API', () => {
   describe('POST /api/content/:id/watch', () => {
     it('should record when user starts watching content', async () => {
       // Create test content
-      const Content = require('../../backend/src/models/Content').default
+      const Content = require('../../backend/src/models/Content').Content
       const testContent = new Content({
         title: 'Test Movie',
+        slug: 'test-movie-watch-1',
         type: 'movie',
-        overview: 'A test movie',
+        description: 'A test movie',
+        posterUrl: '/test-poster.jpg',
+        backdropUrl: '/test-backdrop.jpg',
+        year: 2024,
       })
       await testContent.save()
 
@@ -163,11 +181,15 @@ describe('Content API', () => {
 
     it('should update watch progress', async () => {
       // Create test content
-      const Content = require('../../backend/src/models/Content').default
+      const Content = require('../../backend/src/models/Content').Content
       const testContent = new Content({
         title: 'Test Movie',
+        slug: 'test-movie-watch-2',
         type: 'movie',
-        overview: 'A test movie',
+        description: 'A test movie',
+        posterUrl: '/test-poster.jpg',
+        backdropUrl: '/test-backdrop.jpg',
+        year: 2024,
       })
       await testContent.save()
 
@@ -190,11 +212,15 @@ describe('Content API', () => {
   describe('POST /api/content/:id/rating', () => {
     it('should allow user to rate content', async () => {
       // Create test content
-      const Content = require('../../backend/src/models/Content').default
+      const Content = require('../../backend/src/models/Content').Content
       const testContent = new Content({
         title: 'Test Movie',
+        slug: 'test-movie-rate-1',
         type: 'movie',
-        overview: 'A test movie',
+        description: 'A test movie',
+        posterUrl: '/test-poster.jpg',
+        backdropUrl: '/test-backdrop.jpg',
+        year: 2024,
       })
       await testContent.save()
 
@@ -209,11 +235,15 @@ describe('Content API', () => {
 
     it('should validate rating range', async () => {
       // Create test content
-      const Content = require('../../backend/src/models/Content').default
+      const Content = require('../../backend/src/models/Content').Content
       const testContent = new Content({
         title: 'Test Movie',
+        slug: 'test-movie-rate-2',
         type: 'movie',
-        overview: 'A test movie',
+        description: 'A test movie',
+        posterUrl: '/test-poster.jpg',
+        backdropUrl: '/test-backdrop.jpg',
+        year: 2024,
       })
       await testContent.save()
 

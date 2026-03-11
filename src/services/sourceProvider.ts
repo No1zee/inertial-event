@@ -15,11 +15,12 @@ class SourceProvider {
     private cache: Map<string, Map<string, StreamSource[]>> = new Map();
 
     async getSources(contentId: string, type: 'movie' | 'series' | 'anime', title: string): Promise<StreamSource[]> {
-        const API_URL = (process.env.NEXT_PUBLIC_API_URL && 
+        let API_URL = (process.env.NEXT_PUBLIC_API_URL && 
                          process.env.NEXT_PUBLIC_API_URL !== "undefined" && 
                          !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
             ? process.env.NEXT_PUBLIC_API_URL 
             : "";
+        if (API_URL && !API_URL.startsWith('http')) API_URL = `https://${API_URL}`;
         try {
             // Normalize URL to prevent double /api/api
             const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
@@ -50,11 +51,12 @@ class SourceProvider {
         }
 
         const sources = new Map<string, StreamSource[]>();
-        const API_URL = (process.env.NEXT_PUBLIC_API_URL && 
+        let API_URL = (process.env.NEXT_PUBLIC_API_URL && 
                          process.env.NEXT_PUBLIC_API_URL !== "undefined" && 
                          !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')) 
             ? process.env.NEXT_PUBLIC_API_URL 
             : "";
+        if (API_URL && !API_URL.startsWith('http')) API_URL = `https://${API_URL}`;
 
         // Single call to backend which handles aggregator logic (Vidlink + Torrent + etc)
         const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;

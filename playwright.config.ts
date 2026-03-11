@@ -31,7 +31,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'npx concurrently -k "npm run dev" "npm run server"',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
   },

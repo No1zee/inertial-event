@@ -36,7 +36,7 @@ const ContentSchema: Schema = new Schema({
     embedding: { type: [Number], default: [] },
     seasons: [{
         seasonNumber: Number,
-        episodes: [{ type: Schema.Types.ObjectId, ref: 'Episode' }]
+        episodes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Episode' }]
     }]
 }, { timestamps: true });
 

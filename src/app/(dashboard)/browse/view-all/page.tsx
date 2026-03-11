@@ -102,7 +102,7 @@ export default function ViewAllPage() {
         <div className="min-h-screen relative bg-black selection:bg-red-500/30 selection:text-white">
             {/* AMBIENT CINEMATIC BACKDROP */}
             <div className="fixed inset-0 pointer-events-none z-0">
-                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[180px] opacity-40 mix-blend-screen animate-pulse duration-[10s]" />
+                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[180px] opacity-40 mix-blend-screen animate-pulse [animation-duration:10s]" />
                  <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-red-900/10 rounded-full blur-[200px] opacity-30 mix-blend-screen" />
                  <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
                  <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#0a0a0a]/90 to-black" />

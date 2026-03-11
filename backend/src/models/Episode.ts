@@ -12,7 +12,7 @@ export interface IEpisode extends Document {
 }
 
 const EpisodeSchema: Schema = new Schema({
-    contentId: { type: Schema.Types.ObjectId, ref: 'Content', required: true, index: true },
+    contentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Content', required: true, index: true },
     season: { type: Number, default: 1 },
     episodeNumber: { type: Number, required: true },
     title: { type: String, required: true },
