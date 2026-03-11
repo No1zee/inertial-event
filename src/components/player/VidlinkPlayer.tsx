@@ -79,7 +79,7 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content, 
                     }
 
                     const cleanTitle = content.title.replace(/Season \d+/i, '').trim();
-                    const res = await fetch(`/api/mal?q=${encodeURIComponent(cleanTitle)}`);
+                    const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanTitle)}&limit=1`);
                     const data = await res.json();
                     
                     if (data?.data?.[0]?.mal_id) {
