@@ -21,7 +21,13 @@ try {
 
 class TorrentService {
     constructor() {
-        this.client = WebTorrent ? new WebTorrent() : null;
+        this.client = WebTorrent ? new WebTorrent({
+            maxConns: 55,        // Reasonable limit for home routers
+            uploadLimit: 1024 * 1024, // 1MB/s upload limit to prevent unresponsiveness
+            dht: true,
+            lsd: true,
+            tracker: true
+        }) : null;
         this.activeTorrent = null;
         this.server = null;
         this.metadataTimeout = null;

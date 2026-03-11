@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { MOCK_CONTENT } from '../data/MockContent.js';
+import { cache } from '../utils/cache.js';
 
 class TmdbService {
     private readonly baseUrl = 'https://api.themoviedb.org/3';
@@ -33,6 +34,10 @@ class TmdbService {
     }
 
     async getTrending(): Promise<any[]> {
+        const cacheKey = 'tmdb_trending';
+        const cached = cache.get(cacheKey);
+        if (cached) return cached;
+
         try {
             if (!this.apiKey && !this.readToken) {
                 console.warn('TMDB API Key missing in process.env');
@@ -44,7 +49,9 @@ class TmdbService {
                 params: this.params
             });
 
-            return response.data.results.map(this.transformTmdbItem);
+            const results = response.data.results.map(this.transformTmdbItem);
+            cache.set(cacheKey, results, 3600); // 1 hour
+            return results;
         } catch (error) {
             console.error('TMDB Fetch Error:', error);
             return [];
@@ -61,6 +68,10 @@ class TmdbService {
     }
 
     async getDetails(id: string): Promise<any | null> {
+        const cacheKey = `tmdb_details_${id}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached;
+
         try {
             const cleanId = id.replace('tmdb_', '');
             
@@ -68,7 +79,9 @@ class TmdbService {
                 headers: this.headers,
                 params: this.params
             });
-            return this.transformTmdbItem({ ...response.data, media_type: 'movie' });
+            const result = this.transformTmdbItem({ ...response.data, media_type: 'movie' });
+            cache.set(cacheKey, result, 86400); // 24 hours
+            return result;
         } catch (error) {
             console.warn('TMDB Details Fetch Error (Movie), trying TV:', id);
             try {
@@ -77,7 +90,9 @@ class TmdbService {
                     headers: this.headers,
                     params: this.params
                 });
-                return this.transformTmdbItem({ ...response.data, media_type: 'tv' });
+                const result = this.transformTmdbItem({ ...response.data, media_type: 'tv' });
+                cache.set(cacheKey, result, 86400); // 24 hours
+                return result;
             } catch (tvError) {
                 return null;
             }
@@ -85,6 +100,10 @@ class TmdbService {
     }
 
     async search(query: string): Promise<any[]> {
+        const cacheKey = `tmdb_search_${query.toLowerCase()}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached;
+
         try {
             const response = await axios.get(`${this.baseUrl}/search/multi`, {
                 headers: this.headers,
@@ -95,9 +114,12 @@ class TmdbService {
                     page: 1
                 }
             });
-            return response.data.results
+            const results = response.data.results
                 .filter((i: any) => i.media_type === 'movie' || i.media_type === 'tv')
                 .map(this.transformTmdbItem);
+            
+            cache.set(cacheKey, results, 1800); // 30 minutes
+            return results;
         } catch (error) {
             return [];
         }

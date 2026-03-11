@@ -13,6 +13,7 @@ export interface IContent extends Document {
     backdropUrl: string;
     rating?: number;
     trendingScore?: number;
+    embedding?: number[];
     seasons?: Array<{
         seasonNumber: number;
         episodes: mongoose.Types.ObjectId[];
@@ -32,6 +33,7 @@ const ContentSchema: Schema = new Schema({
     backdropUrl: { type: String, required: true },
     rating: Number,
     trendingScore: { type: Number, default: 0 },
+    embedding: { type: [Number], default: [] },
     seasons: [{
         seasonNumber: Number,
         episodes: [{ type: Schema.Types.ObjectId, ref: 'Episode' }]

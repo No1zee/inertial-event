@@ -10,7 +10,7 @@ interface SubtitleTrack {
 class SubtitleService {
     async getMergedSubtitles(contentId: string, episodeId?: string): Promise<SubtitleTrack[]> {
         try {
-            logger.info(`Merging subtitle tracks for ${contentId}`);
+            logger.info('SubtitleService', `Merging subtitle tracks for ${contentId}`);
 
             // Mocking multiple endpoint resolution
             const results = await Promise.allSettled([
@@ -30,7 +30,7 @@ class SubtitleService {
 
             return unique;
         } catch (err) {
-            logger.error('Subtitle merging failed', err);
+            logger.error('SubtitleService', 'Subtitle merging failed', err);
             return [];
         }
     }

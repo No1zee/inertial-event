@@ -18,12 +18,16 @@ interface SettingsOverlayProps {
 
 type Tab = 'main' | 'audio' | 'subtitle' | 'quality' | 'speed';
 
-export default function SettingsOverlay({
+function SettingsOverlay({
     show, onClose,
     tracks = [], audioTracks = [], qualities = [], playbackSpeed = 1,
     onTrackChange, onAudioTrackChange, onQualityChange, onSpeedChange
 }: SettingsOverlayProps) {
     const [activeTab, setActiveTab] = useState<Tab>('main');
+
+    // React.useEffect(() => {
+    //     console.log(`[SettingsOverlay] Rendered. Show=${show}`);
+    // }, [show]);
 
     if (!show) {
         if (activeTab !== 'main') setTimeout(() => setActiveTab('main'), 300);
@@ -109,3 +113,5 @@ export default function SettingsOverlay({
         </div>
     );
 }
+
+export default React.memo(SettingsOverlay);

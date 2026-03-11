@@ -9,10 +9,14 @@ export interface Content {
     type: 'movie' | 'tv' | 'anime';
     genres: string[];
     lastAirDate?: string;
+    originalLanguage?: string;
+    originCountry?: string[];
     progress?: number; // Current playback time in seconds
     lastWatched?: number; // Timestamp
     addedAt?: number; // Timestamp
     duration?: number; // Total duration in seconds (already exists, verify type)
+    season?: number;
+    episode?: number;
     seasons?: number;
     episodes?: number;
     status: 'ongoing' | 'completed';
@@ -35,6 +39,21 @@ export interface Content {
         rottenTomatoes?: { score: number; state: 'fresh' | 'rotten' | 'certified' };
         metacritic?: number;
     };
+}
+
+// Optimized interface for storage (LocalStorage is synchronous!)
+export interface MinifiedContent extends Partial<Content> {
+    id: string;
+    title: string;
+    type: 'movie' | 'tv' | 'anime';
+    poster: string;
+    // Optional extras we might want to keep
+    backdrop?: string;
+    lastWatched?: number;
+    progress?: number;
+    duration?: number;
+    season?: number;
+    episode?: number;
 }
 
 export interface CastMember {

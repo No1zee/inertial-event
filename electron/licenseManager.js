@@ -6,18 +6,8 @@ const crypto = require('crypto');
 // const Store = require('electron-store'); // ESM only
 const { app } = require('electron');
 
-let KEYGEN_SERVER_URL = process.env.KEYGEN_SERVER_URL || 'https://inertial-event.vercel.app/api/keygen/api';
-
-// Fix relative URLs or normalize to production if explicitly requested
-if (KEYGEN_SERVER_URL && (KEYGEN_SERVER_URL.startsWith('/') || KEYGEN_SERVER_URL.includes('localhost'))) {
-    // Only use localhost in dev if NODE_ENV is explicitly development
-    if (process.env.NODE_ENV === 'development') {
-        KEYGEN_SERVER_URL = `http://localhost:5000${KEYGEN_SERVER_URL.startsWith('/') ? KEYGEN_SERVER_URL : '/api'}`;
-    } else {
-        KEYGEN_SERVER_URL = 'https://inertial-event.vercel.app/api/keygen/api';
-    }
-    console.log('[LicenseManager] Normalized KEYGEN_SERVER_URL to:', KEYGEN_SERVER_URL);
-}
+// This will be resolved dynamically to ensure env changes after load are reflected
+const getBaseUrl = () => (process.env.KEYGEN_SERVER_URL || 'http://localhost:4000/api').replace(/\/$/, '');
 
 const ENCRYPTION_KEY = Buffer.from('4ee9ccf17e082f9d5a9c3b88e04b4d7f6c3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c', 'hex');
 const IV = Buffer.from('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', 'hex');
@@ -86,6 +76,9 @@ class LicenseManager {
             }
 
             logger(`[LicenseManager OK] Env loaded (${decrypted.length} chars). Keys Found: ${keysLoaded.join(', ')}`);
+            if (process.env.KEYGEN_SERVER_URL) {
+                logger(`[LicenseManager Debug] KEYGEN_SERVER_URL: "${process.env.KEYGEN_SERVER_URL}"`);
+            }
         } catch (error) {
             logger(`[LicenseManager Error] Env loading failed: ${error.message}`);
         }
@@ -101,6 +94,17 @@ class LicenseManager {
 
     async getMachineId() {
         if (this.deviceId) return this.deviceId;
+
+        try {
+            const store = await this.getStore();
+            const cachedId = store.get('device_id');
+            if (cachedId) {
+                this.deviceId = cachedId;
+                return this.deviceId;
+            }
+        } catch (e) {
+            logger('[LicenseManager] Failed to read cached device_id:', e.message);
+        }
 
         try {
             // Use a timeout for hardware queries to prevent boot hang
@@ -122,6 +126,14 @@ class LicenseManager {
             ].join('|');
 
             this.deviceId = crypto.createHash('sha256').update(rawId).digest('hex');
+            
+            try {
+                const store = await this.getStore();
+                store.set('device_id', this.deviceId);
+            } catch (e) {
+                logger('[LicenseManager] Failed to cache device_id:', e.message);
+            }
+            
             return this.deviceId;
         } catch (error) {
             console.error('Failed to generate machine ID:', error);
@@ -134,27 +146,34 @@ class LicenseManager {
         const PROD_LICENSE_PATH = 'C:\\ProgramData\\NovaStream\\license.dat';
         const DEV_LICENSE_PATH = path.join(app.getPath('userData'), 'license.dat');
 
+        logger(`[LicenseManager] Checking for license at: "${PROD_LICENSE_PATH}" and "${DEV_LICENSE_PATH}"`);
+
         // Try Prod path first
         if (fs.existsSync(PROD_LICENSE_PATH)) {
+            logger('[LicenseManager] Found license in ProgramData');
             return fs.readFileSync(PROD_LICENSE_PATH, 'utf8').trim();
         }
         // Try Dev/UserData path
         if (fs.existsSync(DEV_LICENSE_PATH)) {
+            logger('[LicenseManager] Found license in UserData');
             return fs.readFileSync(DEV_LICENSE_PATH, 'utf8').trim();
         }
+        
+        logger('[LicenseManager] No license file found in any standard location.');
         return null;
     }
 
     async validate() {
-        const deviceId = await this.getMachineId();
         const licenseKey = this.getLicenseKey();
-        const store = await this.getStore();
 
         if (!licenseKey) {
-            // No license file - require activation
+            // No license file - require activation immediately (skip slow machine ID gen)
             logger('[LicenseManager] No license file found. Activation required.');
             return { valid: false, requiresActivation: true };
         }
+
+        const deviceId = await this.getMachineId();
+        const store = await this.getStore();
 
         try {
             console.log(`[LicenseManager] Validating key: ${licenseKey.substring(0, 8)}... for Device: ${deviceId.substring(0, 8)}...`);
@@ -171,17 +190,11 @@ class LicenseManager {
                 hostname: os.hostname
             };
 
-            // URL Construction & Debug
-            let baseUrl = process.env.KEYGEN_SERVER_URL || KEYGEN_SERVER_URL;
-            if (!baseUrl.startsWith('http')) {
-                console.warn('[LicenseManager] Invalid KEYGEN_SERVER_URL (missing protocol):', baseUrl);
-                baseUrl = 'http://localhost:4000/api';
-            }
-            const targetUrl = `${baseUrl}/validate`;
-            console.log(`[LicenseManager] Validating against: ${targetUrl}`);
-
             // Online Validation
-            const response = await axios.post(targetUrl, {
+            const baseUrl = getBaseUrl();
+            const validationUrl = `${baseUrl}/validate`.replace(/([^:])\/\//g, '$1/');
+            logger(`[LicenseManager Debug] Requesting validation from: ${validationUrl}`);
+            const response = await axios.post(validationUrl, {
                 license_key: licenseKey,
                 device_id: deviceId,
                 machine_info: machineInfo
@@ -250,8 +263,10 @@ class LicenseManager {
             
             logger(`[LicenseManager] Activating key: ${licenseKey.substring(0, 8)}... for device: ${deviceId.substring(0, 8)}...`);
             
-            // Call Keygen server
-            const response = await axios.post(`${KEYGEN_SERVER_URL}/activate`, {
+            // Call Keygen server - using the same standardized URL base
+            const baseUrl = getBaseUrl();
+            const activationUrl = `${baseUrl}/activate`.replace(/([^:])\/\//g, '$1/');
+            const response = await axios.post(activationUrl, {
                 license_key: licenseKey,
                 device_id: deviceId,
                 machine_name: require('os').hostname()

@@ -65,20 +65,6 @@ const nextConfig = {
       'tailwind-merge': path.join(__dirname, 'node_modules/tailwind-merge/dist/es5/bundle-cjs.js'),
     };
 
-    // Force transpilation for Vidstack dependencies
-    config.module.rules.push({
-      test: /\.(js|mjs)$/,
-      include: [
-        path.join(__dirname, 'node_modules/@vidstack'),
-        path.join(__dirname, 'node_modules/media-captions'),
-        path.join(__dirname, 'node_modules/lucide-react'),
-        path.join(__dirname, 'node_modules/tailwind-merge'),
-        path.join(__dirname, 'node_modules/clsx'),
-        path.join(__dirname, 'node_modules/react-hook-form'),
-      ],
-      use: [options.defaultLoaders.babel],
-    });
-
     return config;
   },
 

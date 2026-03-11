@@ -1,7 +1,11 @@
 {
     "name": "novastream",
-    "version": "0.1.0",
+    "version": "0.1.4",
+    "description": "An AI-powered video streaming platform leveraging next-gen semantic discovery.",
     "private": true,
+    "engines": {
+        "node": "22.x"
+    },
     "main": "electron/main.js",
     "build": {
         "appId": "com.novastream.app",
@@ -19,8 +23,23 @@
             "!**/*.tsx",
             "!**/*.map"
         ],
+        "publish": [
+            {
+                "provider": "github",
+                "owner": "No1zee",
+                "repo": "inertial-event"
+            }
+        ],
         "win": {
-            "target": "nsis",
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64",
+                        "ia32"
+                    ]
+                }
+            ],
             "icon": "build/icon.png"
         },
         "nsis": {
@@ -36,21 +55,38 @@
     },
     "scripts": {
         "dev": "cross-env PORT=3000 next dev -H 0.0.0.0",
-        "build:keygen": "cd keygen-server && npm run build-ui && cd .. && node scripts/copy-keygen-ui.js",
-        "build": "npm run build:keygen && next build && node fix_html.cjs",
+        "build": "next build && node fix_html.cjs",
         "start": "next start",
         "lint": "next lint",
+        "lint:fix": "next lint --fix",
         "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+        "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
         "type-check": "tsc --noEmit",
+        "quality": "npm run lint && npm run format:check && npm run type-check",
+        "quality:fix": "npm run lint:fix && npm run format",
         "test": "jest",
         "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "test:unit": "jest --testPathPattern=tests/unit",
+        "test:integration": "jest --config=jest.backend.config.js --testPathPattern=tests/integration",
+        "test:e2e": "playwright test",
+        "test:e2e:headed": "playwright test --headed",
+        "test:ci": "jest --coverage --ci --watchAll=false && playwright test",
         "analyze": "ANALYZE=true next build",
         "electron-dev": "concurrently -k \"npm run dev\" \"npm run server\" \"wait-on http://localhost:3000 http://localhost:5000/api/health && electron .\"",
         "server": "cross-env BACKEND_PORT=5000 npx tsx backend/src/index.ts",
         "build:server": "node scripts/build-backend.cjs",
-        "electron-build": "npm run build:server && npm run encrypt-env && next build && electron-builder",
+        "electron-build": "npm run build:server && npm run encrypt-env && next build && node fix_html.cjs && electron-builder",
         "encrypt-env": "tsx scripts/encrypt-env.ts",
-        "electron": "electron ."
+        "electron": "electron .",
+        "ci:build": "./scripts/build.sh",
+        "ci:deploy": "./scripts/deploy.sh",
+        "ci:security": "./scripts/security-scan.sh",
+        "db:backup": "./scripts/database.sh staging backup",
+        "db:migrate": "./scripts/database.sh staging migrate",
+        "docker:build": "docker build -t novastream .",
+        "docker:run": "docker-compose up -d",
+        "docker:stop": "docker-compose down"
     },
     "dependencies": {
         "@capacitor/android": "^8.0.1",
@@ -63,6 +99,7 @@
         "@tanstack/react-query": "^5.0.0",
         "@tanstack/react-query-devtools": "^5.0.0",
         "@vidstack/react": "^1.0.0",
+        "@xenova/transformers": "^2.17.2",
         "axios": "^1.6.0",
         "bcrypt": "^6.0.0",
         "castv2-client": "^1.2.0",
@@ -73,7 +110,9 @@
         "dotenv": "^17.2.3",
         "electron-serve": "^1.3.0",
         "electron-store": "^11.0.2",
+        "electron-updater": "^6.7.3",
         "express": "^5.2.1",
+        "express-rate-limit": "^8.2.1",
         "fluent-ffmpeg": "^2.1.3",
         "framer-motion": "^10.16.0",
         "googleapis": "^129.0.0",
@@ -93,6 +132,7 @@
         "react-intersection-observer": "^10.0.0",
         "react-player": "^3.4.0",
         "resize-observer-polyfill": "^1.5.1",
+        "sonner": "^2.0.7",
         "systeminformation": "^5.30.3",
         "tailwind-merge": "^2.2.0",
         "tailwindcss": "^3.3.0",
@@ -108,11 +148,22 @@
         "@babel/plugin-transform-nullish-coalescing-operator": "^7.28.6",
         "@babel/plugin-transform-numeric-separator": "^7.28.6",
         "@babel/plugin-transform-optional-chaining": "^7.28.6",
+        "@playwright/test": "^1.58.0",
         "@testing-library/jest-dom": "^6.0.0",
         "@testing-library/react": "^14.0.0",
+        "@types/bcrypt": "^6.0.0",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/express-rate-limit": "^5.1.3",
+        "@types/jest": "^30.0.0",
+        "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^20.0.0",
         "@types/react": "^18.2.0",
         "@types/react-dom": "^18.2.0",
+        "@types/supertest": "^6.0.3",
+        "@types/webtorrent": "^0.110.1",
+        "@typescript-eslint/eslint-plugin": "^8.53.1",
+        "@typescript-eslint/parser": "^8.53.1",
         "autoprefixer": "^10.4.0",
         "concurrently": "^8.0.0",
         "cross-env": "^7.0.0",
@@ -120,12 +171,20 @@
         "electron-builder": "^24.9.0",
         "eslint": "^8.50.0",
         "eslint-config-next": "^14.0.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-import": "^2.32.0",
+        "eslint-plugin-prettier": "^5.5.5",
+        "eslint-plugin-security": "^3.0.1",
         "jest": "^29.0.0",
         "jest-environment-jsdom": "^29.0.0",
+        "jest-environment-node": "^30.2.0",
+        "mongodb-memory-server": "^11.0.1",
         "png-to-ico": "^3.0.1",
         "png2icons": "^2.0.1",
         "postcss": "^8.4.0",
-        "prettier": "^3.0.0",
+        "prettier": "^3.8.1",
+        "supertest": "^7.2.2",
+        "ts-jest": "^29.4.6",
         "tsx": "^4.21.0",
         "typescript": "^5.2.0",
         "wait-on": "^7.0.0"

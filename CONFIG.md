@@ -6,8 +6,8 @@
 
 ```env
 # TMDB API (Required)
-NEXT_PUBLIC_TMDB_API_KEY=0e32674bae6ecae7dcbf20a4e47790a7
-TMDB_API_KEY=0e32674bae6ecae7dcbf20a4e47790a7
+NEXT_PUBLIC_TMDB_API_KEY=your_tmdb_api_key_here
+TMDB_API_KEY=your_tmdb_api_key_here
 # OpenSubtitles (Required for subtitles)
 NEXT_PUBLIC_OPENSUBTITLES_KEY=your_opensubtitles_key_here
 
@@ -15,10 +15,10 @@ NEXT_PUBLIC_OPENSUBTITLES_KEY=your_opensubtitles_key_here
 KEYGEN_SERVER_URL=/api/keygen
 
 # MongoDB (for production backend)
-MONGODB_URI=mongodb+srv://dbUser:<db_password>@cluster0.spqnpie.mongodb.net/?appName=Cluster0
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/?appName=Cluster0
 
 # App Security
-NOVA_STREAM_SALT=NOVA_STREAM_SECURE_SALT_2026-X892
+NOVA_STREAM_SALT=your_nova_stream_salt_here
 ```
 
 ### Keygen Server (keygen-server/.env)
@@ -27,14 +27,14 @@ NOVA_STREAM_SALT=NOVA_STREAM_SECURE_SALT_2026-X892
 PORT=4000
 
 # Security Keys (CHANGE THESE IN PRODUCTION!)
-MASTER_KEY=Tinotenda123
-JWT_SECRET=Tinotenda123
+MASTER_KEY=your_master_key_here
+JWT_SECRET=your_jwt_secret_here
 
 # Environment
 NODE_ENV=development
 
 # MongoDB Connection (REQUIRED)
-MONGODB_URI=mongodb+srv://dbUser:<db_password>@cluster0.spqnpie.mongodb.net/?appName=Cluster0
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/?appName=Cluster0
 ```
 
 ## How to Get API Keys
@@ -108,7 +108,7 @@ Use the admin dashboard at `http://localhost:4000` or use curl:
 
 ```powershell
 $headers = @{
-    "X-Admin-Key" = "your_master_key_here"
+    "X-Admin-Key" = "your_master_key_from_env"
     "Content-Type" = "application/json"
 }
 

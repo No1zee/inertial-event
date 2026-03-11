@@ -13,6 +13,8 @@ router.get('/content/recent', contentController.getRecentlyAdded);
 router.get('/content/featured', contentController.getFeatured);
 router.get('/content/genre/:genre', contentController.getByGenre);
 router.get('/content/search', contentController.searchContent);
+router.get('/content/semantic-search', contentController.semanticSearch);
+router.post('/content/sync-embeddings', verifyToken, contentController.syncEmbeddings);
 router.get('/content/:id', contentController.getContentById);
 router.get('/content/:id/watch', contentController.getWatchMetadata);
 
@@ -21,6 +23,8 @@ router.get('/user/library', verifyToken, userController.getLibrary);
 router.post('/user/library/add', verifyToken, userController.addToLibrary);
 router.post('/user/library/remove', verifyToken, userController.removeFromLibrary);
 router.post('/user/preferences', verifyToken, userController.updatePreferences);
+router.get('/user/sync', verifyToken, userController.getSyncState);
+router.post('/user/sync', verifyToken, userController.updateSyncState);
 
 // Source/Streaming Routes
 router.get('/sources', sourceController.getSources);

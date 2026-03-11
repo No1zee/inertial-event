@@ -7,10 +7,15 @@ import { generateLicenseKey } from '../utils/crypto.js';
 // Middleware to check admin access key
 const adminAuth = (req, res, next) => {
     const adminKey = req.headers['x-admin-key'];
-    if (!adminKey || adminKey !== process.env.MASTER_KEY) {
-        return res.status(401).json({ error: 'Unauthorized: Invalid Admin Key' });
+    
+    // Trust local requests from the integrated Electron dashboard
+    const isLocal = req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost';
+
+    if (isLocal || (adminKey && adminKey === process.env.MASTER_KEY)) {
+        return next();
     }
-    next();
+    
+    return res.status(401).json({ error: 'Unauthorized: Invalid Admin Key' });
 };
 
 // GET all requests

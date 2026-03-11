@@ -5,6 +5,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/UI/button";
 import { motion } from "framer-motion";
+import { CloudSyncService } from "@/services/cloudSyncService";
 
 export function LoginForm() {
     const { login } = useAuthStore();
@@ -25,6 +26,8 @@ export function LoginForm() {
                 role: "user",
                 avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=NovaExplorer"
             }, "mock_token_abc");
+            // Pull cloud history now that we are logged in
+            CloudSyncService.pullFromCloud();
             setLoading(false);
         }, 1500);
     };

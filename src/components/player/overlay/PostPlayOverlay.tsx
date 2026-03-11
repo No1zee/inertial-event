@@ -6,8 +6,8 @@ interface PostPlayOverlayProps {
     show: boolean;
     onClose: () => void;
     currentId: string;
-    type: 'movie' | 'tv';
-    onPlay: (id: string, type: 'movie' | 'tv', season?: number, episode?: number) => void;
+    type: 'movie' | 'tv' | 'anime';
+    onPlay: (id: string, type: 'movie' | 'tv' | 'anime', season?: number, episode?: number) => void;
     nextEpisode?: { season: number, episode: number } | null;
 }
 

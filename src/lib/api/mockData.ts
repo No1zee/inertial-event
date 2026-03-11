@@ -17,7 +17,7 @@ export const MOCK_MOVIES: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
     {
         id: "mock-2",
@@ -34,7 +34,7 @@ export const MOCK_MOVIES: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
     {
         id: "mock-3",
@@ -51,7 +51,7 @@ export const MOCK_MOVIES: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
     {
         id: "mock-4",
@@ -68,7 +68,7 @@ export const MOCK_MOVIES: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
     {
         id: "mock-5",
@@ -85,7 +85,7 @@ export const MOCK_MOVIES: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
 ];
 
@@ -105,7 +105,7 @@ export const MOCK_TV_SHOWS: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
     {
         id: "mock-tv-2",
@@ -122,7 +122,7 @@ export const MOCK_TV_SHOWS: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
     {
         id: "mock-tv-3",
@@ -139,7 +139,7 @@ export const MOCK_TV_SHOWS: Content[] = [
         seasonsList: [],
         cast: [],
         recommendations: [],
-        trailer: null,
+        trailer: undefined,
     },
 ];
 

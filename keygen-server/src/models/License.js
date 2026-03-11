@@ -13,8 +13,11 @@ const licenseSchema = new mongoose.Schema({
     },
     access_type: {
         type: String,
-        enum: ['permanent', 'trial', 'limited'],
-        required: true
+        default: 'permanent'
+    },
+    key_normalized: {
+        type: String,
+        unique: true
     },
     expires_at: {
         type: Date,
@@ -22,7 +25,6 @@ const licenseSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'revoked', 'unused'],
         default: 'unused'
     },
     created_at: {
@@ -32,6 +34,13 @@ const licenseSchema = new mongoose.Schema({
     created_by: {
         type: String,
         default: 'admin'
+    }
+}, { strict: false });
+
+// Auto-normalize key before saving
+licenseSchema.pre('save', function() {
+    if (this.license_key) {
+        this.key_normalized = String(this.license_key).toUpperCase().replace(/[^A-Z0-9]/g, '');
     }
 });
 

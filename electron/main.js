@@ -1,10 +1,7 @@
 const { app, BrowserWindow, ipcMain, session, shell, dialog, protocol, net } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { fork } = require('child_process');
 const path = require('path');
-
-// AG: Fixes for YouTube Autoplay & Media Keys
-app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
-app.commandLine.appendSwitch('disable-features', 'MediaSessionService'); // Prevents some media key hijacking issues
 // app.name is now 'novastream' from package.json
 // const serve = require('electron-serve');
 const axios = require('axios');
@@ -33,17 +30,24 @@ protocol.registerSchemesAsPrivileged([
 // app.commandLine.appendSwitch('enable-gpu-rasterization');
 // app.commandLine.appendSwitch('enable-zero-copy');
 
-// Hardware Acceleration (Blueprint: GPU caching and performance optimization)
-// Usually enabled by default, but we can enforce some flags if needed.
-// app.disableHardwareAcceleration();
-// app.commandLine.appendSwitch('enable-gpu-rasterization');
-// app.commandLine.appendSwitch('enable-zero-copy');
-
 ipcMain.on('frontend-log', (event, msg) => {
     console.log(`[Frontend] ${msg}`);
 });
 
+const log = (msg, ...args) => console.log(`[Main] ${msg}`, ...args);
 let mainWindow;
+
+// --- NovaSync Core Handlers (Must be Global/Sync) ---
+const getPreloadPath = () => {
+    console.log('[AG] IPC Invoke: get-player-preload-path (Universal)');
+    const p = path.join(__dirname, 'player-preload.js');
+    console.log('[AG] Resolved Preload Path (RAW):', p);
+    console.log('[AG] Resolved Preload Path (URL):', pathToFileURL(p).href);
+    return pathToFileURL(p).href;
+};
+
+ipcMain.handle('get-player-preload-path-v2', getPreloadPath);
+ipcMain.handle('get-player-preload-path', getPreloadPath); // Component Alias for Stale Builds
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -66,35 +70,32 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             webviewTag: true,
             spellcheck: false,
-            sandbox: true, // Security: Enabling sandbox per Spec
+            spellcheck: false,
+            sandbox: false, // Disabling Sandbox to allow file:// preload access
             autoplayPolicy: 'no-user-gesture-required' // Critical for background trailers
         }
     });
+
+    // Initialize Auto-updater logic
+    initAutoUpdater();
 
     // 4. Header Spoofing (Universal Referer Control)
     // 4. Header Spoofing (Universal Referer Control)
     const applyRequestHeaders = (sess) => {
         sess.webRequest.onBeforeSendHeaders(
-            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.youtube-nocookie.com/*', '*://*.googlevideo.com/*'] },
+            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*'] },
             (details, callback) => {
                 const url = new URL(details.url);
                 const domain = url.hostname;
 
                 if (domain.includes('tmdb.org') || domain.includes('themoviedb.org')) {
                     details.requestHeaders['Referer'] = 'https://www.themoviedb.org/';
-                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
+                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
                     // Critical Fix for Error 152: 
                     // DO NOT send Origin. Sending a fake 'youtube.com' Origin triggers strict CORS checks.
                     // Sending NO Origin allows the embed to play as if it were a direct browser nav.
                     details.requestHeaders['Referer'] = 'https://www.youtube.com/';
                     if (details.requestHeaders['Origin']) delete details.requestHeaders['Origin'];
-                    
-                    // Strip Sec-Fetch headers to hide "embed" status
-                    delete details.requestHeaders['sec-fetch-mode'];
-                    delete details.requestHeaders['sec-fetch-site'];
-                    delete details.requestHeaders['sec-fetch-dest'];
-                    delete details.requestHeaders['sec-fetch-user'];
-
                     // [DEBUG] Log packet to help user debug functionality
                     console.log(`[AG Debug] YouTube Req: ${url.pathname} | Ref: ${details.requestHeaders['Referer']} | Origin: ${details.requestHeaders['Origin'] || 'REMOVED'}`);
                 } else {
@@ -128,12 +129,18 @@ function createWindow() {
                 if (details.responseHeaders) {
                     const url = details.url;
                     const domain = new URL(url).hostname;
-                    
-                    // Shallow copy to ensure modification works
                     const newHeaders = { ...details.responseHeaders };
 
-                    // A. YouTube/Google Video Cleanup (Aggressive Stripping)
-                    if (domain.includes('youtube.com') || domain.includes('googlevideo.com') || domain.includes('youtube-nocookie.com')) {
+                    // 1. YouTube/Google Video/Providers - Remove restrictive policies to allow embedding and scripting
+                    const isProvider = domain.includes('youtube.com') || 
+                                     domain.includes('googlevideo.com') ||
+                                     domain.includes('vidlink.pro') ||
+                                     domain.includes('vidsrc') ||
+                                     domain.includes('onstream') ||
+                                     domain.includes('superembed') ||
+                                     domain.includes('2embed');
+
+                    if (isProvider) {
                         const keysToDelete = [
                             'permissions-policy',
                             'content-security-policy',
@@ -147,26 +154,44 @@ function createWindow() {
                                 delete newHeaders[header];
                             }
                         });
+                        
+                        // For non-YouTube providers, we also want to allow framing from our app specifically
+                        if (!domain.includes('youtube.com')) {
+                            newHeaders['Access-Control-Allow-Origin'] = ['*'];
+                        }
                     }
 
-                    // B. General CSP Injection
-                    if (newHeaders['content-security-policy']) {
-                        let csp = newHeaders['content-security-policy'][0];
-                        csp = csp.replace(/connect-src/g, "connect-src 'self' proxy: app: http: https: ws: wss: ");
-                        csp = csp.replace(/img-src/g, "img-src 'self' proxy: app: http: https: data: blob: ");
-                        csp = csp.replace(/media-src/g, "media-src 'self' proxy: app: http: https: blob: ");
-                        csp = csp.replace(/frame-src/g, "frame-src 'self' proxy: app: http: https: https://www.youtube.com https://www.youtube-nocookie.com ");
-                        
-                        // Fallback if media-src is missing (it falls back to default-src)
-                        if (!csp.includes('media-src')) {
-                            csp += "; media-src 'self' proxy: app: http: https: blob:;";
-                        }
-                        if (!csp.includes('frame-src')) {
-                            csp += "; frame-src 'self' proxy: app: http: https: https://www.youtube.com https://www.youtube-nocookie.com;";
-                        }
-                        newHeaders['content-security-policy'] = [csp];
-                    }
-                    
+// 2. Inject Robust CSP for ALL domains to allow NovaStream features (Torrent/Sources/Proxy)
+let csp = "";
+if (isDev) {
+    // Development: Allow Next.js HMR, unsafe-eval for devtools, and localhost
+    csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000;";
+} else {
+    // Production: NO unsafe-eval, strict origin
+    csp = "default-src 'self' 'unsafe-inline' https:;";
+}
+
+const domains = "https://inertial-event.vercel.app https://novastream.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://127.0.0.1:5000 http://localhost:5000";
+
+// Rebuild script-src
+const scriptSrc = isDev 
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https: blob: app: proxy: file: http://localhost:3000` 
+    : `'self' 'unsafe-inline' https: blob: app: proxy: file:`;
+csp += ` script-src ${scriptSrc} ${domains};`;
+
+                    // Add styles, connect, img, media, frame, font (Condensed)
+                    csp += ` style-src 'self' 'unsafe-inline' https: app: proxy: file: http://localhost:3000 ${domains};`;
+                    csp += ` connect-src 'self' ws: wss: https: proxy: app: file: http: ${domains} http://localhost:3000 ws://localhost:3000;`;
+                    csp += ` img-src 'self' data: blob: proxy: app: file: http: https://* http://localhost:3000;`;
+                    csp += ` media-src 'self' blob: proxy: app: file: http: https: http://localhost:3000;`;
+                    csp += ` frame-src 'self' 'unsafe-inline' https://*.youtube.com https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.googlevideo.com data: blob: app: file: http://localhost:3000;`;
+                    csp += ` font-src 'self' https://fonts.gstatic.com data: app: proxy: file: http://localhost:3000;`;
+
+                    // Remove existing CSP to prevent duplicates
+                    const existingCspKey = Object.keys(newHeaders).find(k => k.toLowerCase() === 'content-security-policy');
+                    if (existingCspKey) delete newHeaders[existingCspKey];
+
+                    newHeaders['content-security-policy'] = [csp];
                     callback({ responseHeaders: newHeaders });
                 } else {
                     callback({ responseHeaders: details.responseHeaders });
@@ -179,32 +204,53 @@ function createWindow() {
     applyResponseHeaders(session.fromPartition('persist:youtube-player'));
 
 
-    // 6. Global Popup & Navigation Lockdown (Soften)
+    // 6. Global Popup & Navigation Lockdown (Surgical)
+    // 6. Global Popup & Navigation Lockdown (Surgical)
     mainWindow.webContents.setWindowOpenHandler((details) => {
         const url = details.url.toLowerCase();
-        // Allow common video provider domains to open windows if really needed, 
-        // but generally we want to block them. However, "scrap global popup" suggests
-        // we should be less restrictive or at least not block EVERYTHING.
-        const blockedHostnames = ['ad', 'click', 'pop', 'redirect', 'promot', 'bet', 'casino'];
-        if (blockedHostnames.some(h => url.includes(h))) {
-            console.log(`[AG] BLOCKED SUSPICIOUS POPUP: ${details.url}`);
+        
+        // 1. Block known ad domains and suspicious patterns
+        const blockedPatterns = [
+            'ad', 'click', 'pop', 'redirect', 'promot', 'bet', 'casino', 
+            'doubleclick', 'syndication', 'analytics', 'tracker', 'pixel',
+            'taboola', 'outbrain', 'mgid', 'revcontent', 'popads', 'popcash',
+            'chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play'
+        ];
+        
+        if (blockedPatterns.some(p => url.includes(p)) && !url.includes('google.com')) {
+            console.log(`[AG] BLOCKED AD/POPUP: ${details.url}`);
             return { action: 'deny' };
         }
 
-        console.log(`[AG] ALLOWING WINDOW OPEN: ${details.url}`);
-        // Instead of denial, we can use 'allow' but it opens a new window.
-        // Or we can use shell.openExternal(details.url) and return { action: 'deny' }
-        shell.openExternal(details.url);
+        // 2. Allow specific user-solicited external links (e.g., Discord, Wiki)
+        const allowedExternals = ['discord.gg', 'github.com', 'wikipedia.org', 'themoviedb.org'];
+        if (allowedExternals.some(h => url.includes(h))) {
+            console.log(`[AG] OPENING EXTERNAL LINK: ${details.url}`);
+            shell.openExternal(details.url);
+            return { action: 'deny' };
+        }
+
+        // 3. Default: Deny any other popup to stay in-app
+        // Changing default to DENY prevents the "flash" of a new window appearing then closing
+        console.warn(`[AG] BLOCKED UNSOLICITED POPUP (Default Deny): ${details.url}`);
         return { action: 'deny' };
     });
 
     // Emergency Window Destroyer (if any window slips through)
-    // app.on('browser-window-created', (event, window) => {
-    //     if (window !== mainWindow) {
-    //         console.log(`[AG] DESTROYING ROGUE WINDOW: ${window.getURL()}`);
-    //         window.destroy();
-    //     }
-    // });
+    app.on('browser-window-created', (event, window) => {
+        // Allow DevTools (they have their own type usually, but we check ID or title)
+        // We only want ONE main window.
+        if (mainWindow && window !== mainWindow) {
+            // Check if it's a devtools window (often title is DevTools)
+            const title = window.getTitle();
+            if (title.includes('DevTools') || title.includes('Extension')) return;
+
+            console.log(`[AG] DESTROYING ROGUE WINDOW: ${title}`);
+            window.close(); // Polite close first
+            // Force destroy if it persists
+            setTimeout(() => { if (!window.isDestroyed()) window.destroy(); }, 100);
+        }
+    });
 
     // 7. Download Lockdown (Blocks "Opera" and other unwanted downloads)
     session.defaultSession.on('will-download', (event, item, webContents) => {
@@ -215,7 +261,7 @@ function createWindow() {
     // Block only highly suspicious main frame navigations
     mainWindow.webContents.on('will-navigate', (event, url) => {
         const lowUrl = url.toLowerCase();
-        const suspiciousPatterns = ['redirect', 'click', 'pop', 'ad', 'bet', 'casino'];
+        const suspiciousPatterns = ['redirect', 'click', 'pop', 'ad', 'bet', 'casino', 'chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play'];
         if (suspiciousPatterns.some(p => lowUrl.includes(p)) && !url.includes('localhost')) {
             console.warn(`[AG] BLOCKED SUSPICIOUS MAIN FRAME NAV: ${url}`);
             event.preventDefault();
@@ -224,12 +270,90 @@ function createWindow() {
 
     // Block any SUBFRAME navigation (iframe) to unknown domains
     mainWindow.webContents.on('will-frame-navigate', (event, url) => {
-        const allowedHostnames = ['localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'youtube-nocookie.com', 'dicebear.com'];
-        const isAllowed = allowedHostnames.some(h => url.includes(h));
+        const allowedHostnames = [
+            'localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.to', 'vidsrc.pro',
+            'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 
+            'dicebear.com', 'googlevideo.com', 'ytimg.com', 'cloudflare.com'
+        ];
+        
+        // Critical Fix: Allow data:, blob:, and about: schemes (Used by players for sandboxing)
+        const isSchemeAllowed = url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('about:');
+        const isHostAllowed = allowedHostnames.some(h => url.includes(h));
 
-        if (!isAllowed) {
+        if (!isSchemeAllowed && !isHostAllowed) {
             console.warn(`[AG] BLOCKED IFRAME HIJACK: ${url}`);
             event.preventDefault();
+        }
+    });
+
+    // 7. Global Webview Lockdown (The "Nuclear" Option)
+    // This attaches the same strict rules to any <webview> or guest content created by the app
+    app.on('web-contents-created', (event, contents) => {
+        if (contents.getType() === 'webview') {
+             // 1. Popup Handler
+             contents.setWindowOpenHandler((details) => {
+                const url = details.url.toLowerCase();
+                const blockedPatterns = ['chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play', 'ad', 'bet', 'casino'];
+                
+                if (blockedPatterns.some(p => url.includes(p)) && !url.includes('google.com')) {
+                    console.log(`[AG] BLOCKED WEBVIEW POPUP: ${details.url}`);
+                    return { action: 'deny' };
+                }
+                
+                // Allow specific externals from webviews (like clicking a cast actor link)
+                const allowedExternals = ['imdb.com', 'themoviedb.org', 'wikipedia.org', 'youtube.com'];
+                if (allowedExternals.some(h => url.includes(h))) {
+                     console.log(`[AG] OPENING EXTERNAL WEBVIEW LINK: ${details.url}`);
+                     shell.openExternal(details.url);
+                     return { action: 'deny' };
+                }
+
+                // Default Deny for Webview Popups too
+                console.log(`[AG] BLOCKED UNKNOWN WEBVIEW POPUP: ${details.url}`);
+                return { action: 'deny' };
+             });
+
+             // 2. Navigation Filter
+             contents.on('will-navigate', (event, url) => {
+                const lowUrl = url.toLowerCase();
+                const suspiciousPatterns = ['redirect', 'click', 'pop', 'ad', 'bet', 'casino', 'chat', 'date', 'cam', 'adult', 'girl', 'bonus', 'win', 'spin', 'game', 'play'];
+                if (suspiciousPatterns.some(p => lowUrl.includes(p)) && !url.includes('localhost') && !url.includes('youtube.com')) {
+                    console.warn(`[AG] BLOCKED WEBVIEW NAV: ${url}`);
+                    event.preventDefault();
+                }
+             });
+             
+             // 3. Relaxed CSP for WebViews (Critical for VidLink/WASM)
+             // We strip the CSP header from the response for WebViews to rely on the page's own CSP 
+             // or our global strict CSP if we want, but for players we often need relaxed rules.
+             contents.session.webRequest.onHeadersReceived((details, callback) => {
+                const responseHeaders = { ...details.responseHeaders };
+                
+                // Allow WASM: Add 'unsafe-eval' to script-src if present, or strip CSP entirely for known players
+                const cspKey = Object.keys(responseHeaders).find(k => k.toLowerCase() === 'content-security-policy');
+                
+                if (cspKey) {
+                    let csp = responseHeaders[cspKey][0];
+                    if (csp.includes('script-src') && !csp.includes("'unsafe-eval'")) {
+                         // Patch existing CSP to allow WASM
+                         csp = csp.replace("script-src", "script-src 'unsafe-eval'");
+                         responseHeaders[cspKey] = [csp];
+                    }
+                }
+                
+                callback({ responseHeaders });
+             });
+             
+             // 3. Frame Navigation Filter
+             contents.on('will-frame-navigate', (event, url) => {
+                 // Reuse allowed logic or just block ads
+                 const lowUrl = url.toLowerCase();
+                 const adPatterns = ['doubleclick', 'adservice', 'pixel', 'tracker', 'analytics'];
+                 if (adPatterns.some(p => lowUrl.includes(p))) {
+                     console.warn(`[AG] BLOCKED WEBVIEW FRAME: ${url}`);
+                     event.preventDefault();
+                 }
+             });
         }
     });
 
@@ -327,6 +451,10 @@ app.on('ready', async () => {
         log(`Mode: ${isDev ? 'Development' : 'Production'}`);
         log(`AppPath: ${app.getAppPath()}`);
         log(`UserData: ${userDataPath}`);
+
+        // 1. Load Secure Environment (Decrypted)
+        log('Loading secure environment...');
+        await licenseManager.loadSecureEnv();
 
     // 1. SYNC REGISTRATIONS (Must happen before any awaits)
     // ---------------------------------------------------
@@ -459,10 +587,36 @@ app.on('ready', async () => {
                 });
             }
 
-            // Local Backend Proxy
+            // Local Backend Proxy (SMART ROUTING)
             else if (url.pathname.startsWith('/api/')) {
-                const BACKEND_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.pathname}${url.search}`;
-                response = await net.fetch(BACKEND_URL);
+                // Scraper endpoints MUST stay local for performance and capability
+                const isLocalRoute = url.pathname.includes('/sources') || 
+                                    url.pathname.includes('/scrape') || 
+                                    url.pathname.includes('/refresh') ||
+                                    url.pathname.includes('/local');
+                
+                const cloudBase = 'https://inertial-event.vercel.app';
+                const localBase = 'http://127.0.0.1:5000';
+
+                // Reverted to Local Backend (Vercel deployment is frontend-only)
+                let targetBase = cloudBase;
+                 if (isLocalRoute) {
+                    targetBase = localBase;
+                    log(`[Proxy Smart] Routing Local: ${url.pathname} -> ${localBase}`);
+                } else {
+                    log(`[Proxy Smart] Routing Cloud: ${url.pathname} -> ${cloudBase}`);
+                }
+                
+                const BACKEND_URL = `${targetBase}${url.pathname}${url.search}`;
+                log(`[Proxy Exec] Fetching: ${BACKEND_URL}`);
+                
+                try {
+                    response = await net.fetch(BACKEND_URL);
+                    log(`[Proxy Exec] Done: ${response.status}`);
+                } catch (fetchErr) {
+                    log(`[Proxy Exec ERROR] Failed to fetch ${BACKEND_URL}: ${fetchErr.message}`);
+                    throw fetchErr;
+                }
             }
 
             if (response) {
@@ -483,10 +637,11 @@ app.on('ready', async () => {
                 });
             }
         } catch (err) {
-            log(`[Proxy Error] ${err.message}`);
+            log(`[Proxy FATAL] ${err.message}`);
+            return new Response(`Proxy Error: ${err.message}`, { status: 502 });
         }
 
-        return new Response('Not Found', { status: 404 });
+        return new Response('Proxy Error: Unhandled Path', { status: 404 });
     });
 
     // Unified Network Filter (Adblock + Proxy Reroute)
@@ -496,23 +651,36 @@ app.on('ready', async () => {
             const url = details.url;
             const urlLower = url.toLowerCase();
             
-            // 1. Critical Reroute: app:// or localhost:3000 -> proxy://
+            // 1. Critical Reroute: Intercept absolute cloud URLs, app://, or localhost:3000 -> proxy://
             const isLocal = url.includes('localhost:3000') || url.includes('127.0.0.1:3000');
+            const isVercelApi = url.startsWith('https://inertial-event.vercel.app/api/');
+            const isNovaStreamApi = url.startsWith('https://novastream.app/api/');
             
             if (url.startsWith('app://-/tmdb-api/') || (isLocal && url.includes('/tmdb-api/'))) {
                 const redirected = `proxy://-/tmdb-api/${url.split('/tmdb-api/')[1]}`;
-                log(`[Dev Reroute] TMDB API: ${url} -> ${redirected}`);
+                log(`[Reroute] TMDB API: ${url} -> ${redirected}`);
                 return callback({ redirectURL: redirected });
             }
             if (url.startsWith('app://-/tmdb-img/') || (isLocal && url.includes('/tmdb-img/'))) {
                 const redirected = `proxy://-/tmdb-img/${url.split('/tmdb-img/')[1]}`;
-                // log(`[Dev Reroute] TMDB IMG: ${url} -> ${redirected}`);
                 return callback({ redirectURL: redirected });
             }
-            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/'))) {
-                const redirected = `proxy://-/api/${url.split('/api/')[1]}`;
-                log(`[Dev Reroute] Backend API: ${url} -> ${redirected}`);
-                return callback({ redirectURL: redirected });
+            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi || isNovaStreamApi) {
+                const pathPart = url.split('/api/')[1];
+                const redirected = `proxy://-/api/${pathPart}`;
+                
+                // CRITICAL: Avoid infinite loop if this request IS the proxy's own net.fetch
+                // Electron net.fetch usually has a unique 'id' or we can check details.resourceType
+                // BUT better yet, let's just make sure we only redirect if it's NOT already being handled.
+                // Actually, the proxy protocol handler handles 'proxy://' so this redirect is safe 
+                // as long as the proxy handler itself doesn't use the SAME URL structure that triggers this.
+                // In main.js, the proxy handler uses 'https://inertial-event.vercel.app' which WILL trigger this.
+                
+                // To prevent loop: Only redirect if it's NOT from the main process itself (which has webContents null or 0)
+                if (details.webContentsId > 0) {
+                    log(`[Reroute] Backend API: ${url} -> ${redirected}`);
+                    return callback({ redirectURL: redirected });
+                }
             }
 
             // 2. Allow-list
@@ -553,77 +721,79 @@ app.on('ready', async () => {
         // 2. ASYNC VALIDATION (Critical Security Path)
         // ---------------------------------------------------
         
-        log('Loading env...');
-        await licenseManager.loadSecureEnv();
-        
-        log('Validating license...');
-        // Safety timeout for validation
-        let validationResult;
-        try {
-            validationResult = await Promise.race([
-                licenseManager.validate(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (15s)')), 15000))
-            ]);
-        } catch (err) {
-            if (err.message && err.message.includes('LICENSE_REVOKED')) {
-                log('License revoked. Prompting for new key.');
-                dialog.showMessageBoxSync({
-                    type: 'error',
-                    title: 'License Revoked',
-                    message: 'Your license validation failed.\n\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\n\nPlease enter a new key to continue.',
-                    buttons: ['OK']
-                });
-                // Force activation flow
-                validationResult = { requiresActivation: true };
-            } else {
-                throw err;
-            }
-        }
-        
-        // Check if activation is required
-        if (validationResult.requiresActivation) {
-            log('No license found. Showing activation window...');
-            
-            // Import activation window module
-            const { createActivationWindow } = require('./activationWindow');
-            
-            // Create standalone activation window (no hidden parent needed)
-            const activationWin = createActivationWindow(null);
-            
-            // Wait for activation to complete or window close
-            const activationSuccess = await new Promise((resolve) => {
-                let wasActivated = false;
-                
-                // Listen for successful activation signal
-                ipcMain.once('activation-success', () => {
-                    wasActivated = true;
-                    log('Activation signal received!');
-                    activationWin.close();
-                });
-                
-                activationWin.on('closed', () => {
-                    resolve(wasActivated);
-                });
-            });
-            
-            if (!activationSuccess) {
-                log('User closed activation without completing. Exiting.');
-                dialog.showMessageBoxSync({
-                    type: 'warning',
-                    title: 'Activation Required',
-                    message: 'NovaStream requires activation to run. Please restart the app and enter a valid license key.',
-                    buttons: ['OK']
-                });
-                app.quit();
-                return;
+        // Skip license validation in development mode
+        if (isDev) {
+            log('Development mode: Skipping license validation');
+        } else {
+            log('Validating license...');
+            // Safety timeout for validation
+            let validationResult;
+            try {
+                validationResult = await Promise.race([
+                    licenseManager.validate(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Security check timeout (30s)')), 30000))
+                ]);
+            } catch (err) {
+                if (err.message && err.message.includes('LICENSE_REVOKED')) {
+                    log('License revoked. Prompting for new key.');
+                    dialog.showMessageBoxSync({
+                        type: 'error',
+                        title: 'License Revoked',
+                        message: 'Your license validation failed.\\n\\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\\n\\nPlease enter a new key to continue.',
+                        buttons: ['OK']
+                    });
+                    // Force activation flow
+                    validationResult = { requiresActivation: true };
+                } else {
+                    throw err;
+                }
             }
             
-            log('Activation completed. Proceeding...');
-        } else if (!validationResult.valid) {
-            throw new Error('License validation failed');
+            // Check if activation is required
+            if (validationResult.requiresActivation) {
+                log('No license found. Showing activation window...');
+                
+                // Import activation window module
+                const { createActivationWindow } = require('./activationWindow');
+                
+                // Create standalone activation window (no hidden parent needed)
+                const activationWin = createActivationWindow(null);
+                
+                // Wait for activation to complete or window close
+                const activationSuccess = await new Promise((resolve) => {
+                    let wasActivated = false;
+                    
+                    // Listen for successful activation signal
+                    ipcMain.once('activation-success', () => {
+                        wasActivated = true;
+                        log('Activation signal received!');
+                        activationWin.close();
+                    });
+                    
+                    activationWin.on('closed', () => {
+                        resolve(wasActivated);
+                    });
+                });
+                
+                if (!activationSuccess) {
+                    log('User closed activation without completing. Exiting.');
+                    dialog.showMessageBoxSync({
+                        type: 'warning',
+                        title: 'Activation Required',
+                        message: 'NovaStream requires activation to run. Please restart the app and enter a valid license key.',
+                        buttons: ['OK']
+                    });
+                    app.quit();
+                    return;
+                }
+                
+                log('Activation completed. Proceeding...');
+            } else if (!validationResult.valid) {
+                throw new Error('License validation failed');
+            }
+            
+            log('Validation OK. Launching UI.');
         }
-        
-        log('Validation OK. Launching UI.');
 
         // 3. START BACKEND SERVER (Production Only)
         // ---------------------------------------------------
@@ -631,6 +801,12 @@ app.on('ready', async () => {
             try {
                 const serverPath = path.join(app.getAppPath(), 'dist-server', 'index.js');
                 log(`[AG] Starting Backend Server from: ${serverPath}`);
+                
+                if (!fs.existsSync(serverPath)) {
+                    log(`[AG CRITICAL] Backend file NOT FOUND at: ${serverPath}`);
+                } else {
+                    log(`[AG] Backend file found. Size: ${fs.statSync(serverPath).size} bytes`);
+                }
                 
                 // Inherit env (which now has decrypted keys) and set PORT
                 const serverEnv = { ...process.env, BACKEND_PORT: '5000', NODE_ENV: 'production' };
@@ -642,6 +818,10 @@ app.on('ready', async () => {
 
                 global.serverProcess.on('error', (err) => {
                     log(`[Backend Error] Failed to start: ${err.message}`);
+                });
+
+                global.serverProcess.on('exit', (code, signal) => {
+                    log(`[Backend CRASH] Process exited with code ${code} signal ${signal}`);
                 });
 
                 global.serverProcess.stdout.on('data', (data) => {
@@ -672,9 +852,21 @@ app.on('ready', async () => {
     }
 
     // Cleanup on exit - MUST kill child processes or installer will fail
-    app.on('before-quit', () => {
+    app.on('before-quit', async (e) => {
         console.log('[AG] Before quit - cleaning up...');
+        e.preventDefault(); // Prevent quit until cleanup finishes
+        
+        try {
+            await torrentService.stopStream();
+            console.log('[AG] Torrent service stopped.');
+        } catch (err) {
+            console.error('[AG] Failed to stop torrent service:', err);
+        }
+
         killAllChildProcesses();
+        
+        // Proceed with quit
+        app.exit(0);
     });
 
     app.on('will-quit', (e) => {
@@ -747,4 +939,68 @@ ipcMain.handle('torrent:stop-stream', async () => {
 // Just in case: Clean up interval on window close
 ipcMain.on('stop-status-updates', () => {
     if (this.statusInterval) clearInterval(this.statusInterval);
+});
+// --- Auto Updater Logic ---
+async function initAutoUpdater() {
+    // Only run in production
+    if (isDev) return;
+
+    try {
+        // Tie to keygen: Check license validity before allowing updates
+        // This ensures blocked/revoked users don't get new patches
+        const licenseStatus = await licenseManager.validate().catch(err => {
+            log('[Updater] License validation failed during update check:', err.message);
+            return { valid: false };
+        });
+
+        if (!licenseStatus.valid) {
+            log('[Updater] License invalid. Skipping remote update check.');
+            return;
+        }
+
+        autoUpdater.autoDownload = true;
+        autoUpdater.autoInstallOnAppQuit = true;
+
+        autoUpdater.on('checking-for-update', () => {
+            log('[Updater] Checking for update...');
+        });
+
+        autoUpdater.on('update-available', (info) => {
+            log('[Updater] Update available:', info.version);
+        });
+
+        autoUpdater.on('update-not-available', (info) => {
+            log('[Updater] No update available.');
+        });
+
+        autoUpdater.on('error', (err) => {
+            log('[Updater] Error:', err);
+        });
+
+        autoUpdater.on('download-progress', (progressObj) => {
+            log('[Updater] Download progress:', Math.round(progressObj.percent) + '%');
+        });
+
+        autoUpdater.on('update-downloaded', (info) => {
+            log('[Updater] Update downloaded; installing seamlessly now.');
+            // This will forcefully restart the app and apply the update without the user 
+            // having to manually quit. The 'true, true' flags tell it to be silent and restart immediately.
+            autoUpdater.quitAndInstall(true, true);
+        });
+
+        // Check for updates every 2 hours or on startup
+        autoUpdater.checkForUpdatesAndNotify();
+        setInterval(() => {
+            autoUpdater.checkForUpdates();
+        }, 1000 * 60 * 60 * 2); 
+    } catch (e) {
+        log('[Updater] Critical initialization failure:', e.message);
+    }
+}
+
+// IPC for manual update triggers if needed
+ipcMain.handle('check-for-updates', async () => {
+    if (isDev) return { message: 'In development mode', available: false };
+    const result = await autoUpdater.checkForUpdates();
+    return { available: result && result.updateInfo.version !== app.getVersion() };
 });

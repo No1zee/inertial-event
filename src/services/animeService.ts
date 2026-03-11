@@ -15,7 +15,7 @@ class AnimeService {
 
     async getSkipRanges(malId: number, episodeNumber: number): Promise<SkipRange[]> {
         try {
-            logger.info(`Fetching AniSkip ranges for MAL ID: ${malId}, Ep: ${episodeNumber}`);
+            logger.info('AnimeService', `Fetching AniSkip ranges for MAL ID: ${malId}, Ep: ${episodeNumber}`);
             const { data } = await axios.get(`${this.ANISKIP_API}/${malId}/${episodeNumber}`, {
                 params: { types: 'op,ed,mixed-ed,recap' },
                 timeout: 5000
@@ -28,7 +28,7 @@ class AnimeService {
             // Fallback to local heuristics if not found
             return this.applyHeuristics(episodeNumber);
         } catch (err) {
-            logger.warn('AniSkip API failed, using heuristics.');
+            logger.warn('AnimeService', 'AniSkip API failed, using heuristics.');
             return this.applyHeuristics(episodeNumber);
         }
     }

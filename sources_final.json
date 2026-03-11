@@ -1,0 +1,19 @@
+﻿{
+    "sources":  [
+                    {
+                        "url":  "https://vidlink.pro/movie/550?primaryColor=dc2626\u0026secondaryColor=141414\u0026iconColor=ffffff\u0026icons=default\u0026autoplay=true\u0026nextbutton=true",
+                        "quality":  "1080p",
+                        "type":  "embed",
+                        "provider":  "Vidlink (HQ)"
+                    },
+                    {
+                        "url":  "https://vidsrc.icu/embed/movie/550",
+                        "quality":  "720p",
+                        "type":  "embed",
+                        "provider":  "VidSrc (Backup)"
+                    }
+                ],
+    "subtitles":  [
+
+                  ]
+}

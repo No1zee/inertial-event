@@ -1,22 +1,27 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "backend/src/index.ts",
-      "use": "@vercel/node"
+    "version": 2,
+    "functions": {
+        "api/keygen/index.mjs": {
+            "memory": 256,
+            "maxDuration": 10
+        }
     },
-    {
-      "src": "keygen-server/server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    { "src": "/api/keygen/(.*)", "dest": "keygen-server/server.js" },
-    { "src": "/api/(.*)", "dest": "backend/src/index.ts" },
-    { "src": "/(.*)", "dest": "/$1" }
-  ]
+    "rewrites": [
+        {
+            "source": "/api/keygen/ping",
+            "destination": "/api/keygen/index.mjs"
+        },
+        {
+            "source": "/api/keygen/api/:path*",
+            "destination": "/api/keygen/index.mjs"
+        },
+        {
+            "source": "/api/keygen/:path*",
+            "destination": "/api/keygen/index.mjs"
+        },
+        {
+            "source": "/api/keygen",
+            "destination": "/api/keygen/index.mjs"
+        }
+    ]
 }
