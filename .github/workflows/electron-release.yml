@@ -62,20 +62,32 @@ jobs:
     - name: Setup for code signing (macOS)
       if: matrix.platform == 'mac'
       run: |
-        # Import certificates and provisioning profiles
-        echo ${{ secrets.APPLE_CERT }} | base64 --decode > certificate.p12
-        security create-keychain -p build keychain
-        security default-keychain -s keychain
-        security unlock-keychain -p build keychain
-        security import certificate.p12 -k ~/Library/Keychains/keychain-db -P ${{ secrets.APPLE_CERT_PASSWORD }} -T /usr/bin/codesign
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k build keychain
+        if [ -n "${{ secrets.APPLE_CERT }}" ]; then
+          # Import certificates and provisioning profiles
+          echo "${{ secrets.APPLE_CERT }}" | base64 --decode > certificate.p12
+          security create-keychain -p build keychain
+          security default-keychain -s keychain
+          security unlock-keychain -p build keychain
+          security import certificate.p12 -k ~/Library/Keychains/keychain-db -P "${{ secrets.APPLE_CERT_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k build keychain
+          echo "CSC_LINK=certificate.p12" >> $GITHUB_ENV
+          echo "CSC_KEY_PASSWORD=${{ secrets.APPLE_CERT_PASSWORD }}" >> $GITHUB_ENV
+        else
+          echo "No APPLE_CERT secret found. Skipping macOS code signing."
+        fi
 
     - name: Setup for code signing (Windows)
       if: matrix.platform == 'windows'
       run: |
-        # Import Windows certificate
-        echo ${{ secrets.WINDOWS_CERT }} | base64 --decode > certificate.pfx
-        certutil -importpfx certificate.pfx -p ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        if [ -n "${{ secrets.WINDOWS_CERT }}" ]; then
+          # Import Windows certificate
+          echo "${{ secrets.WINDOWS_CERT }}" | base64 --decode > certificate.pfx
+          certutil -importpfx certificate.pfx -p "${{ secrets.WINDOWS_CERT_PASSWORD }}"
+          echo "WINDOWS_CERT_LINK=certificate.pfx" >> $GITHUB_ENV
+          echo "WINDOWS_CERT_PASSWORD=${{ secrets.WINDOWS_CERT_PASSWORD }}" >> $GITHUB_ENV
+        else
+          echo "No WINDOWS_CERT secret found. Skipping Windows code signing."
+        fi
 
     - name: Build Electron application
       run: npm run electron-build
@@ -83,10 +95,6 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         APPLE_ID: ${{ secrets.APPLE_ID }}
         APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-        CSC_LINK: certificate.p12
-        CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-        WINDOWS_CERT_LINK: certificate.pfx
-        WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
