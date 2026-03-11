@@ -102,6 +102,7 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
 
     if (type === 'anime') {
         params.append('fallback', 'true');
+        params.append('dub', '1'); // Force Dub as default audio track
     }
 
     const baseUrl = 'https://vidlink.pro';
