@@ -14,8 +14,17 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
     const addToHistory = useHistoryStore((state: any) => state.addToHistory);
     const trackSeries = useSeriesTrackingStore((state: any) => state.trackSeries);
 
+    // Heuristically determine if it's anime, since TMDB often classifies it as 'tv'
+    const isAnime = type === 'anime' || (
+        type === 'tv' && 
+        content?.originalLanguage === 'ja' &&
+        content?.genres?.includes('Animation')
+    );
+
+    const activeType = isAnime ? 'anime' : type;
+
     const [animeEndpoint, setAnimeEndpoint] = useState<string | null>(null);
-    const [isFetchingMalId, setIsFetchingMalId] = useState<boolean>(type === 'anime');
+    const [isFetchingMalId, setIsFetchingMalId] = useState<boolean>(activeType === 'anime');
     const [startAt, setStartAt] = useState<number>(0);
 
     // Retrieve watch progress for startAt
@@ -26,14 +35,13 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
                 const progressData = JSON.parse(stored);
                 const itemData = progressData[tmdbId];
                 if (itemData) {
-                    if (type === 'movie' && itemData.progress?.watched) {
-                        // Don't resume if they finished the movie (e.g. within last 5 minutes)
+                    if (activeType === 'movie' && itemData.progress?.watched) {
                         if (itemData.progress.duration && (itemData.progress.duration - itemData.progress.watched < 300)) {
                             setStartAt(0);
                         } else {
                             setStartAt(Math.floor(itemData.progress.watched));
                         }
-                    } else if ((type === 'tv' || type === 'anime') && itemData.show_progress) {
+                    } else if ((activeType === 'tv' || activeType === 'anime') && itemData.show_progress) {
                         const epKey = `s${season}e${episode}`;
                         const epData = itemData.show_progress[epKey];
                         if (epData?.progress?.watched) {
@@ -49,20 +57,33 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
         } catch (e) {
             console.error('Error reading VidLink progress from localStorage:', e);
         }
-    }, [tmdbId, type, season, episode]);
+    }, [tmdbId, activeType, season, episode]);
 
-    // Fetch MAL ID for Anime to support English Dub preference
+    // Fetch MAL ID for Anime to support English Dub preference and calculate Absolute Episode
     useEffect(() => {
-        if (type === 'anime' && content?.title) {
+        if (activeType === 'anime' && content?.title) {
             const fetchMalId = async () => {
                 try {
+                    // Calculate absolute episode number by summing previous seasons
+                    let absoluteEpisode = Number(episode);
+                    if (content.seasonsList && content.seasonsList.length > 0) {
+                        const currentSeason = Number(season);
+                        let previousEpisodesCount = 0;
+                        for (const s of content.seasonsList) {
+                            if (s.season_number > 0 && s.season_number < currentSeason) {
+                                previousEpisodesCount += (s.episode_count || 0);
+                            }
+                        }
+                        absoluteEpisode = previousEpisodesCount + Number(episode);
+                    }
+
                     const cleanTitle = content.title.replace(/Season \d+/i, '').trim();
                     const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanTitle)}&limit=1`);
                     const data = await res.json();
                     
                     if (data?.data?.[0]?.mal_id) {
                         const malId = data.data[0].mal_id;
-                        setAnimeEndpoint(`/anime/${malId}/${episode}/dub`);
+                        setAnimeEndpoint(`/anime/${malId}/${absoluteEpisode}/dub`);
                     } else {
                         throw new Error('No MAL ID found');
                     }
@@ -75,13 +96,13 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
             };
             fetchMalId();
         }
-    }, [type, content?.title, tmdbId, season, episode]);
+    }, [activeType, content, tmdbId, season, episode]);
 
     // Build URL endpoint
     let endpoint = '';
-    if (type === 'movie') endpoint = `/movie/${tmdbId}`;
-    else if (type === 'tv') endpoint = `/tv/${tmdbId}/${season}/${episode}`;
-    else if (type === 'anime') endpoint = animeEndpoint || '';
+    if (activeType === 'movie') endpoint = `/movie/${tmdbId}`;
+    else if (activeType === 'tv') endpoint = `/tv/${tmdbId}/${season}/${episode}`;
+    else if (activeType === 'anime') endpoint = animeEndpoint || '';
 
     // Apply Premium Player Parameters
     const params = new URLSearchParams({
@@ -100,7 +121,7 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
         params.append('startAt', startAt.toString());
     }
 
-    if (type === 'anime') {
+    if (activeType === 'anime') {
         params.append('fallback', 'true');
         params.append('dub', '1'); // Force Dub as default audio track
     }
@@ -134,14 +155,14 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
                                 ...content,
                                 progress: currentTime,
                                 duration: duration,
-                                season: type !== 'movie' ? Number(season) : undefined,
-                                episode: type !== 'movie' ? Number(episode) : undefined
+                                season: activeType !== 'movie' ? Number(season) : undefined,
+                                episode: activeType !== 'movie' ? Number(episode) : undefined
                             });
                             (window as any)._lastHistoryUpdate = now;
                         }
 
                         // Throttle Series Tracking
-                        if (type === 'tv' || type === 'anime') {
+                        if (activeType === 'tv' || activeType === 'anime') {
                             const lastTrackUpdate = (window as any)._lastTrackUpdate || 0;
                             if (now - lastTrackUpdate > 60000 || eventType === 'ended') {
                                 trackSeries(content, Number(season), Number(episode));
@@ -155,7 +176,7 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [content, type, season, episode, addToHistory, trackSeries]);
+    }, [content, activeType, season, episode, addToHistory, trackSeries]);
 
     if (isFetchingMalId || !src) {
         return (
