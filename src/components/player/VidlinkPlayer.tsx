@@ -16,21 +16,52 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
 
     const [animeEndpoint, setAnimeEndpoint] = useState<string | null>(null);
     const [isFetchingMalId, setIsFetchingMalId] = useState<boolean>(type === 'anime');
+    const [startAt, setStartAt] = useState<number>(0);
+
+    // Retrieve watch progress for startAt
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('vidLinkProgress');
+            if (stored) {
+                const progressData = JSON.parse(stored);
+                const itemData = progressData[tmdbId];
+                if (itemData) {
+                    if (type === 'movie' && itemData.progress?.watched) {
+                        // Don't resume if they finished the movie (e.g. within last 5 minutes)
+                        if (itemData.progress.duration && (itemData.progress.duration - itemData.progress.watched < 300)) {
+                            setStartAt(0);
+                        } else {
+                            setStartAt(Math.floor(itemData.progress.watched));
+                        }
+                    } else if ((type === 'tv' || type === 'anime') && itemData.show_progress) {
+                        const epKey = `s${season}e${episode}`;
+                        const epData = itemData.show_progress[epKey];
+                        if (epData?.progress?.watched) {
+                            if (epData.progress.duration && (epData.progress.duration - epData.progress.watched < 300)) {
+                                setStartAt(0);
+                            } else {
+                                setStartAt(Math.floor(epData.progress.watched));
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error reading VidLink progress from localStorage:', e);
+        }
+    }, [tmdbId, type, season, episode]);
 
     // Fetch MAL ID for Anime to support English Dub preference
     useEffect(() => {
         if (type === 'anime' && content?.title) {
             const fetchMalId = async () => {
                 try {
-                    // Clean title for better search results (remove "Season 2", etc)
                     const cleanTitle = content.title.replace(/Season \d+/i, '').trim();
                     const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanTitle)}&limit=1`);
                     const data = await res.json();
                     
                     if (data?.data?.[0]?.mal_id) {
                         const malId = data.data[0].mal_id;
-                        // Use Vidlink's dedicated anime endpoint requesting 'dub'
-                        // Vidlink uses absolute episode logic for this endpoint mostly, but we pass what we have
                         setAnimeEndpoint(`/anime/${malId}/${episode}/dub`);
                     } else {
                         throw new Error('No MAL ID found');
@@ -52,21 +83,25 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
     else if (type === 'tv') endpoint = `/tv/${tmdbId}/${season}/${episode}`;
     else if (type === 'anime') endpoint = animeEndpoint || '';
 
-    // Apply parameters
+    // Apply Premium Player Parameters
     const params = new URLSearchParams({
-        primaryColor: '63b8bc',
-        secondaryColor: 'a2a2a2',
-        iconColor: 'eefdec',
-        icons: 'default',
-        player: 'default',
+        primaryColor: 'E50914', // Netflix Red / NovaStream accent
+        secondaryColor: '1A1A1A', // Dark Gray overlay
+        iconColor: 'FFFFFF', // Crisp White icons
+        icons: 'vid', // Custom Vid icons
+        player: 'jw', // Professional JW Player UI
         title: 'true',
         poster: 'true',
         autoplay: 'false',
         nextbutton: 'true'
     });
 
+    if (startAt > 0) {
+        params.append('startAt', startAt.toString());
+    }
+
     if (type === 'anime') {
-        params.append('fallback', 'true'); // Fallback to sub if dub is unavailable
+        params.append('fallback', 'true');
     }
 
     const baseUrl = 'https://vidlink.pro';
