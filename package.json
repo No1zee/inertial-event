@@ -20,13 +20,13 @@
             "!**/*.tsx",
             "!**/*.map"
         ],
-        "publish": [
-            {
-                "provider": "github",
-                "owner": "No1zee",
-                "repo": "inertial-event"
-            }
-        ],
+        "linux": {
+            "target": [
+                "AppImage",
+                "deb"
+            ],
+            "category": "AudioVideo"
+        },
         "win": {
             "target": [
                 {
