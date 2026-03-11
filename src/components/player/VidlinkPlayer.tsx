@@ -110,20 +110,20 @@ export function VidlinkPlayer({ tmdbId, type, season = 1, episode = 1, content }
         secondaryColor: '1A1A1A', // Dark Gray overlay
         iconColor: 'FFFFFF', // Crisp White icons
         icons: 'vid', // Custom Vid icons
-        player: 'jw', // Professional JW Player UI
         title: 'true',
         poster: 'true',
         autoplay: 'false',
         nextbutton: 'true'
     });
 
-    if (startAt > 0) {
-        params.append('startAt', startAt.toString());
+    if (activeType !== 'anime') {
+        params.append('player', 'jw'); // Professional JW Player UI for Movies/TV
+    } else {
+        params.append('fallback', 'true');
     }
 
-    if (activeType === 'anime') {
-        params.append('fallback', 'true');
-        params.append('dub', '1'); // Force Dub as default audio track
+    if (startAt > 0) {
+        params.append('startAt', startAt.toString());
     }
 
     const baseUrl = 'https://vidlink.pro';
