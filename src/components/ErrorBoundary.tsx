@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
@@ -52,7 +52,8 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-md w-full bg-gray-800 rounded-lg p-6 text-center">
             <h1 className="text-2xl font-bold mb-4 text-red-400">Something went wrong</h1>
             <p className="text-gray-300 mb-6">
-              We're sorry, but something unexpected happened. The app has encountered an error and needs to restart.
+              We&apos;re sorry, but something unexpected happened. The app has encountered an error and needs to
+              restart.
             </p>
             <button
               onClick={() => window.location.reload()}
@@ -95,7 +96,7 @@ export const useErrorHandler = () => {
   React.useEffect(() => {
     if (error) {
       console.error('Error caught by useErrorHandler:', error);
-      
+
       // In production, send to error tracking service
       if (process.env.NODE_ENV === 'production') {
         // Example: sendToErrorService(error);

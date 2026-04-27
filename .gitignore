@@ -60,3 +60,19 @@ next-env.d.ts
 # Electron
 electron/dist
 electron/main.js.map
+
+# Agent & Dev Cache
+.agent/
+.cache/
+.antigravityignore
+
+# Logs & Temporary Files
+*.log
+build_log*.txt
+build_try*.txt
+*_utf8.*
+*_output.*
+current_*.txt
+final_*.txt
+lint_*.txt
+tsc_*.log

@@ -2,14 +2,19 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // output: 'export',  // Disabled for Electron - use standard build
   reactStrictMode: false,
   compress: true,
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: false, // Re-enable only for deep production debugging
 
   images: {
-    unoptimized: true,
+    loader: 'custom',
+    loaderFile: './src/lib/utils/imageLoader.ts',
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'wsrv.nl',
+      },
       {
         protocol: 'https',
         hostname: '**.tmdb.org',
@@ -26,35 +31,31 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.consumet.org',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.transparenttextures.com',
+      }
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 2592000, 
   },
 
   experimental: {
-    optimizePackageImports: ['@headlessui/react'],
+    optimizePackageImports: [
+      '@headlessui/react', 
+      'lucide-react', 
+      'framer-motion'
+    ],
   },
   transpilePackages: [
-    'lucide-react', 
-    '@headlessui/react', 
-    'framer-motion', 
-    'zustand', 
-    'axios', 
-    '@radix-ui/react-dialog', 
     '@vidstack/react',
     'hls.js',
-    'dashjs',
-    '@tanstack/react-query',
-    '@tanstack/query-core',
-    'uuid',
-    'zod',
-    'react-hook-form',
-    'maverick.js',
-    'media-captions',
-    'media-icons',
-    'tailwind-merge',
-    'clsx'
+    'dashjs'
   ],
   swcMinify: true,
   webpack: (config, options) => {
@@ -73,6 +74,14 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:5000/api/:path*',
+      },
+    ];
   },
 };
 

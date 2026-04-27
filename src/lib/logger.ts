@@ -2,14 +2,14 @@ export enum LogLevel {
   ERROR = 'error',
   WARN = 'warn',
   INFO = 'info',
-  DEBUG = 'debug'
+  DEBUG = 'debug',
 }
 
 export interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   error?: Error;
   userId?: string;
   sessionId?: string;
@@ -41,20 +41,22 @@ export class Logger {
     return messageLevelIndex <= currentLevelIndex;
   }
 
-  private createLogEntry(level: LogLevel, message: string, context?: Record<string, any>, error?: Error): LogEntry {
+  private createLogEntry(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error): LogEntry {
     return {
       timestamp: new Date().toISOString(),
       level,
       message,
       context,
-      error: error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      } as Error : undefined,
+      error: error
+        ? ({
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          } as Error)
+        : undefined,
       // Add user context if available (you can enhance this with actual user session)
       userId: this.getUserId(),
-      sessionId: this.getSessionId()
+      sessionId: this.getSessionId(),
     };
   }
 
@@ -65,22 +67,27 @@ export class Logger {
 
     // Add to in-memory logs
     this.logs.push(entry);
-    
+
     // Keep logs within memory limit
     if (this.logs.length > this.maxLogSize) {
       this.logs = this.logs.slice(-this.maxLogSize);
     }
 
     // Console output
-    const logMethod = entry.level === LogLevel.ERROR ? 'error' :
-                      entry.level === LogLevel.WARN ? 'warn' :
-                      entry.level === LogLevel.INFO ? 'info' : 'debug';
+    const logMethod =
+      entry.level === LogLevel.ERROR
+        ? 'error'
+        : entry.level === LogLevel.WARN
+          ? 'warn'
+          : entry.level === LogLevel.INFO
+            ? 'info'
+            : 'debug';
 
     console[logMethod](`[${entry.timestamp}] ${entry.level.toUpperCase()}: ${entry.message}`, {
       context: entry.context,
       error: entry.error,
       userId: entry.userId,
-      sessionId: entry.sessionId
+      sessionId: entry.sessionId,
     });
 
     // In production, send to external logging service
@@ -89,43 +96,47 @@ export class Logger {
     }
   }
 
-  error(message: string, context?: Record<string, any>, error?: Error): void {
+  error(message: string, context?: Record<string, unknown>, error?: Error): void {
     const entry = this.createLogEntry(LogLevel.ERROR, message, context, error);
     this.log(entry);
   }
 
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     const entry = this.createLogEntry(LogLevel.WARN, message, context);
     this.log(entry);
   }
 
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     const entry = this.createLogEntry(LogLevel.INFO, message, context);
     this.log(entry);
   }
 
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     const entry = this.createLogEntry(LogLevel.DEBUG, message, context);
     this.log(entry);
   }
 
   // Logging for specific contexts
-  apiError(endpoint: string, error: Error, context?: Record<string, any>): void {
-    this.error(`API Error: ${endpoint}`, { 
-      endpoint, 
-      ...context 
-    }, error);
+  apiError(endpoint: string, error: Error, context?: Record<string, unknown>): void {
+    this.error(
+      `API Error: ${endpoint}`,
+      {
+        endpoint,
+        ...context,
+      },
+      error
+    );
   }
 
-  userAction(action: string, context?: Record<string, any>): void {
+  userAction(action: string, context?: Record<string, unknown>): void {
     this.info(`User Action: ${action}`, context);
   }
 
-  performance(operation: string, duration: number, context?: Record<string, any>): void {
+  performance(operation: string, duration: number, context?: Record<string, unknown>): void {
     this.info(`Performance: ${operation} took ${duration}ms`, {
       operation,
       duration,
-      ...context
+      ...context,
     });
   }
 
@@ -193,18 +204,18 @@ export class Logger {
 export const logger = Logger.getInstance();
 
 // Export convenience functions
-export const logError = (message: string, context?: Record<string, any>, error?: Error) => {
+export const logError = (message: string, context?: Record<string, unknown>, error?: Error) => {
   logger.error(message, context, error);
 };
 
-export const logWarn = (message: string, context?: Record<string, any>) => {
+export const logWarn = (message: string, context?: Record<string, unknown>) => {
   logger.warn(message, context);
 };
 
-export const logInfo = (message: string, context?: Record<string, any>) => {
+export const logInfo = (message: string, context?: Record<string, unknown>) => {
   logger.info(message, context);
 };
 
-export const logDebug = (message: string, context?: Record<string, any>) => {
+export const logDebug = (message: string, context?: Record<string, unknown>) => {
   logger.debug(message, context);
 };

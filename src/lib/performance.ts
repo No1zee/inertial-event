@@ -6,7 +6,7 @@ export interface PerformanceMetric {
   startTime: number;
   endTime?: number;
   duration?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class PerformanceMonitor {
@@ -29,7 +29,7 @@ export class PerformanceMonitor {
     if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
       // Monitor navigation timing
       try {
-        const navigationObserver = new PerformanceObserver((list) => {
+        const navigationObserver = new PerformanceObserver(list => {
           for (const entry of list.getEntries()) {
             if (entry.entryType === 'navigation') {
               const navEntry = entry as PerformanceNavigationTiming;
@@ -37,7 +37,7 @@ export class PerformanceMonitor {
                 domContentLoaded: navEntry.domContentLoadedEventEnd - navEntry.domContentLoadedEventStart,
                 firstPaint: this.getFirstPaint(),
                 firstContentfulPaint: this.getFirstContentfulPaint(),
-                transferSize: navEntry.transferSize
+                transferSize: navEntry.transferSize,
               });
             }
           }
@@ -50,12 +50,12 @@ export class PerformanceMonitor {
 
       // Monitor long tasks
       try {
-        const longTaskObserver = new PerformanceObserver((list) => {
+        const longTaskObserver = new PerformanceObserver(list => {
           for (const entry of list.getEntries()) {
             logger.warn('Long task detected', {
               duration: entry.duration,
               startTime: entry.startTime,
-              name: entry.name
+              name: entry.name,
             });
           }
         });
@@ -67,7 +67,7 @@ export class PerformanceMonitor {
 
       // Monitor resource loading
       try {
-        const resourceObserver = new PerformanceObserver((list) => {
+        const resourceObserver = new PerformanceObserver(list => {
           for (const entry of list.getEntries()) {
             if (entry.entryType === 'resource') {
               const resource = entry as PerformanceResourceTiming;
@@ -75,7 +75,7 @@ export class PerformanceMonitor {
                 name: resource.name,
                 duration: resource.duration,
                 size: resource.transferSize,
-                type: this.getResourceType(resource.name)
+                type: this.getResourceType(resource.name),
               });
             }
           }
@@ -115,19 +115,19 @@ export class PerformanceMonitor {
     return 'other';
   }
 
-  startTimer(name: string, metadata?: Record<string, any>): string {
+  startTimer(name: string, metadata?: Record<string, unknown>): string {
     const id = `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const metric: PerformanceMetric = {
       name,
       startTime: performance.now(),
-      metadata
+      metadata,
     };
     this.metrics.set(id, metric);
     logger.debug(`Timer started: ${name}`, { timerId: id, metadata });
     return id;
   }
 
-  endTimer(id: string, additionalMetadata?: Record<string, any>): PerformanceMetric | undefined {
+  endTimer(id: string, additionalMetadata?: Record<string, unknown>): PerformanceMetric | undefined {
     const metric = this.metrics.get(id);
     if (!metric) {
       logger.warn(`Timer not found: ${id}`);
@@ -145,15 +145,15 @@ export class PerformanceMonitor {
     return metric;
   }
 
-  measureAsync<T>(name: string, fn: () => Promise<T>, metadata?: Record<string, any>): Promise<T> {
+  measureAsync<T>(name: string, fn: () => Promise<T>, metadata?: Record<string, unknown>): Promise<T> {
     const timerId = this.startTimer(name, metadata);
-    
+
     return fn().finally(() => {
       this.endTimer(timerId);
     });
   }
 
-  measureSync<T>(name: string, fn: () => T, metadata?: Record<string, any>): T {
+  measureSync<T>(name: string, fn: () => T, metadata?: Record<string, unknown>): T {
     const timerId = this.startTimer(name, metadata);
     try {
       const result = fn();
@@ -172,7 +172,7 @@ export class PerformanceMonitor {
     FCP?: number;
     TTFB?: number;
   } {
-    const vitals: any = {};
+    const vitals: Record<string, number | undefined> = {};
 
     if (typeof window !== 'undefined' && 'performance' in window) {
       // Largest Contentful Paint (LCP)
@@ -230,27 +230,23 @@ export class PerformanceMonitor {
 export const performanceMonitor = PerformanceMonitor.getInstance();
 
 // Convenience functions
-export const startTimer = (name: string, metadata?: Record<string, any>) => {
+export const startTimer = (name: string, metadata?: Record<string, unknown>) => {
   return performanceMonitor.startTimer(name, metadata);
 };
 
-export const endTimer = (id: string, additionalMetadata?: Record<string, any>) => {
+export const endTimer = (id: string, additionalMetadata?: Record<string, unknown>) => {
   return performanceMonitor.endTimer(id, additionalMetadata);
 };
 
 export const measureAsync = async <T>(
-  name: string, 
-  fn: () => Promise<T>, 
-  metadata?: Record<string, any>
+  name: string,
+  fn: () => Promise<T>,
+  metadata?: Record<string, unknown>
 ): Promise<T> => {
   return performanceMonitor.measureAsync(name, fn, metadata);
 };
 
-export const measureSync = <T>(
-  name: string, 
-  fn: () => T, 
-  metadata?: Record<string, any>
-): T => {
+export const measureSync = <T>(name: string, fn: () => T, metadata?: Record<string, unknown>): T => {
   return performanceMonitor.measureSync(name, fn, metadata);
 };
 
@@ -263,7 +259,7 @@ export const usePerformanceMonitor = () => {
     logger.debug(`React component measurement started: ${name}`);
   }, []);
 
-  const endMeasurement = React.useCallback((name: string, metadata?: Record<string, any>) => {
+  const endMeasurement = React.useCallback((name: string, metadata?: Record<string, unknown>) => {
     if (startTime.current) {
       const duration = performance.now() - startTime.current;
       logger.performance(`React Component: ${name}`, duration, metadata);

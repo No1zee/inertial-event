@@ -12,7 +12,9 @@ const ALLOWED_CHANNELS = {
         'torrent:get-status',
         'source:get-all',
         'CAST_PLAY',
-        'get-player-preload-path-v2'
+        'get-player-preload-path',
+        'get-player-preload-path-v2',
+        'backend:wake-up'
     ],
     SEND: [
         'activation-success',

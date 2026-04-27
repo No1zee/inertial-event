@@ -21,20 +21,43 @@ try {
 
 class TorrentService {
     constructor() {
-        this.client = WebTorrent ? new WebTorrent({
-            maxConns: 55,        // Reasonable limit for home routers
-            uploadLimit: 1024 * 1024, // 1MB/s upload limit to prevent unresponsiveness
-            dht: true,
-            lsd: true,
-            tracker: true
-        }) : null;
+        this.client = null;
         this.activeTorrent = null;
         this.server = null;
         this.metadataTimeout = null;
-        this.isStarting = false; // P0: Lock to prevent race conditions
+        this.isStarting = false;
+        this.config = {
+            path: null,
+            maxCacheSize: 10 * 1024 * 1024 * 1024, // 10GB default cap
+        };
+        
+        // Removed eager initClient() call to save PIDs on startup
     }
 
+    initClient(options = {}) {
+        if (this.client) return; // Prevent multiple initializations
+
+        this.client = WebTorrent ? new WebTorrent({
+            maxConns: 55,
+            uploadLimit: 1024 * 1024,
+            dht: true,
+            lsd: true,
+            tracker: true,
+            path: options.path || this.config.path
+        }) : null;
+    }
+
+    updateConfig(newConfig) {
+        this.config = { ...this.config, ...newConfig };
+        if (newConfig.path) {
+            console.log('[TorrentService] Updating download path to:', newConfig.path);
+            this.initClient({ path: newConfig.path });
+        }
+    }
+
+
     async startStream(magnetLink) {
+        this.initClient(); // Lazy initialize engine on first use
         if (!this.client) throw new Error("WebTorrent engine not available.");
 
         // P0: Prevent duplicate starts
@@ -309,25 +332,95 @@ class TorrentService {
         }
 
         if (this.activeTorrent) {
-            console.log('Destroying Active Torrent...');
+            console.log('Stopping Active Torrent (Preserving Data)...');
             const torrent = this.activeTorrent;
-            promises.push(new Promise(resolve => torrent.destroy({ destroyStore: true }, resolve)));
+            // P0: Do NOT destroyStore - keep files for instant resume
+            promises.push(new Promise(resolve => torrent.destroy({ destroyStore: false }, resolve)));
             this.activeTorrent = null;
         }
 
-        // Nuclear option: Clean up ANY other torrents in the client to be 100% sure
+        if (this.transcodeServer) {
+            console.log('Stopping Transcode Server...');
+            const transcodeServer = this.transcodeServer;
+            promises.push(new Promise(resolve => transcodeServer.close(resolve)));
+            this.transcodeServer = null;
+        }
+
+        // Nuclear option: Clean up ANY other torrents in the client
         if (this.client && this.client.torrents.length > 0) {
             console.log(`Cleaning up ${this.client.torrents.length} orphaned torrents...`);
             this.client.torrents.forEach(t => {
-                promises.push(new Promise(resolve => t.destroy({ destroyStore: true }, resolve)));
+                promises.push(new Promise(resolve => t.destroy({ destroyStore: false }, resolve)));
             });
         }
 
         if (promises.length > 0) {
             await Promise.all(promises);
-            console.log('Torrent Stream Cleanup Complete');
+            console.log('Torrent Stream Stopped (Files Persisted)');
+            
+            // Periodically run cleanup to respect the 10GB cap
+            this.cleanupCache();
         }
     }
+
+    /**
+     * Managed cleanup: Removes oldest files if cache exceeds 10GB.
+     * This keeps the app lean while allowing for several high-quality movies to be cached.
+     */
+    async cleanupCache() {
+        if (!this.config.path) return;
+        
+        const fs = require('fs');
+        const fsPromises = fs.promises;
+        
+        try {
+            const files = await fsPromises.readdir(this.config.path);
+            let totalSize = 0;
+            const fileStats = [];
+
+            for (const file of files) {
+                const filePath = path.join(this.config.path, file);
+                try {
+                    const stats = await fsPromises.stat(filePath);
+                    totalSize += stats.size;
+                    fileStats.push({ path: filePath, size: stats.size, mtime: stats.mtime });
+                } catch (e) {}
+            }
+
+            console.log(`[Torrent Cache] Current size: ${(totalSize / 1024 / 1024 / 1024).toFixed(2)} GB`);
+
+            if (totalSize > this.config.maxCacheSize) {
+                console.log(`[Torrent Cache] Exceeds ${this.config.maxCacheSize / 1024 / 1024 / 1024}GB limit. Purging oldest files...`);
+                
+                // Sort by oldest modified time
+                fileStats.sort((a, b) => a.mtime - b.mtime);
+                
+                let purgedSize = 0;
+                const targetPurge = totalSize - (this.config.maxCacheSize * 0.8); // Purge until we are at 80% capacity
+
+                for (const file of fileStats) {
+                    if (purgedSize >= targetPurge) break;
+                    
+                    try {
+                        // Check if it's a directory or file
+                        const stats = await fsPromises.stat(file.path);
+                        if (stats.isDirectory()) {
+                            await fsPromises.rm(file.path, { recursive: true, force: true });
+                        } else {
+                            await fsPromises.unlink(file.path);
+                        }
+                        purgedSize += file.size;
+                        console.log(`[Torrent Cache] Purged: ${file.path}`);
+                    } catch (e) {
+                        console.warn(`[Torrent Cache] Failed to purge ${file.path}:`, e.message);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('[Torrent Cache Cleanup Error]:', err);
+        }
+    }
+
 
     getStats() {
         if (!this.activeTorrent) return null;

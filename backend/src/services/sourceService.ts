@@ -28,7 +28,9 @@ interface StreamResult {
 import { vidlinkService } from './vidlinkService.js';
 import { consumetService } from './consumetService.js';
 import { torrentService } from './torrentService.js';
-import { IProviderResponse } from './providers/ProviderSchemas.js';
+import { VidsrcResolver } from './providers/VidsrcResolver.js';
+import { EmbedSuResolver } from './providers/EmbedSuResolver.js';
+import { IProviderResponse, IStreamSource } from './providers/ProviderSchemas.js';
 
 class SourceService {
     private cacheExpiry = 3600; // 1 hour
@@ -38,14 +40,19 @@ class SourceService {
         seasonNumber: number,
         episodeNumber: number,
         title: string,
-        type: 'movie' | 'tv'
+        type: 'movie' | 'tv' | 'anime' | 'series',
+        audioPreference?: string
     ): Promise<IProviderResponse> {
         try {
+            const mappedType: 'movie' | 'tv' = (type === 'tv' || type === 'anime' || type === 'series') ? 'tv' : 'movie';
+            
             // Parallel execution with error boundaries inside each service
             const results = await Promise.allSettled([
-                vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type), // Pass type
-                // consumetService.getStreamingLinks(contentId), // Disable strictly to test vidlink, or keep? let's keep.
-                torrentService.getSources(contentId, episodeNumber, seasonNumber, type) // Re-enabled for Fallback
+                vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type, audioPreference),
+                consumetService.getStreamingLinks(contentId, episodeNumber, seasonNumber, type, title),
+                torrentService.getSources(contentId, episodeNumber, seasonNumber, type),
+                VidsrcResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber),
+                EmbedSuResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber)
             ]);
 
             const aggregated: IProviderResponse = {
@@ -53,19 +60,25 @@ class SourceService {
                 subtitles: []
             };
 
+            const providerNames = ['Vidlink', 'Consumet', 'Torrent', 'Vidsrc Mirrors', 'EmbedSu'];
             results.forEach((result, index) => {
+                const name = providerNames[index];
                 if (result.status === 'fulfilled' && result.value) {
                     const value = result.value as IProviderResponse;
-                    console.log(`[SourceService] Provider ${index} returned items:`, (value.sources || []).length);
+                    console.log(`[SourceService] Provider ${name} yielded ${value.sources?.length || 0} sources`);
                     if (value.sources) {
-                        value.sources.forEach((s: any) => console.log(`   - [${s.type}] ${s.url}`));
+                        value.sources.forEach((s: any) => {
+                            if (s.type === 'hls' || s.type === 'mp4') {
+                                console.log(`   - [DIRECT] ${s.provider} -> ${s.url.substring(0, 50)}...`);
+                            }
+                        });
                         aggregated.sources.push(...value.sources);
                     }
                     if (value.subtitles) {
                         aggregated.subtitles.push(...value.subtitles);
                     }
-                } else {
-                    console.warn(`[SourceService] Provider ${index} rejected or empty:`, result.status);
+                } else if (result.status === 'rejected') {
+                    console.error(`[SourceService] Provider ${name} REJECTED:`, result.reason);
                 }
             });
 
@@ -74,22 +87,44 @@ class SourceService {
                 new Map(aggregated.sources.map((s) => [s.url, s])).values()
             );
 
+            // Sorting logic: HLS/MP4 first, then by quality
+            uniqueSources.sort((a, b) => {
+                // Priority 1: Audio Preference (for Anime)
+                if (type === 'anime' && audioPreference === 'dub') {
+                    if (a.isDub && !b.isDub) return -1;
+                    if (!a.isDub && b.isDub) return 1;
+                }
+
+                // Priority 2: Type (HLS/MP4 > Embed/Torrent)
+                const typePriority = (t: string) => {
+                    if (t === 'hls' || t === 'mp4') return 1;
+                    if (t === 'embed') return 2;
+                    return 3; // torrent
+                };
+                
+                const pA = typePriority(a.type);
+                const pB = typePriority(b.type);
+                
+                if (pA !== pB) return pA - pB;
+
+                // Priority 3: Quality
+                const qPriority = (q: string) => {
+                    if (q.includes('4K') || q.includes('2160')) return 1;
+                    if (q.includes('1080')) return 2;
+                    if (q.includes('720')) return 3;
+                    if (q.includes('480')) return 4;
+                    if (q.includes('auto')) return 5;
+                    return 6;
+                };
+
+                return qPriority(a.quality || '') - qPriority(b.quality || '');
+            });
+
             console.log(`[SourceService] Final unique sources count: ${uniqueSources.length}`);
 
-            // FAIL OPEN: If no sources found, use Demo
+            // If no sources found, return empty result to trigger frontend iframe fallback
             if (uniqueSources.length === 0) {
-                console.warn("No sources found from any provider. Falling back to Demo Stream.");
-                return {
-                    sources: [
-                        {
-                            url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                            quality: "auto",
-                            type: "hls",
-                            provider: "Demo Fallback"
-                        }
-                    ],
-                    subtitles: []
-                };
+                console.warn("[SourceService] No sources found from any provider.");
             }
 
             return {
@@ -100,23 +135,32 @@ class SourceService {
         } catch (error) {
             console.error('Critical Error in Source Aggregation:', error);
             // Fail open with empty result rather than crashing
-            console.warn("Critical source error, falling back to demo source.");
+            console.warn("Critical source error, returning empty sources.");
             return {
-                sources: [
-                    {
-                        url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                        quality: "auto",
-                        type: "hls",
-                        provider: "Demo Fallback"
-                    }
-                ],
+                sources: [],
                 subtitles: []
             };
         }
     }
 
     async verifySourceHealth(url: string): Promise<boolean> {
-        return true; // Simple mock for now
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 2000);
+            
+            const response = await fetch(url, { 
+                method: 'HEAD',
+                signal: controller.signal,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                }
+            });
+            
+            clearTimeout(timeout);
+            return response.ok;
+        } catch {
+            return false;
+        }
     }
 }
 

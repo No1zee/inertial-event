@@ -1,12 +1,14 @@
 /**
- * NovaStream State Migration Utility (Simplified)
- * 
+ * MaiWatch State Migration Utility (Simplified)
+ *
  * This utility helps migrate from old scattered state management
  * to new consolidated architecture while maintaining backward compatibility.
  * It reads directly from localStorage to avoid import issues.
  */
 
 import { usePlayerStore, useUIStore, useUserPreferencesStore, useLocalDataStore, useAuthStore } from './index';
+import { Theme, Quality, SortOrder } from './preferencesStore';
+import { User } from './authStore';
 
 interface MigrationResult {
   success: boolean;
@@ -18,7 +20,7 @@ interface MigrationResult {
 /**
  * Safely parse JSON from localStorage
  */
-const safeParseJSON = (key: string): any => {
+const safeParseJSON = (key: string): unknown => {
   try {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : null;
@@ -40,25 +42,28 @@ export const migrateState = async (): Promise<MigrationResult> => {
   };
 
   try {
-    console.log('🔄 Starting NovaStream state migration...');
+    console.log('🔄 Starting MaiWatch state migration...');
 
     // 1. Migrate Player State
     try {
-      const oldPlayerData = safeParseJSON('novastream-player-storage');
+      const oldPlayerData = safeParseJSON('MaiWatch-player-storage') as { state?: Record<string, unknown> } | null;
       if (oldPlayerData?.state) {
         const oldPlayer = oldPlayerData.state;
         const newPlayer = usePlayerStore.getState();
-        
-        if (oldPlayer.volume !== 1 || oldPlayer.muted !== false || oldPlayer.playbackRate !== 1) {
-          newPlayer.setVolume(oldPlayer.volume);
-          newPlayer.setMuted(oldPlayer.muted);
-          newPlayer.setPlaybackRate(oldPlayer.playbackRate);
+
+        if (oldPlayer.volume !== undefined) {
+          newPlayer.setVolume(Number(oldPlayer.volume));
+          newPlayer.setMuted(Boolean(oldPlayer.muted));
+          newPlayer.setPlaybackRate(Number(oldPlayer.playbackRate || 1));
           result.migrated.push('Player audio preferences');
         }
-        
-        if (oldPlayer.quality !== 'auto') {
-          newPlayer.setQuality(oldPlayer.quality);
-          result.migrated.push('Player quality preference');
+
+        if (oldPlayer.quality && oldPlayer.quality !== 'auto') {
+          const quality = String(oldPlayer.quality);
+          if (['auto', '4k', '1080p', '720p', '480p', '360p'].includes(quality)) {
+            newPlayer.setQuality(quality as Quality);
+            result.migrated.push('Player quality preference');
+          }
         }
       }
     } catch (error) {
@@ -68,27 +73,28 @@ export const migrateState = async (): Promise<MigrationResult> => {
 
     // 2. Migrate UI State
     try {
-      const oldUIData = safeParseJSON('ui-storage');
+      const oldUIData = safeParseJSON('ui-storage') as { state?: Record<string, unknown> } | null;
       if (oldUIData?.state) {
         const oldUI = oldUIData.state;
         const newUI = useUIStore.getState();
-        
-        if (oldUI.sidebarOpen !== false) {
-          newUI.setSidebarOpen(oldUI.sidebarOpen);
+
+        if (oldUI.sidebarOpen !== undefined) {
+          newUI.setSidebarOpen(Boolean(oldUI.sidebarOpen));
           result.migrated.push('Sidebar state');
         }
-        
+
         // Migrate channel states
-        Object.entries(oldUI.channelStates || {}).forEach(([channelId, state]: [string, any]) => {
-          if (state.scrollPos !== 0) {
+        const channelStates = (oldUI.channelStates || {}) as Record<string, Record<string, unknown>>;
+        Object.entries(channelStates).forEach(([channelId, state]) => {
+          if (state && typeof state.scrollPos === 'number') {
             newUI.setChannelScrollPosition(channelId, state.scrollPos);
           }
-          if (state.visibleCount !== 2) {
+          if (state && typeof state.visibleCount === 'number') {
             newUI.setChannelVisibleCount(channelId, state.visibleCount);
           }
         });
-        
-        if (Object.keys(oldUI.channelStates || {}).length > 0) {
+
+        if (Object.keys(channelStates).length > 0) {
           result.migrated.push('Channel states');
         }
       }
@@ -99,14 +105,17 @@ export const migrateState = async (): Promise<MigrationResult> => {
 
     // 3. Migrate Theme
     try {
-      const oldThemeData = safeParseJSON('novastream-theme');
+      const oldThemeData = safeParseJSON('MaiWatch-theme') as { state?: { theme?: string } } | null;
       if (oldThemeData?.state?.theme) {
         const oldTheme = oldThemeData.state.theme;
         const newPrefs = useUserPreferencesStore.getState();
-        
-        if (oldTheme !== 'nova') {
-          newPrefs.setTheme(oldTheme);
-          result.migrated.push('Theme preference');
+
+        if (oldTheme !== 'Mai') {
+          const theme = String(oldTheme);
+          if (['Mai', 'ocean', 'cyberpunk', 'oled'].includes(theme)) {
+            newPrefs.setTheme(theme as Theme);
+            result.migrated.push('Theme preference');
+          }
         }
       }
     } catch (error) {
@@ -116,43 +125,49 @@ export const migrateState = async (): Promise<MigrationResult> => {
 
     // 4. Migrate Settings
     try {
-      const oldSettingsData = safeParseJSON('novastream-settings');
+      const oldSettingsData = safeParseJSON('MaiWatch-settings') as { state?: Record<string, unknown> } | null;
       if (oldSettingsData?.state) {
         const oldSettings = oldSettingsData.state;
         const newPrefs = useUserPreferencesStore.getState();
-        
+
         const settingsMigrated: string[] = [];
-        
-        if (oldSettings.quality !== 'auto') {
-          newPrefs.setDefaultQuality(oldSettings.quality);
-          settingsMigrated.push('quality');
+
+        if (oldSettings.quality) {
+          const quality = String(oldSettings.quality);
+          if (['auto', '4k', '1080p', '720p', '480p', '360p'].includes(quality)) {
+            newPrefs.setDefaultQuality(quality as Quality);
+            settingsMigrated.push('quality');
+          }
         }
-        
-        if (oldSettings.volume !== 1) {
-          newPrefs.setDefaultVolume(oldSettings.volume);
+
+        if (oldSettings.volume !== undefined) {
+          newPrefs.setDefaultVolume(Number(oldSettings.volume));
           settingsMigrated.push('volume');
         }
-        
-        if (oldSettings.subtitleLanguage !== 'en') {
-          newPrefs.setSubtitleLanguage(oldSettings.subtitleLanguage);
+
+        if (oldSettings.subtitleLanguage) {
+          newPrefs.setSubtitleLanguage(String(oldSettings.subtitleLanguage));
           settingsMigrated.push('subtitle language');
         }
-        
-        if (oldSettings.subtitleEnabled !== true) {
-          newPrefs.setSubtitlesEnabled(oldSettings.subtitleEnabled);
+
+        if (oldSettings.subtitleEnabled !== undefined) {
+          newPrefs.setSubtitlesEnabled(Boolean(oldSettings.subtitleEnabled));
           settingsMigrated.push('subtitle enabled');
         }
-        
-        if (oldSettings.autoplay !== true) {
-          newPrefs.setAutoPlay(oldSettings.autoplay);
+
+        if (oldSettings.autoplay !== undefined) {
+          newPrefs.setAutoPlay(Boolean(oldSettings.autoplay));
           settingsMigrated.push('autoplay');
         }
-        
-        if (oldSettings.librarySort !== 'recent') {
-          newPrefs.setLibrarySort(oldSettings.librarySort);
-          settingsMigrated.push('library sort');
+
+        if (oldSettings.librarySort) {
+          const sort = String(oldSettings.librarySort);
+          if (['recent', 'az', 'za', 'rating', 'year'].includes(sort)) {
+            newPrefs.setLibrarySort(sort as SortOrder);
+            settingsMigrated.push('library sort');
+          }
         }
-        
+
         if (settingsMigrated.length > 0) {
           result.migrated.push(`Settings: ${settingsMigrated.join(', ')}`);
         }
@@ -164,19 +179,26 @@ export const migrateState = async (): Promise<MigrationResult> => {
 
     // 5. Migrate Auth
     try {
-      const oldAuthData = safeParseJSON('novastream-auth-storage');
+      const oldAuthData = safeParseJSON('MaiWatch-auth-storage') as {
+        state?: {
+          user?: Record<string, unknown>;
+          isAuthenticated?: boolean;
+        };
+      } | null;
       if (oldAuthData?.state?.user && oldAuthData.state.isAuthenticated) {
         const oldAuth = oldAuthData.state;
-        const newAuth = useAuthStore.getState();
-        
-        // Only migrate basic user info
+
         if (oldAuth.user) {
-          newAuth.updateUser({
-            id: oldAuth.user.id,
-            username: oldAuth.user.username,
-            email: oldAuth.user.email,
-            role: oldAuth.user.role,
-            avatar: oldAuth.user.avatar,
+          const role = String(oldAuth.user.role || 'user');
+          const validRoles = ['user', 'admin', 'moderator'];
+          const userRole = (validRoles.includes(role) ? role : 'user') as User['role'];
+
+          useAuthStore.getState().updateUser({
+            id: String(oldAuth.user.id),
+            username: String(oldAuth.user.username),
+            email: String(oldAuth.user.email),
+            role: userRole,
+            avatar: oldAuth.user.avatar ? String(oldAuth.user.avatar) : undefined,
           });
           result.migrated.push('User authentication');
         }
@@ -188,51 +210,58 @@ export const migrateState = async (): Promise<MigrationResult> => {
 
     // 6. Migrate Library/Watch History
     try {
-      const oldLibraryData = safeParseJSON('novastream-library');
+      const oldLibraryData = safeParseJSON('MaiWatch-library') as {
+        state?: {
+          library?: Record<string, unknown>[];
+          watchHistory?: Record<string, unknown>[];
+        };
+      } | null;
+
       if (oldLibraryData?.state) {
         const oldLibrary = oldLibraryData.state;
         const newLocalData = useLocalDataStore.getState();
-        
+
         // Migrate library
         if (oldLibrary.library && Array.isArray(oldLibrary.library)) {
-          oldLibrary.library.forEach((item: any) => {
+          oldLibrary.library.forEach(item => {
+            if (!item || !item.id) return;
             newLocalData.addToLibrary({
-              contentId: item.id.toString(),
-              type: item.media_type || 'movie',
-              title: item.title || item.name,
-              poster: item.poster_path,
-              backdrop: item.backdrop_path,
-              rating: item.vote_average,
-              year: item.release_date ? parseInt(item.release_date.split('-')[0]) : undefined,
-              genres: item.genre_ids,
-              runtime: item.runtime,
-              favorite: false, // No favorite data in old store
+              contentId: String(item.id),
+              type: (item.media_type || 'movie') as 'movie' | 'tv' | 'anime',
+              title: String(item.title || item.name || 'Unknown'),
+              poster: String(item.poster_path || ''),
+              backdrop: String(item.backdrop_path || ''),
+              rating: Number(item.vote_average || 0),
+              year: item.release_date ? parseInt(String(item.release_date).split('-')[0]) : undefined,
+              genres: Array.isArray(item.genre_ids) ? (item.genre_ids as number[]).map(String) : [],
+              runtime: Number(item.runtime || 0),
+              favorite: false,
             });
           });
-          
+
           if (oldLibrary.library.length > 0) {
             result.migrated.push(`${oldLibrary.library.length} library items`);
           }
         }
-        
+
         // Migrate watch history
         if (oldLibrary.watchHistory && Array.isArray(oldLibrary.watchHistory)) {
-          oldLibrary.watchHistory.forEach((item: any) => {
+          oldLibrary.watchHistory.forEach(item => {
+            if (!item || !item.tmdbId) return;
             newLocalData.addToWatchHistory({
-              contentId: item.tmdbId.toString(),
-              type: item.media_type || 'movie',
-              title: item.title,
-              poster: item.poster_path,
-              backdrop: item.backdrop_path,
-              currentTime: item.currentTime,
-              duration: item.duration,
-              progress: item.progress,
-              season: item.season,
-              episode: item.episode,
-              source: item.magnet || item.torrentUrl,
+              contentId: String(item.tmdbId),
+              type: (item.media_type || 'movie') as 'movie' | 'tv' | 'anime',
+              title: String(item.title || 'Unknown'),
+              poster: String(item.poster_path || ''),
+              backdrop: String(item.backdrop_path || ''),
+              currentTime: Number(item.currentTime || 0),
+              duration: Number(item.duration || 0),
+              season: item.season ? Number(item.season) : undefined,
+              episode: item.episode ? Number(item.episode) : undefined,
+              source: String(item.magnet || item.torrentUrl || ''),
             });
           });
-          
+
           if (oldLibrary.watchHistory.length > 0) {
             result.migrated.push(`${oldLibrary.watchHistory.length} watch history items`);
           }
@@ -245,12 +274,15 @@ export const migrateState = async (): Promise<MigrationResult> => {
 
     // 7. Migrate Continue Watching
     try {
-      const oldContentData = safeParseJSON('novastream-content-storage');
+      const oldContentData = safeParseJSON('MaiWatch-content-storage') as {
+        state?: {
+          continueWatching?: unknown[];
+        };
+      } | null;
       if (oldContentData?.state?.continueWatching) {
         const oldContent = oldContentData.state;
-        
-        if (oldContent.continueWatching.length > 0) {
-          // Continue watching is derived from watch history in the new system
+
+        if (oldContent.continueWatching && oldContent.continueWatching.length > 0) {
           result.warnings.push('Continue watching is now derived from watch history');
         }
       }
@@ -259,9 +291,8 @@ export const migrateState = async (): Promise<MigrationResult> => {
     }
 
     console.log('✅ Migration completed:', result);
-    
+
     return result;
-    
   } catch (error) {
     result.success = false;
     result.errors.push(`Migration failed: ${error}`);
@@ -275,23 +306,23 @@ export const migrateState = async (): Promise<MigrationResult> => {
  */
 export const clearOldStores = (): void => {
   console.warn('🧹 Clearing old stores...');
-  
+
   try {
     // Clear old store data
     const oldKeys = [
-      'novastream-library',
-      'novastream-player-storage',
+      'MaiWatch-library',
+      'MaiWatch-player-storage',
       'ui-storage',
-      'novastream-theme',
-      'novastream-settings',
-      'novastream-auth-storage',
-      'novastream-content-storage',
+      'MaiWatch-theme',
+      'MaiWatch-settings',
+      'MaiWatch-auth-storage',
+      'MaiWatch-content-storage',
     ];
-    
+
     oldKeys.forEach(key => {
       localStorage.removeItem(key);
     });
-    
+
     console.log('✅ Old stores cleared successfully');
   } catch (error) {
     console.error('❌ Failed to clear old stores:', error);
@@ -302,27 +333,23 @@ export const clearOldStores = (): void => {
  * Checks if migration is needed
  */
 export const needsMigration = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
   const oldKeys = [
-    'novastream-library',
-    'novastream-player-storage',
+    'MaiWatch-library',
+    'MaiWatch-player-storage',
     'ui-storage',
-    'novastream-theme',
-    'novastream-settings',
-    'novastream-auth-storage',
-    'novastream-content-storage',
+    'MaiWatch-theme',
+    'MaiWatch-settings',
+    'MaiWatch-auth-storage',
+    'MaiWatch-content-storage',
   ];
-  
-  const newKeys = [
-    'novastream-player',
-    'novastream-ui',
-    'novastream-preferences',
-    'novastream-local-data',
-    'novastream-auth',
-  ];
-  
+
+  const newKeys = ['MaiWatch-player', 'MaiWatch-ui', 'MaiWatch-preferences', 'MaiWatch-local-data', 'MaiWatch-auth'];
+
   const hasOldData = oldKeys.some(key => localStorage.getItem(key) !== null);
   const hasNewData = newKeys.some(key => localStorage.getItem(key) !== null);
-  
+
   return hasOldData && !hasNewData;
 };
 
@@ -330,7 +357,7 @@ export const needsMigration = (): boolean => {
  * Automatic migration runner
  */
 export const runAutoMigration = (): Promise<MigrationResult> => {
-  return new Promise(async (resolve) => {
+  return new Promise(async resolve => {
     if (!needsMigration()) {
       resolve({
         success: true,
@@ -340,12 +367,12 @@ export const runAutoMigration = (): Promise<MigrationResult> => {
       });
       return;
     }
-    
+
     console.log('🚀 Running automatic migration...');
-    
+
     try {
       const result = await migrateState();
-      
+
       if (result.success) {
         // Clear old stores after successful migration
         setTimeout(() => {

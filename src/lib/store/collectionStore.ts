@@ -1,91 +1,89 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { persist } from 'zustand/middleware';
 import { Content } from '@/lib/types/content';
 import { minifyContent } from '@/utils/contentHelpers';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface Collection {
-    id: string;
-    name: string;
-    description?: string;
-    items: Content[];
-    pinned: boolean;
-    createdAt: number;
+  id: string;
+  name: string;
+  description?: string;
+  items: Content[];
+  pinned: boolean;
+  createdAt: number;
 }
 
 interface CollectionState {
-    collections: Collection[];
-    createCollection: (name: string, description?: string) => void;
-    deleteCollection: (id: string) => void;
-    togglePin: (id: string) => void;
-    
-    addItemToCollection: (collectionId: string, item: Content) => void;
-    removeItemFromCollection: (collectionId: string, itemId: number | string) => void;
-    
-    // Checkers
-    isInCollection: (collectionId: string, itemId: number | string) => boolean;
+  collections: Collection[];
+  createCollection: (name: string, description?: string) => void;
+  deleteCollection: (id: string) => void;
+  togglePin: (id: string) => void;
+
+  addItemToCollection: (collectionId: string, item: Content) => void;
+  removeItemFromCollection: (collectionId: string, itemId: number | string) => void;
+
+  // Checkers
+  isInCollection: (collectionId: string, itemId: number | string) => boolean;
 }
 
-export const useCollectionStore = create<CollectionState>()(
-    persist(
-        (set, get) => ({
-            collections: [],
-            
-            createCollection: (name, description) => {
-                const newCollection: Collection = {
-                    id: uuidv4(),
-                    name,
-                    description,
-                    items: [],
-                    pinned: false,
-                    createdAt: Date.now(),
-                };
-                set((state) => ({ collections: [...state.collections, newCollection] }));
-            },
+export const useCollectionStore = createWithEqualityFn<CollectionState>()(
+  persist(
+    (set, get) => ({
+      collections: [],
 
-            deleteCollection: (id) => {
-                set((state) => ({ collections: state.collections.filter(c => c.id !== id) }));
-            },
+      createCollection: (name, description) => {
+        const newCollection: Collection = {
+          id: uuidv4(),
+          name,
+          description,
+          items: [],
+          pinned: false,
+          createdAt: Date.now(),
+        };
+        set(state => ({ collections: [...state.collections, newCollection] }));
+      },
 
-            togglePin: (id) => {
-                set((state) => ({
-                    collections: state.collections.map(c => 
-                        c.id === id ? { ...c, pinned: !c.pinned } : c
-                    )
-                }));
-            },
+      deleteCollection: id => {
+        set(state => ({ collections: state.collections.filter(c => c.id !== id) }));
+      },
 
-            addItemToCollection: (collectionId, item) => {
-                set((state) => ({
-                    collections: state.collections.map(c => {
-                        if (c.id !== collectionId) return c;
-                        // Avoid duplicates
-                        if (c.items.some(i => String(i.id) === String(item.id))) return c;
-                        
-                        // Optimize storage
-                        const minifiedItem = minifyContent(item) as Content;
-                        return { ...c, items: [minifiedItem, ...c.items] };
-                    })
-                }));
-            },
+      togglePin: id => {
+        set(state => ({
+          collections: state.collections.map(c => (c.id === id ? { ...c, pinned: !c.pinned } : c)),
+        }));
+      },
 
-            removeItemFromCollection: (collectionId, itemId) => {
-                set((state) => ({
-                    collections: state.collections.map(c => {
-                        if (c.id !== collectionId) return c;
-                        return { ...c, items: c.items.filter(i => String(i.id) !== String(itemId)) };
-                    })
-                }));
-            },
+      addItemToCollection: (collectionId, item) => {
+        set(state => ({
+          collections: state.collections.map(c => {
+            if (c.id !== collectionId) return c;
+            // Avoid duplicates
+            if (c.items.some(i => String(i.id) === String(item.id))) return c;
 
-            isInCollection: (collectionId, itemId) => {
-                const col = get().collections.find(c => c.id === collectionId);
-                if (!col) return false;
-                return col.items.some(i => String(i.id) === String(itemId));
-            }
-        }),
-        {
-            name: 'novastream-collections',
-        }
-    )
+            // Optimize storage
+            const minifiedItem = minifyContent(item) as Content;
+            return { ...c, items: [minifiedItem, ...c.items] };
+          }),
+        }));
+      },
+
+      removeItemFromCollection: (collectionId, itemId) => {
+        set(state => ({
+          collections: state.collections.map(c => {
+            if (c.id !== collectionId) return c;
+            return { ...c, items: c.items.filter(i => String(i.id) !== String(itemId)) };
+          }),
+        }));
+      },
+
+      isInCollection: (collectionId, itemId) => {
+        const col = get().collections.find(c => c.id === collectionId);
+        if (!col) return false;
+        return col.items.some(i => String(i.id) === String(itemId));
+      },
+    }),
+    {
+      name: 'MaiWatch-collections',
+    }
+  )
 );

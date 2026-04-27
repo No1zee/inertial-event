@@ -1,40 +1,41 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { persist } from 'zustand/middleware';
 
 interface User {
-    id: string;
-    username: string;
-    email: string;
-    avatar?: string;
-    role: 'user' | 'admin';
+  id: string;
+  username: string;
+  email: string;
+  avatar?: string;
+  role: 'user' | 'admin';
 }
 
 interface AuthState {
-    user: User | null;
-    token: string | null;
-    isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
 
-    // Actions
-    login: (user: User, token: string) => void;
-    logout: () => void;
-    updateUser: (updates: Partial<User>) => void;
+  // Actions
+  login: (user: User, token: string) => void;
+  logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-    persist(
-        (set) => ({
-            user: null,
-            token: null,
-            isAuthenticated: false,
+export const useAuthStore = createWithEqualityFn<AuthState>()(
+  persist(
+    set => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
 
-            login: (user, token) => set({ user, token, isAuthenticated: true }),
-            logout: () => set({ user: null, token: null, isAuthenticated: false }),
-            updateUser: (updates) => set((state) => ({
-                user: state.user ? { ...state.user, ...updates } : null
-            })),
-        }),
-        {
-            name: 'novastream-auth-storage',
-        }
-    )
+      login: (user, token) => set({ user, token, isAuthenticated: true }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      updateUser: updates =>
+        set(state => ({
+          user: state.user ? { ...state.user, ...updates } : null,
+        })),
+    }),
+    {
+      name: 'MaiWatch-auth-storage',
+    }
+  )
 );

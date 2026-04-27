@@ -3,11 +3,10 @@
  * Handles local user data like watch history, library, collections
  */
 
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
-import { Content } from '@/lib/types/content';
 
 // Types
 export interface WatchHistoryItem {
@@ -17,25 +16,28 @@ export interface WatchHistoryItem {
   title: string;
   poster?: string;
   backdrop?: string;
-  
+  poster_path?: string;
+  backdrop_path?: string;
+
   // Playback tracking
   currentTime: number; // seconds
   duration: number; // total duration in seconds
   progress: number; // percentage (0-100)
-  
+
   // TV-specific
   season?: number;
   episode?: number;
   episodeTitle?: string;
-  
+
   // Metadata
   lastWatched: number; // timestamp
   completed: boolean; // true if progress > 90%
   watchCount: number; // number of times watched
-  
+
   // Additional data
   source?: string;
   quality?: string;
+  providerId?: string;
 }
 
 export interface LibraryItem {
@@ -46,18 +48,37 @@ export interface LibraryItem {
   poster?: string;
   backdrop?: string;
   addedAt: number; // timestamp
-  
+
   // Additional metadata
   rating?: number;
   year?: number;
   genres?: string[];
   runtime?: number;
-  
+
   // User data
   userRating?: number;
   notes?: string;
   tags?: string[];
   favorite: boolean;
+}
+
+export interface ContentState {
+  contentId: string;
+  type: 'movie' | 'tv' | 'anime';
+  title: string;
+  poster?: string;
+  backdrop?: string;
+
+  // Last watched specific item
+  lastWatchedId: string; // Points to the WatchHistoryItem.id
+  lastWatchedSeason?: number;
+  lastWatchedEpisode?: number;
+  lastWatchedTime: number; // seconds
+  lastWatchedDuration: number; // seconds
+
+  // Progress
+  isCompleted: boolean;
+  updatedAt: number;
 }
 
 export interface Collection {
@@ -68,6 +89,7 @@ export interface Collection {
   isDefault: boolean;
   isPublic: boolean;
   items: string[]; // contentId array
+  pinned: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -78,25 +100,25 @@ export interface DownloadItem {
   type: 'movie' | 'tv' | 'anime';
   title: string;
   poster?: string;
-  
+
   // Download tracking
   progress: number;
   status: 'pending' | 'downloading' | 'paused' | 'completed' | 'error' | 'cancelled';
   size: number; // total size in bytes
   downloaded: number; // downloaded bytes
   speed?: number; // current download speed in bytes/second
-  
+
   // File info
   path?: string;
   filename?: string;
   quality?: string;
   format?: string;
-  
+
   // Metadata
   createdAt: number;
   completedAt?: number;
   error?: string;
-  
+
   // TV-specific
   season?: number;
   episode?: number;
@@ -108,36 +130,87 @@ export interface ContinueWatchingItem {
   type: 'movie' | 'tv' | 'anime';
   title: string;
   poster?: string;
+  backdrop?: string;
+  poster_path?: string;
+  backdrop_path?: string;
   progress: number;
   lastWatched: number;
   season?: number;
   episode?: number;
 }
 
+export interface UserPreferences {
+  autoplayNext: boolean;
+  autoplayPreviews: boolean;
+  dataSaver: boolean;
+  defaultSubtitleLanguage: string;
+  defaultAudioLanguage: string;
+  showSubtitles: boolean;
+  skipIntros: boolean;
+  skipRecaps: boolean;
+  highFidelitySearch: boolean;
+  dialogueBoost: boolean;
+  oledOptimization: boolean;
+  adaptiveColorSpace: boolean;
+  interfaceSounds: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  pin?: string;
+  isKids: boolean;
+  isLocked: boolean;
+  createdAt: number;
+}
+
 interface LocalDataStore {
+  // Profiles
+  profiles: UserProfile[];
+  activeProfileId: string | null;
+
+  // Global Settings (Profile Independent)
+  globalPreferences: UserPreferences;
+
+  // Profile Actions
+  createProfile: (profile: Omit<UserProfile, 'id' | 'createdAt'>) => void;
+  updateProfile: (id: string, updates: Partial<UserProfile>) => void;
+  deleteProfile: (id: string) => void;
+  setActiveProfile: (id: string) => void;
+  unlockProfile: (id: string, pin: string) => boolean;
+
+  // Preference Actions
+  updatePreferences: (updates: Partial<UserPreferences>) => void;
+
   // Watch History
   watchHistory: WatchHistoryItem[];
-  
+
+  // Content State (Unified tracking for TV/Movies)
+  contentState: Record<string, ContentState>;
+
   // Library
   library: LibraryItem[];
-  
+
   // Collections
   collections: Collection[];
-  
+
   // Downloads
   downloads: DownloadItem[];
-  
+
   // Continue Watching (derived from watch history)
   continueWatching: ContinueWatchingItem[];
-  
+
   // Watch History Actions
-  addToWatchHistory: (item: Omit<WatchHistoryItem, 'id' | 'lastWatched' | 'completed' | 'watchCount'>) => void;
+  addToWatchHistory: (
+    item: Omit<WatchHistoryItem, 'id' | 'lastWatched' | 'completed' | 'watchCount' | 'progress'>
+  ) => void;
   updateWatchProgress: (id: string, currentTime: number, duration?: number) => void;
   removeFromWatchHistory: (id: string) => void;
   clearWatchHistory: () => void;
   markAsCompleted: (id: string) => void;
   incrementWatchCount: (id: string) => void;
-  
+
   // Library Actions
   addToLibrary: (item: Omit<LibraryItem, 'id' | 'addedAt'>) => void;
   removeFromLibrary: (contentId: string) => void;
@@ -148,14 +221,15 @@ interface LocalDataStore {
   setTags: (contentId: string, tags: string[]) => void;
   isInLibrary: (contentId: string) => boolean;
   getLibraryItem: (contentId: string) => LibraryItem | undefined;
-  
+
   // Collection Actions
   createCollection: (collection: Omit<Collection, 'id' | 'createdAt' | 'updatedAt' | 'items'>) => void;
   updateCollection: (id: string, updates: Partial<Collection>) => void;
   deleteCollection: (id: string) => void;
   addToCollection: (collectionId: string, contentId: string) => void;
   removeFromCollection: (collectionId: string, contentId: string) => void;
-  
+  togglePin: (id: string) => void;
+
   // Download Actions
   addDownload: (item: Omit<DownloadItem, 'id' | 'createdAt' | 'progress' | 'downloaded' | 'status'>) => void;
   updateDownloadProgress: (id: string, progress: number, downloaded?: number, speed?: number) => void;
@@ -165,24 +239,55 @@ interface LocalDataStore {
   cancelDownload: (id: string) => void;
   removeDownload: (id: string) => void;
   clearCompletedDownloads: () => void;
-  
+
   // Utility Actions
   exportData: () => string;
   importData: (dataJson: string) => void;
   clearAllData: () => void;
-  
+  migrateLegacyData: () => void;
+
   // Derived selectors
   getContinueWatching: () => ContinueWatchingItem[];
+  getLastWatched: () => WatchHistoryItem | undefined;
+  getResumeData: (contentId: string) => WatchHistoryItem | null;
   getFavorites: () => LibraryItem[];
   getRecentAdditions: (limit?: number) => LibraryItem[];
+
 }
 
-export const useLocalDataStore = create<LocalDataStore>()(
+export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
   subscribeWithSelector(
     persist(
       (set, get) => ({
         // Initial state
+        profiles: [
+          {
+            id: 'primary',
+            name: 'Director',
+            avatar: '/avatars/default.png',
+            isKids: false,
+            isLocked: false,
+            createdAt: Date.now(),
+          },
+        ],
+        activeProfileId: 'primary',
+        globalPreferences: {
+          autoplayNext: true,
+          autoplayPreviews: true,
+          dataSaver: false,
+          defaultSubtitleLanguage: 'en',
+          defaultAudioLanguage: 'original',
+          showSubtitles: true,
+          skipIntros: true,
+          skipRecaps: true,
+          highFidelitySearch: true,
+          dialogueBoost: false,
+          oledOptimization: true,
+          adaptiveColorSpace: true,
+          interfaceSounds: true,
+        },
         watchHistory: [],
+        contentState: {},
         library: [],
         collections: [
           {
@@ -192,6 +297,7 @@ export const useLocalDataStore = create<LocalDataStore>()(
             isDefault: true,
             isPublic: false,
             items: [],
+            pinned: false,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           },
@@ -202,6 +308,7 @@ export const useLocalDataStore = create<LocalDataStore>()(
             isDefault: true,
             isPublic: false,
             items: [],
+            pinned: false,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           },
@@ -209,29 +316,68 @@ export const useLocalDataStore = create<LocalDataStore>()(
         downloads: [],
         continueWatching: [],
 
+        // Profile Actions
+        createProfile: profile => {
+          const id = Math.random().toString(36).substring(2, 11);
+          set(state => ({
+            profiles: [...state.profiles, { ...profile, id, createdAt: Date.now() }],
+          }));
+        },
+
+        updateProfile: (id, updates) =>
+          set(state => ({
+            profiles: state.profiles.map(p => (p.id === id ? { ...p, ...updates } : p)),
+          })),
+
+        deleteProfile: id =>
+          set(state => ({
+            profiles: state.profiles.filter(p => p.id !== id),
+            activeProfileId: state.activeProfileId === id ? state.profiles[0]?.id || null : state.activeProfileId,
+          })),
+
+        setActiveProfile: id => set({ activeProfileId: id }),
+
+        unlockProfile: (id, pin) => {
+          const profile = get().profiles.find(p => p.id === id);
+          return profile?.pin === pin;
+        },
+
+        updatePreferences: updates =>
+          set(state => ({
+            globalPreferences: { ...state.globalPreferences, ...updates },
+          })),
+
         // Watch History Actions
-        addToWatchHistory: (item) => {
+        addToWatchHistory: item => {
           const id = `${item.contentId}-${item.type}-${item.season || 'movie'}-${item.episode || '1'}`;
           const lastWatched = Date.now();
-          const progress = (item.currentTime / item.duration) * 100;
+          const progress = item.duration > 0 ? (item.currentTime / item.duration) * 100 : 0;
           const completed = progress > 90;
-          
-          set((state) => {
+
+          set(state => {
             const existingIndex = state.watchHistory.findIndex(h => h.id === id);
-            
+            let updatedHistory = [...state.watchHistory];
+
             if (existingIndex >= 0) {
-              // Update existing item
-              const updated = [...state.watchHistory];
-              updated[existingIndex] = {
-                ...updated[existingIndex],
+              // Update existing item and MOVE TO TOP
+              const existingItem = updatedHistory[existingIndex];
+              const updatedItem = {
+                ...existingItem,
                 ...item,
                 id,
+                title: item.title || existingItem.title,
+                poster: item.poster || existingItem.poster,
+                backdrop: item.backdrop || existingItem.backdrop,
                 lastWatched,
                 progress,
                 completed,
-                watchCount: completed ? updated[existingIndex].watchCount + 1 : updated[existingIndex].watchCount,
+                watchCount:
+                  completed && !existingItem.completed ? existingItem.watchCount + 1 : existingItem.watchCount,
               };
-              return { watchHistory: updated };
+
+              // Remove from old position and prepend to top
+              updatedHistory.splice(existingIndex, 1);
+              updatedHistory = [updatedItem, ...updatedHistory];
             } else {
               // Add new item
               const newItem: WatchHistoryItem = {
@@ -242,75 +388,137 @@ export const useLocalDataStore = create<LocalDataStore>()(
                 completed,
                 watchCount: completed ? 1 : 0,
               };
-              return { watchHistory: [newItem, ...state.watchHistory].slice(0, 1000) }; // Limit to 1000 items
+              updatedHistory = [newItem, ...updatedHistory].slice(0, 1000);
             }
+
+            // Update Content State mapping
+            const existingContentState = state.contentState[item.contentId];
+            const updatedContentState = {
+              ...state.contentState,
+              [item.contentId]: {
+                contentId: item.contentId,
+                type: item.type,
+                title: item.title,
+                poster: item.poster,
+                backdrop: item.backdrop,
+                lastWatchedId: id,
+                lastWatchedSeason: item.season,
+                lastWatchedEpisode: item.episode,
+                lastWatchedTime: item.currentTime,
+                lastWatchedDuration: item.duration,
+                isCompleted: (completed && item.type === 'movie') || (existingContentState?.isCompleted ?? false),
+                updatedAt: lastWatched,
+              },
+            };
+
+            return {
+              watchHistory: updatedHistory,
+              contentState: updatedContentState,
+            };
           });
         },
 
         updateWatchProgress: (id, currentTime, duration) => {
-          set((state) => ({
-            watchHistory: state.watchHistory.map(item => {
-              if (item.id === id) {
-                const itemDuration = duration || item.duration;
-                const progress = (currentTime / itemDuration) * 100;
-                const completed = progress > 90;
-                
-                return {
-                  ...item,
-                  currentTime,
-                  duration: itemDuration,
-                  progress,
-                  lastWatched: Date.now(),
-                  completed,
-                  watchCount: completed && !item.completed ? item.watchCount + 1 : item.watchCount,
-                };
-              }
-              return item;
-            }),
-          }));
+          set(state => {
+            const index = state.watchHistory.findIndex(h => h.id === id);
+            if (index === -1) return state;
+
+            const item = state.watchHistory[index];
+            const itemDuration = duration || item.duration;
+            const progress = itemDuration > 0 ? (currentTime / itemDuration) * 100 : 0;
+            const completed = progress > 90;
+
+            const updatedItem = {
+              ...item,
+              currentTime,
+              duration: itemDuration,
+              progress,
+              lastWatched: Date.now(),
+              completed,
+              watchCount: completed && !item.completed ? item.watchCount + 1 : item.watchCount,
+            };
+
+            // Move to top of history
+            const updatedHistory = [updatedItem, ...state.watchHistory.filter(h => h.id !== id)];
+
+            // Update content state as well
+            const updatedContentState = {
+              ...state.contentState,
+              [updatedItem.contentId]: {
+                ...state.contentState[updatedItem.contentId],
+                lastWatchedId: id,
+                lastWatchedTime: currentTime,
+                lastWatchedDuration: updatedItem.duration,
+                updatedAt: Date.now(),
+              },
+            };
+
+            return {
+              watchHistory: updatedHistory,
+              contentState: updatedContentState,
+            };
+          });
         },
 
-        removeFromWatchHistory: (id) => 
-          set((state) => ({
+        removeFromWatchHistory: id =>
+          set(state => ({
             watchHistory: state.watchHistory.filter(item => item.id !== id),
           })),
 
-        clearWatchHistory: () => 
-          set({ watchHistory: [] }),
+        clearWatchHistory: () => set({ watchHistory: [], contentState: {} }),
 
-        markAsCompleted: (id) => 
-          set((state) => ({
-            watchHistory: state.watchHistory.map(item =>
-              item.id === id
-                ? { ...item, progress: 100, completed: true, watchCount: item.watchCount + 1 }
-                : item
-            ),
-          })),
+        markAsCompleted: id =>
+          set(state => {
+            const index = state.watchHistory.findIndex(h => h.id === id);
+            if (index === -1) return state;
 
-        incrementWatchCount: (id) => 
-          set((state) => ({
+            const item = state.watchHistory[index];
+            const updatedItem = {
+              ...item,
+              progress: 100,
+              completed: true,
+              watchCount: item.watchCount + 1,
+              lastWatched: Date.now(),
+            };
+
+            const updatedHistory = [updatedItem, ...state.watchHistory.filter(h => h.id !== id)];
+
+            const updatedContentState = {
+              ...state.contentState,
+              [updatedItem.contentId]: {
+                ...state.contentState[updatedItem.contentId],
+                isCompleted: true,
+                updatedAt: Date.now(),
+              },
+            };
+
+            return { watchHistory: updatedHistory, contentState: updatedContentState };
+          }),
+
+        incrementWatchCount: id =>
+          set(state => ({
             watchHistory: state.watchHistory.map(item =>
               item.id === id ? { ...item, watchCount: item.watchCount + 1 } : item
             ),
           })),
 
         // Library Actions
-        addToLibrary: (item) => {
+        addToLibrary: item => {
           const id = Date.now().toString();
           const addedAt = Date.now();
-          
-          set((state) => {
+
+          set(state => {
             if (state.library.some(libItem => libItem.contentId === item.contentId)) {
               return state; // Already in library
             }
-            
+
             const newItem: LibraryItem = { ...item, id, addedAt };
             return { library: [newItem, ...state.library] };
           });
         },
 
-        removeFromLibrary: (contentId) => 
-          set((state) => ({
+        removeFromLibrary: contentId =>
+          set(state => ({
             library: state.library.filter(item => item.contentId !== contentId),
             collections: state.collections.map(collection => ({
               ...collection,
@@ -318,23 +526,21 @@ export const useLocalDataStore = create<LocalDataStore>()(
             })),
           })),
 
-        updateLibraryItem: (contentId, updates) => 
-          set((state) => ({
-            library: state.library.map(item =>
-              item.contentId === contentId ? { ...item, ...updates } : item
-            ),
+        updateLibraryItem: (contentId, updates) =>
+          set(state => ({
+            library: state.library.map(item => (item.contentId === contentId ? { ...item, ...updates } : item)),
           })),
 
         setFavorite: (contentId, favorite) => {
           get().updateLibraryItem(contentId, { favorite });
-          
+
           // Update favorites collection
-          set((state) => ({
+          set(state => ({
             collections: state.collections.map(collection => {
               if (collection.id === 'favorites') {
                 return {
                   ...collection,
-                  items: favorite 
+                  items: favorite
                     ? [...new Set([...collection.items, contentId])]
                     : collection.items.filter(item => item !== contentId),
                 };
@@ -344,45 +550,43 @@ export const useLocalDataStore = create<LocalDataStore>()(
           }));
         },
 
-        setUserRating: (contentId, rating) => 
-          get().updateLibraryItem(contentId, { userRating: rating }),
+        setUserRating: (contentId, rating) => get().updateLibraryItem(contentId, { userRating: rating }),
 
-        setNotes: (contentId, notes) => 
-          get().updateLibraryItem(contentId, { notes }),
+        setNotes: (contentId, notes) => get().updateLibraryItem(contentId, { notes }),
 
-        setTags: (contentId, tags) => 
-          get().updateLibraryItem(contentId, { tags }),
+        setTags: (contentId, tags) => get().updateLibraryItem(contentId, { tags }),
 
-        isInLibrary: (contentId) => 
-          get().library.some(item => item.contentId === contentId),
+        isInLibrary: contentId => get().library.some(item => item.contentId === contentId),
 
-        getLibraryItem: (contentId) => 
-          get().library.find(item => item.contentId === contentId),
+        getLibraryItem: contentId => get().library.find(item => item.contentId === contentId),
 
         // Collection Actions
-        createCollection: (collection) => {
+        createCollection: collection => {
           const id = Date.now().toString();
           const createdAt = Date.now();
-          
-          set((state) => ({
-            collections: [...state.collections, { ...collection, id, createdAt, updatedAt: createdAt, items: [] }],
+
+          set(state => ({
+            collections: [
+              ...state.collections,
+              { ...collection, id, createdAt, updatedAt: createdAt, items: [], pinned: false },
+            ],
           }));
         },
 
-        updateCollection: (id, updates) => 
-          set((state) => ({
+        updateCollection: (id, updates) =>
+          set(state => ({
             collections: state.collections.map(collection =>
               collection.id === id ? { ...collection, ...updates, updatedAt: Date.now() } : collection
             ),
           })),
 
-        deleteCollection: (id) => 
-          set((state) => ({
+        deleteCollection: id =>
+          set(state => ({
             collections: state.collections.filter(collection => collection.id !== id && !collection.isDefault),
           })),
 
-        addToCollection: (collectionId, contentId) => 
-          set((state) => ({
+        addToCollection: (collectionId, contentId) =>
+          set(state => ({
             collections: state.collections.map(collection =>
               collection.id === collectionId
                 ? { ...collection, items: [...new Set([...collection.items, contentId])], updatedAt: Date.now() }
@@ -390,8 +594,8 @@ export const useLocalDataStore = create<LocalDataStore>()(
             ),
           })),
 
-        removeFromCollection: (collectionId, contentId) => 
-          set((state) => ({
+        removeFromCollection: (collectionId, contentId) =>
+          set(state => ({
             collections: state.collections.map(collection =>
               collection.id === collectionId
                 ? { ...collection, items: collection.items.filter(item => item !== contentId), updatedAt: Date.now() }
@@ -399,18 +603,25 @@ export const useLocalDataStore = create<LocalDataStore>()(
             ),
           })),
 
+        togglePin: id =>
+          set(state => ({
+            collections: state.collections.map(collection =>
+              collection.id === id ? { ...collection, pinned: !collection.pinned, updatedAt: Date.now() } : collection
+            ),
+          })),
+
         // Download Actions
-        addDownload: (item) => {
+        addDownload: item => {
           const id = Date.now().toString();
           const createdAt = Date.now();
-          
-          set((state) => ({
+
+          set(state => ({
             downloads: [{ ...item, id, createdAt, progress: 0, downloaded: 0, status: 'pending' }, ...state.downloads],
           }));
         },
 
-        updateDownloadProgress: (id, progress, downloaded, speed) => 
-          set((state) => ({
+        updateDownloadProgress: (id, progress, downloaded, speed) =>
+          set(state => ({
             downloads: state.downloads.map(download =>
               download.id === id
                 ? {
@@ -425,45 +636,51 @@ export const useLocalDataStore = create<LocalDataStore>()(
             ),
           })),
 
-        setDownloadStatus: (id, status, error) => 
-          set((state) => ({
+        setDownloadStatus: (id, status, error) =>
+          set(state => ({
             downloads: state.downloads.map(download =>
               download.id === id ? { ...download, status, error } : download
             ),
           })),
 
-        pauseDownload: (id) => get().setDownloadStatus(id, 'paused'),
-        resumeDownload: (id) => get().setDownloadStatus(id, 'downloading'),
-        cancelDownload: (id) => get().setDownloadStatus(id, 'cancelled'),
+        pauseDownload: id => get().setDownloadStatus(id, 'paused'),
+        resumeDownload: id => get().setDownloadStatus(id, 'downloading'),
+        cancelDownload: id => get().setDownloadStatus(id, 'cancelled'),
 
-        removeDownload: (id) => 
-          set((state) => ({
+        removeDownload: id =>
+          set(state => ({
             downloads: state.downloads.filter(download => download.id !== id),
           })),
 
-        clearCompletedDownloads: () => 
-          set((state) => ({
+        clearCompletedDownloads: () =>
+          set(state => ({
             downloads: state.downloads.filter(download => download.status !== 'completed'),
           })),
 
         // Utility Actions
         exportData: () => {
           const state = get();
-          return JSON.stringify({
-            watchHistory: state.watchHistory,
-            library: state.library,
-            collections: state.collections.filter(c => !c.isDefault), // Don't export default collections
-            downloads: state.downloads.filter(d => d.status === 'completed'), // Only export completed downloads
-            exportedAt: Date.now(),
-          }, null, 2);
+          return JSON.stringify(
+            {
+              watchHistory: state.watchHistory,
+              contentState: state.contentState,
+              library: state.library,
+              collections: state.collections.filter(c => !c.isDefault),
+              downloads: state.downloads.filter(d => d.status === 'completed'),
+              exportedAt: Date.now(),
+            },
+            null,
+            2
+          );
         },
 
-        importData: (dataJson) => {
+        importData: dataJson => {
           try {
             const data = JSON.parse(dataJson);
-            
-            set((state) => ({
+
+            set(state => ({
               watchHistory: data.watchHistory || [],
+              contentState: data.contentState || {},
               library: data.library || [],
               collections: [...state.collections.filter(c => c.isDefault), ...(data.collections || [])],
               downloads: data.downloads || [],
@@ -473,18 +690,131 @@ export const useLocalDataStore = create<LocalDataStore>()(
           }
         },
 
+        migrateLegacyData: () => {
+          try {
+            const historyStr = localStorage.getItem('MaiWatch-history-storage');
+            const trackingStr = localStorage.getItem('series-tracking-storage');
+
+            if (historyStr) {
+              const historyData = JSON.parse(historyStr);
+              if (historyData?.state?.history) {
+                // Import legacy history items
+                historyData.state.history.forEach(
+                  (item: {
+                    id: string | number;
+                    type?: string;
+                    title?: string;
+                    poster?: string;
+                    backdrop?: string;
+                    progress?: number;
+                    duration?: number;
+                    season?: number;
+                    episode?: number;
+                  }) => {
+                    get().addToWatchHistory({
+                      contentId: String(item.id),
+                      type: (item.type || 'movie') as 'movie' | 'tv' | 'anime',
+                      title: item.title || 'Untitled',
+                      poster: item.poster || '',
+                      backdrop: item.backdrop || '',
+                      currentTime: item.progress || 0,
+                      duration: item.duration || 0,
+                      season: item.season,
+                      episode: item.episode,
+                    });
+                  }
+                );
+                console.log('✅ Migrated legacy history');
+              }
+            }
+
+            if (trackingStr) {
+              const trackingData = JSON.parse(trackingStr);
+              if (trackingData?.state?.trackedSeries) {
+                // Use tracking info to refine contentState
+                set(state => {
+                  const newContentState = { ...state.contentState };
+                  (
+                    Object.values(trackingData.state.trackedSeries) as {
+                      id: string | number;
+                      lastWatchedSeason?: number;
+                      lastWatchedEpisode?: number;
+                    }[]
+                  ).forEach(series => {
+                    const id = String(series.id);
+                    if (newContentState[id]) {
+                      newContentState[id] = {
+                        ...newContentState[id],
+                        lastWatchedSeason: series.lastWatchedSeason,
+                        lastWatchedEpisode: series.lastWatchedEpisode,
+                      };
+                    }
+                  });
+                  return { contentState: newContentState };
+                });
+                console.log('✅ Migrated legacy series tracking');
+              }
+            }
+
+            const watchlistStr = localStorage.getItem('MaiWatch-watchlist-storage');
+            if (watchlistStr) {
+              const watchlistData = JSON.parse(watchlistStr);
+              if (watchlistData?.state?.watchlist) {
+                watchlistData.state.watchlist.forEach(
+                  (item: {
+                    id: string | number;
+                    type?: string;
+                    media_type?: string;
+                    title?: string;
+                    name?: string;
+                    poster_path?: string;
+                    poster?: string;
+                    backdrop_path?: string;
+                    backdrop?: string;
+                    addedAt?: number;
+                  }) => {
+                    get().addToLibrary({
+                      contentId: String(item.id),
+                      type: (item.media_type || item.type || 'movie') as 'movie' | 'tv' | 'anime',
+                      title: item.title || item.name || '',
+                      poster: item.poster_path || item.poster || '',
+                      backdrop: item.backdrop_path || item.backdrop || '',
+                      favorite: false,
+                    });
+                    // Also add to watch-later collection
+                    get().addToCollection('watch-later', String(item.id));
+                  }
+                );
+                console.log('✅ Migrated legacy watchlist');
+              }
+            }
+          } catch (e) {
+            console.error('Migration failed:', e);
+          }
+        },
+
         clearAllData: () => ({
           watchHistory: [],
+          contentState: {},
           library: [],
-          collections: get().collections.filter(c => c.isDefault), // Keep default collections
+          collections: get().collections.filter(c => c.isDefault),
           downloads: [],
         }),
 
         // Derived selectors
         getContinueWatching: () => {
           const watchHistory = get().watchHistory;
-          return watchHistory
-            .filter(item => !item.completed && item.progress > 0)
+          // Return the latest distinct content items that are not completed
+          const contentMap = new Map<string, WatchHistoryItem>();
+
+          watchHistory.forEach(item => {
+            if (!contentMap.has(item.contentId) || contentMap.get(item.contentId)!.lastWatched < item.lastWatched) {
+              contentMap.set(item.contentId, item);
+            }
+          });
+
+          return Array.from(contentMap.values())
+            .filter(item => !item.completed && item.progress > 5)
             .sort((a, b) => b.lastWatched - a.lastWatched)
             .slice(0, 20)
             .map(item => ({
@@ -500,15 +830,45 @@ export const useLocalDataStore = create<LocalDataStore>()(
             }));
         },
 
+        getLastWatched: () => {
+          return get().watchHistory[0];
+        },
+
+        getResumeData: contentId => {
+          const state = get().contentState[contentId];
+          if (!state) return null;
+
+          const historyItem = get().watchHistory.find(h => h.id === state.lastWatchedId);
+          if (!historyItem) return null;
+
+          const isCompleted = historyItem.progress > 90;
+
+          // If completed and it's a TV show, suggest the NEXT episode
+          if (isCompleted && historyItem.type !== 'movie') {
+            return {
+              ...historyItem,
+              episode: (historyItem.episode || 1) + 1,
+              currentTime: 0,
+              progress: 0,
+              completed: true,
+            };
+          }
+
+          return {
+            ...historyItem,
+            completed: isCompleted,
+          };
+        },
+
         getFavorites: () => get().library.filter(item => item.favorite),
 
-        getRecentAdditions: (limit = 10) => 
-          get().library
-            .sort((a, b) => b.addedAt - a.addedAt)
+        getRecentAdditions: (limit = 10) =>
+          get()
+            .library.sort((a, b) => b.addedAt - a.addedAt)
             .slice(0, limit),
       }),
       {
-        name: 'novastream-local-data',
+        name: 'MaiWatch-local-data',
         storage: createJSONStorage(() => localStorage),
         // No partialize - store all local data
       }
@@ -517,46 +877,82 @@ export const useLocalDataStore = create<LocalDataStore>()(
 );
 
 // Selectors for optimized subscriptions
-export const useWatchHistory = () => useLocalDataStore((state) => state.watchHistory, shallow);
-export const useLibrary = () => useLocalDataStore((state) => state.library, shallow);
-export const useCollections = () => useLocalDataStore((state) => state.collections, shallow);
-export const useDownloads = () => useLocalDataStore((state) => state.downloads, shallow);
-export const useContinueWatching = () => useLocalDataStore((state) => state.getContinueWatching(), shallow);
+export const useWatchHistory = () => useLocalDataStore(state => state.watchHistory, shallow);
+export const useLibrary = () => useLocalDataStore(state => state.library, shallow);
+export const useCollections = () => useLocalDataStore(state => state.collections, shallow);
+export const useDownloads = () => useLocalDataStore(state => state.downloads, shallow);
+export const useContinueWatching = () => useLocalDataStore(state => state.getContinueWatching(), shallow);
+export const useLastWatched = () => useLocalDataStore(state => state.getLastWatched(), shallow);
+
+export const useProfiles = () => useLocalDataStore(state => state.profiles, shallow);
+export const useActiveProfile = () =>
+  useLocalDataStore(state => state.profiles.find(p => p.id === state.activeProfileId), shallow);
+export const useUserPreferences = () => useLocalDataStore(state => state.globalPreferences, shallow);
 
 // Action selectors for cleaner imports
-export const useWatchHistoryActions = () => 
-  useLocalDataStore((state) => ({
-    addToWatchHistory: state.addToWatchHistory,
-    updateWatchProgress: state.updateWatchProgress,
-    removeFromWatchHistory: state.removeFromWatchHistory,
-    clearWatchHistory: state.clearWatchHistory,
-    markAsCompleted: state.markAsCompleted,
-  }));
+export const useProfileActions = () =>
+  useLocalDataStore(
+    state => ({
+      createProfile: state.createProfile,
+      updateProfile: state.updateProfile,
+      deleteProfile: state.deleteProfile,
+      setActiveProfile: state.setActiveProfile,
+      unlockProfile: state.unlockProfile,
+    }),
+    shallow
+  );
 
-export const useLibraryActions = () => 
-  useLocalDataStore((state) => ({
-    addToLibrary: state.addToLibrary,
-    removeFromLibrary: state.removeFromLibrary,
-    updateLibraryItem: state.updateLibraryItem,
-    setFavorite: state.setFavorite,
-    setUserRating: state.setUserRating,
-    setNotes: state.setNotes,
-    setTags: state.setTags,
-    isInLibrary: state.isInLibrary,
-    getLibraryItem: state.getLibraryItem,
-  }));
+export const usePreferenceActions = () =>
+  useLocalDataStore(
+    state => ({
+      updatePreferences: state.updatePreferences,
+    }),
+    shallow
+  );
 
-export const useCollectionActions = () => 
-  useLocalDataStore((state) => ({
-    createCollection: state.createCollection,
-    updateCollection: state.updateCollection,
-    deleteCollection: state.deleteCollection,
-    addToCollection: state.addToCollection,
-    removeFromCollection: state.removeFromCollection,
-  }));
+export const useWatchHistoryActions = () =>
+  useLocalDataStore(
+    state => ({
+      addToWatchHistory: state.addToWatchHistory,
+      updateWatchProgress: state.updateWatchProgress,
+      removeFromWatchHistory: state.removeFromWatchHistory,
+      clearWatchHistory: state.clearWatchHistory,
+      markAsCompleted: state.markAsCompleted,
+    }),
+    shallow
+  );
 
-export const useDownloadActions = () => 
-  useLocalDataStore((state) => ({
+export const useLibraryActions = () =>
+  useLocalDataStore(
+    state => ({
+      addToLibrary: state.addToLibrary,
+      removeFromLibrary: state.removeFromLibrary,
+      updateLibraryItem: state.updateLibraryItem,
+      setFavorite: state.setFavorite,
+      setUserRating: state.setUserRating,
+      setNotes: state.setNotes,
+      setTags: state.setTags,
+      isInLibrary: state.isInLibrary,
+      getLibraryItem: state.getLibraryItem,
+    }),
+    shallow
+  );
+
+export const useCollectionActions = () =>
+  useLocalDataStore(
+    state => ({
+      createCollection: state.createCollection,
+      updateCollection: state.updateCollection,
+      deleteCollection: state.deleteCollection,
+      addToCollection: state.addToCollection,
+      removeFromCollection: state.removeFromCollection,
+      togglePin: state.togglePin,
+    }),
+    shallow
+  );
+
+export const useDownloadActions = () =>
+  useLocalDataStore(state => ({
     addDownload: state.addDownload,
     updateDownloadProgress: state.updateDownloadProgress,
     pauseDownload: state.pauseDownload,
@@ -569,8 +965,8 @@ export const useDownloadActions = () =>
 // Development utilities
 if (process.env.NODE_ENV === 'development') {
   useLocalDataStore.subscribe(
-    (state) => state.watchHistory.length,
-    (length) => {
+    state => state.watchHistory.length,
+    length => {
       console.log(`📺 Watch history now has ${length} items`);
     }
   );

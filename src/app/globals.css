@@ -3,175 +3,264 @@
 @tailwind utilities;
 
 :root {
-  /* Premium Cinematic Theme */
-  --background: 240 10% 2%;
-  --foreground: 0 0% 98%;
-
-  --card: 240 10% 4%;
-  --card-foreground: 0 0% 98%;
- 
-  --popover: 240 10% 4%;
-  --popover-foreground: 0 0% 98%;
- 
-  --primary: 346 87% 43%; 
-  --primary-foreground: 0 0% 98%;
- 
-  --secondary: 240 4% 10%;
+  /* --- Institutional Token System: MaiWatch Edition --- */
+  
+  /* Surfaces & Backgrounds (Cinematic Deep Edition) */
+  --background: 240 10% 3.9%;    /* OLED Black foundation */
+  --surface-deep: 240 10% 2%;    /* Absolute depth */
+  --surface-elevated: 240 10% 10%; /* Subtle elevation */
+  
+  /* Brand Constants (MaiWatch Identity) */
+  --brand-primary: 346 84% 50%;  /* Cinematic Crimson */
+  --brand-accent: 217 91% 60%;   /* Royal Blue Accent */
+  
+  /* Functional Palette (Institutional Purity) */
+  --foreground: 0 0% 98%;      /* High-contrast white */
+  --primary: var(--brand-primary);
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 240 4.8% 15.9%;
   --secondary-foreground: 0 0% 98%;
- 
-  --muted: 240 4% 15%;
-  --muted-foreground: 240 5% 65%;
- 
-  --accent: 240 4% 15%;
+  
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  
+  --accent: var(--brand-accent);
   --accent-foreground: 0 0% 98%;
- 
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 0 0% 98%;
+  
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: var(--brand-primary);
 
-  --border: 240 4% 12%;
-  --input: 240 4% 12%;
-  --ring: 346 87% 43%;
-
-  /* Cinematic Effects */
-  --glass-opacity: 0.15;
+  /* Cinematic Scrims & Glass (Obsidian Edition) */
   --glass-blur: 24px;
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glow-primary: 0 0 20px rgba(225, 29, 72, 0.3);
-
-  /* Enterprise Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --glass: rgba(0, 0, 0, 0.4);
-  /* --glass-border: rgba(255, 255, 255, 0.1); */ /* This was moved/updated above */
-  /* --glass-blur: blur(12px); */ /* This was moved/updated above */
-}
-
-/* Theme: "Ocean" (Blue/Teal) */
-.theme-ocean {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  --primary: 199 89% 48%; /* Sky Blue */
-  --primary-foreground: 222 47% 11%;
-  --ring: 199 89% 48%;
-}
-
-/* Theme: "Cyberpunk" (Yellow/Purple) */
-.theme-cyberpunk {
-  --background: 280 50% 5%; /* Deep Purple */
-  --foreground: 60 100% 97%;
-  --primary: 60 100% 50%; /* Neon Yellow */
-  --primary-foreground: 280 50% 5%;
-  --secondary: 280 50% 20%;
-  --muted: 280 50% 20%;
-  --ring: 60 100% 50%;
-}
-
-/* Theme: "OLED" (True Black) */
-.theme-oled {
-  --background: 0 0% 0%;
-  --card: 0 0% 0%;
-  --border: 0 0% 20%;
+  --glass-opacity: 0.1;
+  --glass-border: hsla(0, 0%, 100%, 0.05);
+  
+  /* Master Shadow Heuristics (Cinematic Depth) */
+  --shadow-cinematic: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  
+  /* Institutional Ghost Strokes (Cinematic) */
+  --ghost-stroke: hsla(346, 84%, 50%, 0.1);
 }
 
 @layer base {
-  :focus-visible {
-    @apply outline-none ring-2 ring-red-500 ring-offset-2 ring-offset-zinc-950;
+  body {
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    @apply selection:bg-primary selection:text-white;
+  }
+
+  /* Typography Guards */
+  h1, h2, h3, .display {
+    @apply font-display tracking-tight text-balance;
   }
 }
 
 @layer utilities {
-  .shadow-nova {
-    box-shadow: var(--glow-nova);
-  }
-}
-
-body {
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
-  overflow-x: hidden;
-}
-
-/* Custom Scrollbar for Webkit */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #09090b;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
-/* Utilities */
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
   .glass-card {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, var(--glass-opacity));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply transition-all duration-500 ease-in-out;
   }
 
   .glass-card:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-cinematic);
   }
 
-  .glass-nav {
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+  .atmospheric-scrim {
+    background: radial-gradient(
+      circle at top left,
+      hsla(346, 84%, 50%, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      hsla(217, 91%, 60%, 0.05) 0%,
+      transparent 60%
+    );
   }
 
-  .glass-sidebar {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(32px) saturate(160%);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  /* --- Institutional Theme Variations --- */
+  
+  .theme-ocean {
+    --background: 220 40% 5%;
+    --brand-primary: 199 89% 48%;
+    --brand-accent: 174 72% 56%;
+    --ring: var(--brand-primary);
   }
 
-  .cinematic-shadow {
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+  .theme-cyberpunk {
+    --background: 280 40% 3%;
+    --brand-primary: 316 100% 50%;
+    --brand-accent: 180 100% 50%;
+    --ring: var(--brand-primary);
   }
 
-  .aura-blur {
-    filter: blur(100px);
-    opacity: 0.4;
-    mix-blend-mode: plus-lighter;
+  .theme-oled {
+    --background: 0 0% 0%;
+    --surface-deep: 0 0% 0%;
+    --surface-elevated: 0 0% 2%;
+    --brand-primary: 0 0% 100%;
+    --brand-accent: 0 0% 70%;
+    --ring: 0 0% 100%;
+    --foreground: 0 0% 100%;
+    --glass-opacity: 0.03;
+    --glass-blur: 40px;
+    --glass-border: hsla(0, 0%, 100%, 0.05);
   }
+
+  .oled-blackout {
+    --background: 0 0% 0% !important;
+    --surface-deep: 0 0% 0% !important;
+    --surface-elevated: 0 0% 1% !important;
+    --foreground: 0 0% 100% !important;
+    --glass-opacity: 0.02 !important;
+    --glass-blur: 60px !important;
+    background: #000 !important;
+  }
+
+  .theme-heritage {
+    --background: 25 20% 5%;       /* Deep Umber foundation */
+    --surface-deep: 25 20% 3%;     /* Earthy depth */
+    --surface-elevated: 25 20% 10%; /* Subtle clay elevation */
+    --brand-primary: 43 100% 50%;   /* Royal African Gold */
+    --brand-accent: 25 75% 45%;    /* Savanna Ochre */
+    --ring: var(--brand-primary);
+    --foreground: 43 100% 98%;     /* Creamy parchment text */
+    --glass-border: hsla(43, 100%, 50%, 0.1);
+    --ghost-stroke: hsla(43, 100%, 50%, 0.15);
+  }
+
+  /* Pretext Support */
+  .canvas-layer {
+    @apply pointer-events-none select-none;
+  }
+
+  /* Institutional Ghost Stroke Tool */
+  .ghost-stroke {
+    border: 1px solid var(--ghost-stroke);
+  }
+
+  /* Dynamic Parameter Bindings (Institutional HUD System) */
+  .dynamic-width { width: var(--dynamic-width, auto); }
+  .dynamic-height { height: var(--dynamic-height, auto); }
+  .dynamic-bg-image { background-image: var(--bg-image); }
+  .dynamic-bg-size { background-size: var(--bg-size, cover); }
+  .dynamic-font { font-family: var(--font-family, inherit); }
+  .dynamic-color { color: var(--dynamic-color); }
+  .dynamic-bg-color { background-color: var(--dynamic-color); }
+  .dynamic-shadow { box-shadow: 0 0 20px var(--dynamic-color); }
+  .dynamic-filter { filter: var(--dynamic-filter); }
+  .dynamic-transform { transform: var(--dynamic-transform); }
+  .dynamic-will-change { will-change: var(--will-change); }
+  
+  /* Static Performance Utilities */
+  .will-change-transform { will-change: transform; }
+  .will-change-opacity { will-change: opacity; }
+  .will-change-transform-opacity { will-change: transform, opacity; }
+
+  /* --- African Cinematic Universe (ACU) Branding --- */
+  .acu-badge {
+    @apply absolute top-2 left-2 z-20 px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-[0.15em] shadow-2xl flex items-center gap-1.5;
+    background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+    color: #000;
+    border: 1px solid rgba(255, 215, 0, 0.5);
+  }
+
+  .acu-glow {
+    box-shadow: 0 0 30px rgba(184, 134, 11, 0.2);
+  }
+
+  .acu-card-hover:hover {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.35);
+    border-color: rgba(255, 215, 0, 0.5) !important;
+  }
+
+  /* --- Studio Specific Badges --- */
+  .studio-badge {
+    @apply absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded-sm text-[7px] font-black uppercase tracking-tighter shadow-xl;
+  }
+  .studio-netflix { background: #E50914; color: #FFF; }
+  .studio-hulu { background: #1CE783; color: #000; }
+  .studio-disney { background: #0063E5; color: #FFF; }
+  .studio-peacock { background: #000; color: #FFF; border: 1px solid #333; }
+  .studio-paramount { background: #0064FF; color: #FFF; }
+
+  /* Debug & Diagnostic Components */
+  .debug-overlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(50, 0, 0, 0.95);
+    border: 2px solid white;
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 12px;
+    z-index: 999999;
+    width: 400px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: monospace;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  }
+  .debug-header {
+    border-bottom: 1px solid #666;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+  }
+  .debug-err { color: red; margin-top: 4px; border-bottom: 1px solid #333; }
+  .debug-rej { color: orange; margin-top: 4px; border-bottom: 1px solid #333; }
+  .debug-meta { color: white; }
+  .debug-ok { color: #0f0; }
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+/* Custom Scrollbar (Institutional Purity Edition) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsla(346, 84%, 50%, 0.1);
+  border-radius: 10px;
+  @apply transition-colors duration-300;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsla(346, 84%, 50%, 0.25);
+}
+
+/* Global Animations (Framer Motion Sync) */
+.master-reveal {
+  opacity: 0;
+  transform: translateY(15px);
+  animation: reveal 0.92s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes reveal {
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.animate-in {
-  animation: fadeIn 0.5s ease-in-out;
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
+
+.animate-shimmer {
+  animation: shimmer 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

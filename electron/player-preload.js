@@ -1,275 +1,137 @@
 const { ipcRenderer } = require('electron');
 
 // --- PRELOAD SCRIPT FOR VIDEO PLAYER ---
-// This script runs with privileges inside the <webview> and can bypass CSP for state extraction.
+// Version 11: Aggressive Ad-Blocking & Aegis Source Interceptor
 
-const AG_VERSION = 9;
-console.log(`[NovaSync] Preload Injecting (v${AG_VERSION})...`);
+const AG_VERSION = 11;
+console.log(`[NovaSync] Aegis Preload Hardening (v${AG_VERSION})...`);
 
-// --- 1. GLOBAL STATE & UTILS ---
+// 1. Critical: Disable window.open immediately
+window.open = function() { console.warn('[AG] Blocked window.open'); return null; };
+window.alert = function() { return true; };
+window.confirm = function() { return true; };
+window.prompt = function() { return null; };
+
+// 2. Click Hijack Protection
+document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (target.tagName === 'A' && (target.target === '_blank' || target.href.includes('redirect') || target.href.includes('popup'))) {
+        console.warn('[AG] Blocked Link Click:', target.href);
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }
+}, true);
+
+// 3. Global State
 window.AG_VIDEO = null;
 window.AG_CTX = null;
-window.AG_APPLIED_PREFS = false;
-window.AG_HAS_NUDGED = false;
-window.AG_INSTALLED = true;
-window.AG_VERSION = AG_VERSION;
-window.AG_SUB_PREF = -1; // Default off
-window.AG_VIRTUAL_VOL = -1;
+window.LAST_AG_SOURCE = null;
 
-// --- 2. COMMANDS EXPORT (For WebviewPlayer.tsx executeJavaScript) ---
-// We attach these to window so the host can still call them via legacy executeJavaScript if desired, 
-// OR simpler IPC messages (which we can listen to here).
-
-window.AG_CMD_SEEK = (t) => { if(window.AG_VIDEO) window.AG_VIDEO.currentTime = t; };
-
-window.AG_CMD_VOL = (v) => { 
-    window.AG_VIRTUAL_VOL = v;
-    if(window.AG_VIDEO) {
-        // Standard Volume
-        if (v <= 1) {
-            window.AG_VIDEO.volume = v;
-            if (window.AG_GAIN) window.AG_GAIN.gain.value = 1; // Reset boost
-        } 
-        // Boost Mode (Web Audio API)
-        else {
-            window.AG_VIDEO.volume = 1; // Max out native
-            try {
-                if (!window.AG_AUDIO_CTX) {
-                    const win = window.AG_CTX || window; 
-                    const AudioContext = win.AudioContext || win.webkitAudioContext;
-                    window.AG_AUDIO_CTX = new AudioContext();
-                    window.AG_src = window.AG_AUDIO_CTX.createMediaElementSource(window.AG_VIDEO);
-                    window.AG_GAIN = window.AG_AUDIO_CTX.createGain();
-                    window.AG_src.connect(window.AG_GAIN);
-                    window.AG_GAIN.connect(window.AG_AUDIO_CTX.destination);
-                }
-                if (window.AG_GAIN && window.AG_AUDIO_CTX) {
-                    if (window.AG_AUDIO_CTX.state === 'suspended') window.AG_AUDIO_CTX.resume();
-                    window.AG_GAIN.gain.value = v; 
-                }
-            } catch(e) {
-                console.error('Audio Boost Error:', e);
-            }
-        }
-        window.AG_VIDEO.muted = v === 0; 
-    } 
-};
-
-window.AG_CMD_TOGGLE = () => { if(window.AG_VIDEO) { if(window.AG_VIDEO.paused) window.AG_VIDEO.play(); else window.AG_VIDEO.pause(); } };
-
-window.AG_CMD_TRACK = (idx) => {
-    window.AG_SUB_PREF = idx;
-    if (window.AG_JW) {
-        window.AG_JW.setCurrentCaptions(idx + 1);
-    } else {
-        if (window.AG_VIDEO && window.AG_VIDEO._hls) window.AG_VIDEO._hls.subtitleTrack = idx;
-        if (window.AG_VIDEO && window.AG_VIDEO.textTracks) {
-            for(let i=0; i<window.AG_VIDEO.textTracks.length; i++) {
-                window.AG_VIDEO.textTracks[i].mode = i === idx ? 'showing' : 'disabled';
-            }
-        }
-    }
-};
-
-window.AG_CMD_AUDIO_TRACK = (idx) => {
-     if (window.AG_JW) { window.AG_JW.setCurrentAudioTrack(idx); }
-     else if (window.AG_HLS) { window.AG_HLS.audioTrack = idx; }
-     else if (window.AG_VIDEO && window.AG_VIDEO.audioTracks) {
-         for(let i=0; i<window.AG_VIDEO.audioTracks.length; i++) window.AG_VIDEO.audioTracks[i].enabled = (i === idx);
-     }
-};
-
-window.AG_CMD_QUALITY = (idx) => {
-     if (window.AG_JW) { window.AG_JW.setCurrentQuality(idx); }
-     else if (window.AG_VJS && window.AG_VJS.qualityLevels) {
-        const ql = window.AG_VJS.qualityLevels();
-        if (idx === 0) { for(let i=0; i<ql.length; i++) ql[i].enabled = true; } 
-        else { for(let i=0; i<ql.length; i++) ql[i].enabled = (i === idx - 1); }
-     } else if (window.AG_HLS) {
-         window.AG_HLS.currentLevel = idx === 0 ? -1 : idx - 1;
-     }
-};
-
-window.AG_CMD_PIP = () => { 
-    console.log('[NovaSync] AG_CMD_PIP Triggered');
-    if(window.AG_VIDEO) { 
-        if (document.pictureInPictureElement) {
-             document.exitPictureInPicture().catch(console.error);
-        } else {
-             window.AG_VIDEO.requestPictureInPicture().catch(console.error);
-        }
-    } else {
-        console.warn('[NovaSync] AG_CMD_PIP: No Video Element Found');
-    }
-};
-
-// IPC Listener for Robustness
-ipcRenderer.on('AG_CMD_PIP', () => {
-    console.log('[NovaSync] IPC AG_CMD_PIP Received');
-    window.AG_CMD_PIP();
-});
-
-window.AG_CMD_SPEED = (s) => { if(window.AG_VIDEO) window.AG_VIDEO.playbackRate = s; };
-
-// LISTENER: Handle messages from Host (WebviewPlayer.tsx -> broadcast)
-// This supports the existing 'broadcast' mechanism if it uses postMessage,
-// OR we can add an IPC listener for a cleaner approach.
-window.addEventListener('message', (e) => {
-    const msg = e.data;
-    if (!msg || !msg.type) return;
-    console.log('[NovaSync] Message Received:', msg.type);
-    if (typeof window[msg.type] === 'function') {
-        window[msg.type](msg.data);
-    }
-});
-
-// --- 3. VIDEO DISCOVERY (SHAZAM) ---
-
+// 4. Video Discovery (Shazam)
 const findVideo = (root, depth = 0) => {
     if (!root || depth > 5) return null;
-    
-    // 1. Check current root
     let v = root.querySelector('video');
     if (v) return { v, context: root.defaultView || window };
-
-    // 2. Check Shadow DOM
+    
+    // Check Shadow DOM
     if (root.createTreeWalker) {
         const w = root.createTreeWalker((root.body || root), NodeFilter.SHOW_ELEMENT, null, false);
-        let n; 
-        while(n = w.nextNode()) {
+        let n; while(n = w.nextNode()) {
             if(n.shadowRoot) { 
                 const res = findVideo(n.shadowRoot, depth + 1); 
                 if(res) return res; 
             } 
         }
     }
-
-    // 3. Check IFrames (Must have access)
+    // Check local IFrames
     const fs = root.querySelectorAll('iframe');
     for(let f of fs) { 
         try { 
             let d = f.contentDocument || f.contentWindow?.document; 
-            if(d) { 
-                const res = findVideo(d, depth + 1); 
-                if(res) return res; 
-            } 
+            if(d) { const res = findVideo(d, depth + 1); if(res) return res; } 
         } catch(e) {} 
     }
     return null;
 };
 
-// Check for Providers (HLS.js, JWPlayer, etc.)
-const checkProviders = (v, ctx) => {
-    const win = ctx || window;
-    
-    if (win.jwplayer && typeof win.jwplayer === 'function') {
-        try {
-            const jw = win.jwplayer();
-            if (jw && jw.getState) return { type: 'jw', instance: jw };
-        } catch(e) {}
-    }
-    const vjs = win.videojs || v.player;
-    if (vjs && typeof vjs === 'function' && vjs(v)) return { type: 'vjs', instance: vjs(v) };
-    else if (v.player && v.player.qualityLevels) return { type: 'vjs', instance: v.player };
-    
-    if (v._hls) return { type: 'hls', instance: v._hls };
-    if (win.hls && win.hls.levels) return { type: 'hls', instance: win.hls };
-    if (v.player && v.player.tech_ && v.player.tech_.hls) return { type: 'hls', instance: v.player.tech_.hls };
-    
-    return null;
-};
-
-// --- 4. STATE UPDATE LOOP ---
-
+// 5. State Loop
 const updateState = () => {
-    // Find Video
     if (!window.AG_VIDEO || !window.AG_VIDEO.isConnected) {
         const found = findVideo(document);
         if (found) {
             window.AG_VIDEO = found.v;
             window.AG_CTX = found.context;
-            
-            const v = window.AG_VIDEO;
-            // Setup listeners only once
-            if (!v.hasAGListeners) {
-                v.hasAGListeners = true;
-                v.addEventListener('ended', () => ipcRenderer.sendToHost('AG_ENDED'));
-                v.addEventListener('play', () => { v.muted = false; }); // Force unmute
-            }
-            
-            const prov = checkProviders(v, window.AG_CTX);
-            if (prov) {
-                if (prov.type === 'hls') window.AG_HLS = prov.instance;
-                if (prov.type === 'jw') window.AG_JW = prov.instance;
-                if (prov.type === 'vjs') window.AG_VJS = prov.instance;
+            if (!window.AG_VIDEO.hasAGListeners) {
+                window.AG_VIDEO.hasAGListeners = true;
+                window.AG_VIDEO.addEventListener('ended', () => ipcRenderer.sendToHost('AG_ENDED'));
+                window.AG_VIDEO.addEventListener('play', () => { window.AG_VIDEO.muted = false; });
             }
         }
     }
 
-    const v = window.AG_VIDEO;
-    if (!v) return;
+    if (window.AG_VIDEO) {
+        // Aegis Source Interceptor
+        const currentSrc = window.AG_VIDEO.currentSrc || window.AG_VIDEO.src;
+        if (currentSrc && (currentSrc.includes('.m3u8') || currentSrc.includes('.mp4')) && !currentSrc.startsWith('blob:')) {
+            if (window.LAST_AG_SOURCE !== currentSrc) {
+                window.LAST_AG_SOURCE = currentSrc;
+                ipcRenderer.sendToHost('AG_SOURCE_FOUND', { 
+                    url: currentSrc,
+                    type: currentSrc.includes('.m3u8') ? 'hls' : 'mp4'
+                });
+            }
+        }
 
-    // Calc Volume (Handle Boost)
-    let vol = v.muted ? 0 : v.volume;
-    if (window.AG_VIRTUAL_VOL > 1 && vol >= 0.99) {
-        vol = window.AG_VIRTUAL_VOL;
+        ipcRenderer.sendToHost('AG_UPDATE', {
+            currentTime: window.AG_VIDEO.currentTime,
+            duration: window.AG_VIDEO.duration || 0,
+            isPaused: window.AG_VIDEO.paused,
+            volume: window.AG_VIDEO.volume,
+            isMuted: window.AG_VIDEO.muted
+        });
     }
-
-    // Build State Object
-    const s = {
-        currentTime: v.currentTime,
-        duration: Number.isFinite(v.duration) ? v.duration : 0,
-        volume: vol,
-        isPaused: v.paused,
-        isMuted: v.muted,
-        tracks: [], audioTracks: [], qualities: [],
-        providerType: window.AG_HLS ? 'HLS' : (window.AG_JW ? 'JW' : (v._hls ? 'HLS_Attached' : 'Native')),
-        frameId: window.location.host
-    };
-
-    // ... (Extraction logic for tracks/qualities omitted for brevity, can be added if crucial)
-    // For now, let's ensure basic time/duration works first.
-
-    // Send to Host via IPC
-    ipcRenderer.sendToHost('AG_UPDATE', s);
 };
+setInterval(updateState, 500);
 
-// Run loop
-setInterval(updateState, 250);
-
-// --- 5. AD BLOCKING & CSS INJECTION ---
-// (Simplified version of the heavy script)
-
-const css = `
-    .ad, .ads, .popup, [class*="ad-"], [id*="ad-"], iframe[src*="ads"] { display: none !important; pointer-events: none !important; opacity: 0 !important; }
-    .jw-controls, .vjs-control-bar, .plyr__controls { display: none !important; }
-    div[class*="overlay"] { background: transparent !important; }
+// 6. Aggressive Ad Sanitization
+const adCss = `
+    .ad, .ads, .popup, .overlay, [class*="ad-"], [id*="ad-"], 
+    iframe[src*="ads"], iframe[src*="pop"], 
+    div[style*="z-index: 999999"], div[style*="z-index: 2147483647"] { 
+        display: none !important; 
+        pointer-events: none !important; 
+        visibility: hidden !important;
+        opacity: 0 !important; 
+        height: 0 !important;
+        width: 0 !important;
+    }
 `;
 
-const style = document.createElement('style');
-style.textContent = css;
-
-const injectStyle = () => {
-    const target = document.head || document.documentElement;
-    if (target) {
-        target.appendChild(style);
-    } else {
-        requestAnimationFrame(injectStyle);
-    }
+const injectAdBlock = () => {
+    const style = document.createElement('style');
+    style.textContent = adCss;
+    (document.head || document.documentElement).appendChild(style);
+    
+    setInterval(() => {
+        const suspicious = document.querySelectorAll('iframe:not([id*="player"]):not([class*="player"]), [class*="popup"], [id*="pop"]');
+        suspicious.forEach(el => {
+            if (el.offsetWidth < 50 || el.offsetHeight < 50) {
+                 el.remove();
+            } else if (el.tagName === 'IFRAME' && !el.src.includes('vidlink') && !el.src.includes('vidsrc')) {
+                 el.remove();
+            }
+        });
+    }, 1000);
 };
 
-if (document.head || document.documentElement) {
-    injectStyle();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectAdBlock);
 } else {
-    document.addEventListener('DOMContentLoaded', injectStyle);
+    injectAdBlock();
 }
 
-// Kill popups
-window.open = function() { return null; };
-const cleanAds = () => {
-    const selectors = ['[class*="popup"]', 'iframe[src*="ads"]', '.ad-box'];
-    selectors.forEach(sel => document.querySelectorAll(sel).forEach(el => el.remove()));
-};
-setInterval(cleanAds, 2000);
-
-console.log('[NovaSync] Preload Ready.');
+const relayActivity = () => { ipcRenderer.sendToHost('AG_WAKE'); };
+document.addEventListener('mousemove', relayActivity, { passive: true });
+document.addEventListener('mousedown', relayActivity, { passive: true });
+document.addEventListener('keydown', relayActivity, { passive: true });

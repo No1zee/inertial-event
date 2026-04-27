@@ -3,7 +3,7 @@
  * Handles all media player state and controls
  */
 
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
@@ -52,7 +52,7 @@ export interface PlayerMedia {
 interface PlayerStore extends PlaybackState, AudioState, VideoState, UIState {
   // Current media
   currentMedia: PlayerMedia | null;
-  
+
   // Actions - Playback
   setPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
@@ -60,13 +60,13 @@ interface PlayerStore extends PlaybackState, AudioState, VideoState, UIState {
   setPlaybackRate: (rate: number) => void;
   setBuffered: (buffered: number) => void;
   setSeekable: (seekable: TimeRanges | null) => void;
-  
+
   // Actions - Audio
   setVolume: (volume: number) => void;
   setMuted: (muted: boolean) => void;
   setAudioTrack: (track: number | null) => void;
   toggleMute: () => void;
-  
+
   // Actions - Video
   setQuality: (quality: string) => void;
   setFullscreen: (fullscreen: boolean) => void;
@@ -74,17 +74,17 @@ interface PlayerStore extends PlaybackState, AudioState, VideoState, UIState {
   setSubtitleTrack: (track: number | null) => void;
   setSubtitlesEnabled: (enabled: boolean) => void;
   toggleSubtitles: () => void;
-  
+
   // Actions - UI
   setShowControls: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  
+
   // Actions - Media
   loadMedia: (media: PlayerMedia) => void;
   unloadMedia: () => void;
-  
+
   // Actions - Reset
   resetPlayer: () => void;
   resetSession: () => void;
@@ -121,7 +121,7 @@ const defaultUIState: UIState = {
   error: null,
 };
 
-export const usePlayerStore = create<PlayerStore>()(
+export const usePlayerStore = createWithEqualityFn<PlayerStore>()(
   subscribeWithSelector(
     persist(
       (set, get) => ({
@@ -133,7 +133,7 @@ export const usePlayerStore = create<PlayerStore>()(
         currentMedia: null,
 
         // Playback actions
-        setPlaying: (isPlaying) => {
+        setPlaying: isPlaying => {
           set({ isPlaying });
           // Auto-hide controls when playing
           if (isPlaying) {
@@ -145,63 +145,66 @@ export const usePlayerStore = create<PlayerStore>()(
             }, 3000);
           }
         },
-        
-        setCurrentTime: (currentTime) => {
+
+        setCurrentTime: currentTime => {
           const { duration } = get();
           set({ currentTime });
-          
+
           // Update watch progress if media is loaded and duration is known
           if (get().currentMedia && duration > 0) {
             // This will trigger watch history update
             const progress = (currentTime / duration) * 100;
-            if (progress > 5) { // Only update after 5% progress
+            if (progress > 5) {
+              // Only update after 5% progress
               // Dispatch custom event for watch history tracking
-              window.dispatchEvent(new CustomEvent('player:progress', {
-                detail: { currentTime, duration, progress }
-              }));
+              window.dispatchEvent(
+                new CustomEvent('player:progress', {
+                  detail: { currentTime, duration, progress },
+                })
+              );
             }
           }
         },
-        
-        setDuration: (duration) => set({ duration }),
-        setPlaybackRate: (playbackRate) => set({ playbackRate }),
-        setBuffered: (buffered) => set({ buffered }),
-        setSeekable: (seekable) => set({ seekable }),
+
+        setDuration: duration => set({ duration }),
+        setPlaybackRate: playbackRate => set({ playbackRate }),
+        setBuffered: buffered => set({ buffered }),
+        setSeekable: seekable => set({ seekable }),
 
         // Audio actions
-        setVolume: (volume) => {
+        setVolume: volume => {
           // Unmute when volume is set above 0
           const muted = volume === 0 ? get().muted : false;
           set({ volume, muted });
         },
-        
-        setMuted: (muted) => set({ muted }),
-        setAudioTrack: (audioTrack) => set({ audioTrack }),
-        
+
+        setMuted: muted => set({ muted }),
+        setAudioTrack: audioTrack => set({ audioTrack }),
+
         toggleMute: () => {
-          set((state) => ({ muted: !state.muted }));
+          set(state => ({ muted: !state.muted }));
         },
 
         // Video actions
-        setQuality: (quality) => set({ quality }),
-        setFullscreen: (isFullscreen) => set({ isFullscreen }),
-        setPictureInPicture: (pictureInPicture) => set({ pictureInPicture }),
-        setSubtitleTrack: (subtitleTrack) => set({ subtitleTrack }),
-        setSubtitlesEnabled: (subtitlesEnabled) => set({ subtitlesEnabled }),
-        
+        setQuality: quality => set({ quality }),
+        setFullscreen: isFullscreen => set({ isFullscreen }),
+        setPictureInPicture: pictureInPicture => set({ pictureInPicture }),
+        setSubtitleTrack: subtitleTrack => set({ subtitleTrack }),
+        setSubtitlesEnabled: subtitlesEnabled => set({ subtitlesEnabled }),
+
         toggleSubtitles: () => {
-          set((state) => ({ subtitlesEnabled: !state.subtitlesEnabled }));
+          set(state => ({ subtitlesEnabled: !state.subtitlesEnabled }));
         },
 
         // UI actions
-        setShowControls: (showControls) => set({ showControls }),
-        setShowSettings: (showSettings) => set({ showSettings }),
-        setLoading: (loading) => set({ loading }),
-        setError: (error) => set({ error }),
+        setShowControls: showControls => set({ showControls }),
+        setShowSettings: showSettings => set({ showSettings }),
+        setLoading: loading => set({ loading }),
+        setError: error => set({ error }),
 
         // Media actions
-        loadMedia: (media) => {
-          set({ 
+        loadMedia: media => {
+          set({
             currentMedia: media,
             error: null,
             loading: false,
@@ -209,9 +212,9 @@ export const usePlayerStore = create<PlayerStore>()(
             ...defaultPlaybackState,
           });
         },
-        
+
         unloadMedia: () => {
-          set({ 
+          set({
             currentMedia: null,
             ...defaultPlaybackState,
             error: null,
@@ -229,7 +232,7 @@ export const usePlayerStore = create<PlayerStore>()(
             currentMedia: null,
           });
         },
-        
+
         resetSession: () => {
           // Reset only session-based state (not persisted)
           set({
@@ -242,9 +245,9 @@ export const usePlayerStore = create<PlayerStore>()(
         },
       }),
       {
-        name: 'novastream-player',
+        name: 'MaiWatch-player',
         storage: createJSONStorage(() => sessionStorage), // Session-based persistence
-        partialize: (state) => ({
+        partialize: state => ({
           // Only persist preferences, not current state
           volume: state.volume,
           muted: state.muted,
@@ -260,45 +263,56 @@ export const usePlayerStore = create<PlayerStore>()(
 );
 
 // Selectors for optimized subscriptions
-export const usePlayerPlayback = () => 
-  usePlayerStore((state) => ({
-    isPlaying: state.isPlaying,
-    currentTime: state.currentTime,
-    duration: state.duration,
-    playbackRate: state.playbackRate,
-    buffered: state.buffered,
-  }), shallow);
+export const usePlayerPlayback = () =>
+  usePlayerStore(
+    state => ({
+      isPlaying: state.isPlaying,
+      currentTime: state.currentTime,
+      duration: state.duration,
+      playbackRate: state.playbackRate,
+      buffered: state.buffered,
+    }),
+    shallow
+  );
 
-export const usePlayerAudio = () => 
-  usePlayerStore((state) => ({
-    volume: state.volume,
-    muted: state.muted,
-    audioTrack: state.audioTrack,
-  }), shallow);
+export const usePlayerAudio = () =>
+  usePlayerStore(
+    state => ({
+      volume: state.volume,
+      muted: state.muted,
+      audioTrack: state.audioTrack,
+    }),
+    shallow
+  );
 
-export const usePlayerVideo = () => 
-  usePlayerStore((state) => ({
-    quality: state.quality,
-    isFullscreen: state.isFullscreen,
-    pictureInPicture: state.pictureInPicture,
-    subtitleTrack: state.subtitleTrack,
-    subtitlesEnabled: state.subtitlesEnabled,
-  }), shallow);
+export const usePlayerVideo = () =>
+  usePlayerStore(
+    state => ({
+      quality: state.quality,
+      isFullscreen: state.isFullscreen,
+      pictureInPicture: state.pictureInPicture,
+      subtitleTrack: state.subtitleTrack,
+      subtitlesEnabled: state.subtitlesEnabled,
+    }),
+    shallow
+  );
 
-export const usePlayerUI = () => 
-  usePlayerStore((state) => ({
-    showControls: state.showControls,
-    showSettings: state.showSettings,
-    loading: state.loading,
-    error: state.error,
-  }), shallow);
+export const usePlayerUI = () =>
+  usePlayerStore(
+    state => ({
+      showControls: state.showControls,
+      showSettings: state.showSettings,
+      loading: state.loading,
+      error: state.error,
+    }),
+    shallow
+  );
 
-export const useCurrentMedia = () => 
-  usePlayerStore((state) => state.currentMedia);
+export const useCurrentMedia = () => usePlayerStore(state => state.currentMedia);
 
 // Action selectors for cleaner imports
-export const usePlayerActions = () => 
-  usePlayerStore((state) => ({
+export const usePlayerActions = () =>
+  usePlayerStore(state => ({
     setPlaying: state.setPlaying,
     setCurrentTime: state.setCurrentTime,
     setVolume: state.setVolume,
@@ -316,7 +330,7 @@ export const usePlayerActions = () =>
 if (process.env.NODE_ENV === 'development') {
   // Enable debug logging for state changes
   usePlayerStore.subscribe(
-    (state) => state,
+    state => state,
     (state, prevState) => {
       console.log('🎬 Player Store changed:', {
         from: prevState,

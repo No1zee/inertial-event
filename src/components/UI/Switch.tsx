@@ -1,11 +1,11 @@
-import { Switch as HeadlessSwitch } from '@headlessui/react'
-import { cn } from '@/lib/utils'
+import { Switch as HeadlessSwitch } from '@headlessui/react';
+import { cn } from '@/lib/utils';
 
 interface SwitchProps {
-  checked: boolean
-  onChange: (checked: boolean) => void
-  disabled?: boolean
-  className?: string
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
 }
 
 export function Switch({ checked, onChange, disabled, className }: SwitchProps) {
@@ -28,5 +28,5 @@ export function Switch({ checked, onChange, disabled, className }: SwitchProps) 
         )}
       />
     </HeadlessSwitch>
-  )
+  );
 }

@@ -83,7 +83,7 @@ class TorrentService {
         tmdbId: string, 
         episodeNumber: number, 
         seasonNumber: number, 
-        type: 'movie' | 'tv'
+        type: 'movie' | 'tv' | 'anime' | 'series'
     ): Promise<IProviderResponse | null> {
         this.log(`START getSources: ${tmdbId} (${type})`);
         
@@ -96,7 +96,8 @@ class TorrentService {
             console.log(`[TorrentService] Fetching sources for TMDB: ${tmdbId} (${type})`);
 
             // 1. Resolve IMDB ID (Required for Torrentio & YTS)
-            const imdbId = await tmdbService.getExternalIds(tmdbId, type);
+            const mappedType: 'movie' | 'tv' = (type === 'tv' || type === 'anime' || type === 'series') ? 'tv' : 'movie';
+            const imdbId = await tmdbService.getExternalIds(tmdbId, mappedType);
             this.log(`Resolved IMDB ID: ${imdbId}`);
             
             if (!imdbId) {
@@ -155,6 +156,7 @@ class TorrentService {
                         quality: quality,
                         type: 'torrent',
                         provider: 'Torrentio',
+                        title: stream.title, // Critical: Include title for tier classification
                         // Metadata for UI
                         size: stream.title.match(/[\d\.]+(GB|MB)/)?.[0] || '',
                         seeders: stream.title.match(/👤 (\d+)/)?.[1] || '0' // Torrentio specific parsing
@@ -173,15 +175,16 @@ class TorrentService {
             // User requested to ONLY keep native formats to ensure perfect seeking.
             const getTier = (source: any) => {
                 const title = (source.title || '').toLowerCase();
+                const url = (source.url || '').toLowerCase();
                 const isYts = source.provider === 'YTS';
                 
                 // Tier 1: Native MP4 (Perfect Playback)
                 if (isYts) return 1;
-                if (title.includes('.mp4')) return 1;
+                if (title.includes('.mp4') || url.includes('.mp4')) return 1;
 
                 // Tier 2: Transmux (MKV h264 - Fast, no seek)
-                if (title.includes('.mkv') && (title.includes('x264') || title.includes('h264'))) return 2;
-                if (!title.includes('hevc') && !title.includes('x265') && !title.includes('hdr') && title.includes('.mkv')) return 2;
+                if ((title.includes('.mkv') || url.includes('.mkv')) && (title.includes('x264') || title.includes('h264'))) return 2;
+                if (!title.includes('hevc') && !title.includes('x265') && !title.includes('hdr') && (title.includes('.mkv') || url.includes('.mkv'))) return 2;
 
                 // Tier 3: Heavy Transcode (HEVC/HDR)
                 if (title.includes('x265') || title.includes('hevc') || title.includes('hdr')) return 3;

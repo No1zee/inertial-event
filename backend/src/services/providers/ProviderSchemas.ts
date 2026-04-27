@@ -4,7 +4,12 @@ export const StreamSourceSchema = z.object({
     url: z.string().url(),
     quality: z.string().optional().default('auto'),
     type: z.enum(['hls', 'mp4', 'torrent', 'embed']).default('hls'),
-    provider: z.string()
+    provider: z.string(),
+    isDub: z.boolean().optional(),
+    isSub: z.boolean().optional(),
+    title: z.string().optional(),
+    size: z.string().optional(),
+    seeders: z.string().optional()
 });
 
 export const SubtitleSchema = z.object({

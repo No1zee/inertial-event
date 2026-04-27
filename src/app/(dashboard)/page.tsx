@@ -1,214 +1,235 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useInView } from "framer-motion";
-import { Sparkles, Film } from "lucide-react";
-import { Hero } from "@/components/content/Hero";
-import { ContentRail } from "@/components/content/ContentRail";
-import { BrandBlock } from "@/components/brand/BrandBlock";
-import { contentApi } from "@/lib/api/content";
-import { useUIStore } from "@/lib/store/uiStore";
-import { useHistoryStore } from "@/lib/store/historyStore";
-import { useWatchlistStore } from "@/lib/store/watchlistStore";
-import { Content } from "@/lib/types/content";
-import { useTrending, useSimilar } from "@/hooks/queries/useContent";
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useInView } from 'framer-motion';
+import { CinemaMarquee } from '@/components/content/CinemaMarquee';
+import { AtmosphericRail } from '@/components/content/AtmosphericRail';
+import { ProximityBento } from '@/components/content/ProximityBento';
+import ContinueWatching from '@/components/home/ContinueWatching';
+import RecentlyWatched from '@/components/home/RecentlyWatched';
+import { StudioRail } from '@/components/home/StudioRail';
+import { SmartCollections } from '@/components/home/SmartCollections';
+import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { contentApi } from '@/lib/api/content';
+import { Content } from '@/lib/types/content';
+import { cn } from '@/lib/utils';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
+import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
 
-// Rails Configuration
-const RAIL_CONFIGS = [
-    { id: "trending", title: "Trending Now", fetcher: contentApi.getTrending },
-    { id: "popular_tv", title: "Most Popular Series", fetcher: contentApi.getPopularTV },
-    { id: "day_one_movies", title: "New Movies", fetcher: () => contentApi.getDayOneDrops('movie') },
-    { id: "day_one_tv", title: "New TV Shows", fetcher: () => contentApi.getDayOneDrops('tv') },
-    // Action & Adventure
-    { id: "action", title: "High Octane Action", fetcher: () => contentApi.getByGenre(28, 'movie') },
-    { id: "adventure", title: "Epic Adventures", fetcher: () => contentApi.getByGenre(12, 'movie') },
-    { id: "thriller", title: "Edge of Your Seat", fetcher: () => contentApi.getByGenre(53, 'movie') },
-    // Sci-Fi & Fantasy
-    { id: "scifi", title: "Sci-Fi & Fantasy Worlds", fetcher: () => contentApi.getByGenre(878, 'movie') },
-    { id: "scifi_tv", title: "Sci-Fi Series", fetcher: () => contentApi.getByGenre(10765, 'tv') },
-    // Superheroes & Comics
-    { id: "cbm", title: "Superheroes & Villains", fetcher: () => contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc' }, 'movie') },
-    // Horror & Mystery
-    { id: "horror", title: "Late Night Horror", fetcher: () => contentApi.getByGenre(27, 'movie') },
-    { id: "mystery", title: "Mystery & Suspense", fetcher: () => contentApi.getByGenre(9648, 'movie') },
-    // Comedy & Romance
-    { id: "comedy", title: "Laugh Out Loud", fetcher: () => contentApi.getByGenre(35, 'movie') },
-    { id: "romcom", title: "Rom-Com Favorites", fetcher: () => contentApi.discover({ with_genres: '10749,35', sort_by: 'popularity.desc' }, 'movie') },
-    { id: "romance", title: "Romance & Drama", fetcher: () => contentApi.getByGenre(10749, 'movie') },
-    // Drama & Prestige
-    { id: "drama", title: "Award-Winning Drama", fetcher: () => contentApi.getByGenre(18, 'movie') },
-    { id: "drama_tv", title: "Prestige TV", fetcher: () => contentApi.getByGenre(18, 'tv') },
-    { id: "a24", title: "Indie Gems", fetcher: () => contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc' }, 'movie') },
-    // Animation
-    { id: "anime", title: "Anime Hits", fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv') },
-    { id: "animation", title: "Animated Classics", fetcher: () => contentApi.getByGenre(16, 'movie') },
-    { id: "family", title: "Family Fun", fetcher: () => contentApi.getByGenre(10751, 'movie') },
-    // Documentary & Reality
-    { id: "docu", title: "Mind-Blowing Docs", fetcher: () => contentApi.getByGenre(99, 'movie') },
-    { id: "biography", title: "True Stories", fetcher: () => contentApi.discover({ with_genres: '99,36', sort_by: 'vote_average.desc' }, 'movie') },
-    // Curated Collections
-    { id: "bangers", title: "Top Rated Bangers", fetcher: () => contentApi.getBangers('movie') },
-    { id: "bangers_tv", title: "Best TV Series Ever", fetcher: () => contentApi.getBangers('tv') },
-    { id: "classics", title: "Modern Classics", fetcher: () => contentApi.getClassics('movie') },
-    { id: "underrated", title: "Hidden Gems", fetcher: () => contentApi.getUnderrated('movie') },
-    { id: "fresh", title: "Fresh This Year", fetcher: () => contentApi.getFresh('movie') },
-    { id: "fresh_tv", title: "New Series to Binge", fetcher: () => contentApi.getFresh('tv') },
-    // Quick Watches & Mood
-    { id: "short", title: "Quick Watch (<100m)", fetcher: contentApi.getShortAndSweet },
-    { id: "feelgood", title: "Feel Good Movies", fetcher: contentApi.getFeelGood },
-    // Additional Genres
-    { id: "western", title: "Wild West", fetcher: () => contentApi.getByGenre(37, 'movie') },
-    { id: "war", title: "War & History", fetcher: () => contentApi.getByGenre(10752, 'movie') },
-    { id: "crime", title: "Crime & Gangs", fetcher: () => contentApi.getByGenre(80, 'movie') },
-    { id: "music", title: "Music & Performance", fetcher: () => contentApi.getByGenre(10402, 'movie') },
+const BrandBlock = lazy(() => import('@/components/brand/BrandBlock').then(mod => ({ default: mod.BrandBlock })));
+
+interface RailConfig {
+  id: string;
+  title: string;
+  fetcher: () => Promise<Content[]>;
+  aspectRatio: 'poster' | '16:9' | '21:9' | 'landscape' | 'ultrawide';
+  providerId?: string;
+}
+
+// Rails Configuration (Standardized)
+const RAIL_CONFIGS: RailConfig[] = [
+  { id: 'popular_tv', title: 'Global Series', fetcher: contentApi.getPopularTV, aspectRatio: '16:9' as const },
+  {
+    id: 'african_cinema',
+    title: 'African Cinematic Heritage',
+    fetcher: contentApi.getAfricanMovies,
+    aspectRatio: 'poster' as const,
+    providerId: 'acu',
+  },
+  {
+    id: 'netflix_originals',
+    title: 'Netflix Originals',
+    fetcher: () => contentApi.discover({ with_networks: '213' }, 'tv'),
+    aspectRatio: 'poster' as const,
+    providerId: 'netflix',
+  },
+  {
+    id: 'adult_swim',
+    title: 'Adult Swim Bumps',
+    fetcher: () => contentApi.discover({ with_networks: '80' }, 'tv'),
+    aspectRatio: '16:9' as const,
+    providerId: 'adult-swim',
+  },
+  {
+    id: 'hulu_picks',
+    title: 'Hulu Exclusive',
+    fetcher: () => contentApi.discover({ with_networks: '453' }, 'tv'),
+    aspectRatio: 'poster' as const,
+    providerId: 'hulu',
+  },
+  {
+    id: 'korean_dramas',
+    title: 'Masterclass: K-Drama',
+    fetcher: contentApi.getKoreanDramas,
+    aspectRatio: 'poster' as const,
+  },
+  {
+    id: 'day_one_movies',
+    title: 'Premiere Releases',
+    fetcher: () => contentApi.getDayOneDrops('movie'),
+    aspectRatio: 'poster' as const,
+  },
+  {
+    id: 'bangers',
+    title: "Critics' Choice",
+    fetcher: () => contentApi.getBangers('movie'),
+    aspectRatio: 'poster' as const,
+  },
+  {
+    id: 'action',
+    title: 'High-Octane Action',
+    fetcher: () => contentApi.getByGenre(28, 'movie'),
+    aspectRatio: '21:9' as const,
+  },
+  {
+    id: 'scifi',
+    title: 'Future Realism',
+    fetcher: () => contentApi.getByGenre(878, 'movie'),
+    aspectRatio: '16:9' as const,
+  },
+  {
+    id: 'anime',
+    title: 'Anime Spotlight',
+    fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv'),
+    aspectRatio: 'poster' as const,
+  },
 ];
 
 export default function DashboardPage() {
-    const { sidebarOpen } = useUIStore();
-    const [visibleCount, setVisibleCount] = useState(4); // Start with 4 rails
+  const [visibleCount, setVisibleCount] = useState(3);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sentinelRef);
 
-    const sentinelRef = useRef(null);
-    const isInView = useInView(sentinelRef, { amount: 0.1 });
-
-    // Infinite Scroll Logic
-    useEffect(() => {
-        if (isInView && visibleCount < RAIL_CONFIGS.length) {
-            // Load 2 more rails at a time
-            const timeout = setTimeout(() => {
-                setVisibleCount(prev => Math.min(prev + 2, RAIL_CONFIGS.length));
-            }, 500); // Small delay for effect
-            return () => clearTimeout(timeout);
-        }
-    }, [isInView, visibleCount]);
-
-    // Fetch Heavy Hitters for Hero
-    const { data: heavyHitters } = useQuery<Content[]>({
-        queryKey: ["hero", "heavy-hitters"],
-        queryFn: () => contentApi.getHeroHeavyHitters('all'),
-        staleTime: 1000 * 60 * 30 // Cache for 30 mins
-    });
-
-    const [heroItems, setHeroItems] = useState<Content[]>([]);
-
-    useEffect(() => {
-        if (heavyHitters && heavyHitters.length > 0) {
-            // Shuffle to keep it fresh on each visit
-            const shuffled = [...heavyHitters].sort(() => Math.random() - 0.5).slice(0, 5);
-            setHeroItems(shuffled);
-        }
-    }, [heavyHitters]);
-
-    return (
-        <div className="min-h-screen bg-[#141414] pb-20 relative">
-            {/* Minimalist Texture Overlay */}
-            <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay" />
-            
-            <Hero items={heroItems} />
-
-            {/* Content Rails */}
-            <div className="relative z-10 -mt-12 sm:-mt-24 space-y-8 md:space-y-10 pb-24">
-
-                {/* Continue Watching Rail */}
-                <ContinueWatchingRail />
-
-                {/* Because You Watched Rail */}
-                <BecauseYouWatchedRail />
-
-                {RAIL_CONFIGS.slice(0, Math.min(visibleCount, 4)).map((config) => (
-                    <AsyncRail key={config.id} config={config} />
-                ))}
-
-                {/* First Brand Block - Move Higher (after 4 rails) */}
-                {visibleCount >= 4 && (
-                    <BrandBlock 
-                        text="Your Universe of Entertainment"
-                        subtext="Thousands of movies, series, and anime at your fingertips"
-                        gradient="bg-gradient-to-r from-red-950/40 via-purple-950/40 to-blue-950/40"
-                        icon={<Sparkles className="w-16 h-16 text-red-500" />}
-                        bgImage="https://images.unsplash.com/photo-1574267432553-4b4628081c31?auto=format&fit=crop&q=80&w=2000"
-                    />
-                )}
-
-                {RAIL_CONFIGS.slice(4, Math.min(visibleCount, 15)).map((config) => (
-                    <AsyncRail key={config.id} config={config} />
-                ))}
-
-                {/* Second Brand Block */}
-                {visibleCount >= 15 && (
-                    <BrandBlock 
-                        text="Discover Hidden Gems"
-                        subtext="Curated collections for every mood and moment"
-                        gradient="bg-gradient-to-r from-amber-950/40 via-rose-950/40 to-purple-950/40"
-                        icon={<Film className="w-16 h-16 text-amber-500" />}
-                        bgImage="https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80&w=2000"
-                    />
-                )}
-
-                {RAIL_CONFIGS.slice(15, visibleCount).map((config) => (
-                    <AsyncRail key={config.id} config={config} />
-                ))}
-
-                {/* Sentinel for Infinite Scroll */}
-                {visibleCount < RAIL_CONFIGS.length && (
-                    <div ref={sentinelRef} className="h-20 w-full flex items-center justify-center">
-                        <div className="h-6 w-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-interface RailConfig {
-    id: string;
-    title: string;
-    fetcher: () => Promise<Content[]>;
-}
-
-function AsyncRail({ config }: { config: RailConfig }) {
-    const { data, isLoading } = useQuery<Content[]>({
-        queryKey: ["rail", config.id],
-        queryFn: () => config.fetcher(),
-        staleTime: 1000 * 60 * 30, // Cache for 30 mins
-        refetchOnWindowFocus: false,
-        retry: 1
-    });
-
-    if (isLoading) {
-        return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
+  useEffect(() => {
+    if (isInView && visibleCount < RAIL_CONFIGS.length) {
+      setVisibleCount(prev => prev + 2);
     }
+  }, [isInView, visibleCount]);
 
-    if (!data || !Array.isArray(data) || data.length === 0) return null;
+  const { data: trending } = useQuery<Content[]>({
+    queryKey: ['trending'],
+    queryFn: () => contentApi.getTrending(1),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    refetchOnWindowFocus: false,
+  });
 
-    return <ContentRail title={config.title} items={data} railId={config.id} />;
+  return (
+    <div className="min-h-screen bg-black">
+      {/* 1. Cinematic Hero Section */}
+      <CinemaMarquee items={trending} />
+
+      <div className="relative z-10 -mt-32 pb-32">
+        <DashboardHeader />
+
+        {/* 2. Studio / Brand Shortcuts */}
+        <StudioRail />
+
+        {/* 3. Continue Watching */}
+        <ContinueWatching />
+
+        {/* 4. Recently Watched */}
+        <RecentlyWatched />
+
+        {/* 4.5 AI Curated Vaults */}
+        <SmartCollections />
+
+        {/* Interstitial: Proximity Bento */}
+        <div className="py-12">
+          <ProximityBento />
+        </div>
+
+        {/* Interstitial: The Foundry */}
+        <div className="py-20">
+          <Suspense fallback={<div className="h-[600px] animate-pulse bg-zinc-900 mx-10 lg:mx-24 rounded-[4rem]" />}>
+            <BrandBlock
+              text="Mai Foundry"
+              bgImage={getOptimizedImageUrl(
+                'https://images.unsplash.com/photo-1574267432553-4b4628081c31',
+                'landscape'
+              )}
+            />
+          </Suspense>
+        </div>
+
+        {/* 5. Dynamic Content Rails */}
+        <div className="space-y-12">
+          {RAIL_CONFIGS.slice(0, visibleCount).map(config => (
+            <div key={config.id} className="relative">
+              <AtmosphericAsyncRail config={config} />
+            </div>
+          ))}
+        </div>
+
+        {/* Infinite Scroll Sentinel */}
+        {visibleCount < RAIL_CONFIGS.length && (
+          <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+                Expanding Experience
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function ContinueWatchingRail() {
-    // Subscribe to history to trigger re-renders
-    const history = useHistoryStore(state => state.history);
-    const [mounted, setMounted] = useState(false);
+function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
+  const { data, isLoading } = useQuery<Content[]>({
+    queryKey: ['rail', config.id],
+    queryFn: () => config.fetcher(),
+    staleTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+  });
 
-    useEffect(() => setMounted(true), []);
+  const provider = config.providerId
+    ? getProviderById(config.providerId) || getProviderBySlug(config.providerId)
+    : null;
 
-    // Derive items directly from the fresh store state
-    const items = useHistoryStore.getState().getContinueWatching();
+  if (isLoading) {
+    return (
+      <div className="px-10 lg:px-24 space-y-8 animate-pulse relative overflow-hidden">
+        {provider && (
+          <div
+            className="absolute top-0 right-0 w-[400px] h-[400px] opacity-5 blur-[100px] pointer-events-none bg-[var(--brand-color)]"
+            style={{ '--brand-color': provider.color } as React.CSSProperties}
+          />
+        )}
+        <div className="flex items-center gap-3">
+          <div className="h-[1px] w-6 bg-zinc-800" />
+          <div className="h-4 w-48 bg-zinc-900/50 rounded-full" />
+        </div>
+        <div className="flex gap-6 overflow-hidden pt-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div
+              key={i}
+              className={cn(
+                'glass-card border-white/5 rounded-2xl relative overflow-hidden shrink-0',
+                config.aspectRatio === '21:9' || config.aspectRatio === 'ultrawide'
+                  ? 'w-[350px] md:w-[420px] aspect-[21/9]'
+                  : config.aspectRatio === '16:9' || config.aspectRatio === 'landscape'
+                    ? 'w-[280px] md:w-[350px] aspect-video'
+                    : 'w-[160px] md:w-[200px] aspect-[2/3]'
+              )}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    if (!mounted || items.length === 0) return null;
-
-    return <ContentRail title="Continue Watching" items={items} />;
-}
-
-function BecauseYouWatchedRail() {
-    const history = useHistoryStore(state => state.history);
-    const [mounted, setMounted] = useState(false);
-    
-    useEffect(() => setMounted(true), []);
-
-    const last = history[0];
-    const { data: similarItems } = useSimilar(last?.id || '', last?.type);
-
-    if (!mounted || !last || !similarItems || similarItems.length === 0) return null;
-
-    return <ContentRail title={`Because you watched ${last.title}`} items={similarItems} />;
+  return (
+    <AtmosphericRail
+      title={config.title}
+      items={data}
+      railId={config.id}
+      aspectRatio={config.aspectRatio}
+      providerId={config.providerId}
+    />
+  );
 }

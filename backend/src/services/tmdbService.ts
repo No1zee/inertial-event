@@ -36,7 +36,7 @@ class TmdbService {
     async getTrending(): Promise<any[]> {
         const cacheKey = 'tmdb_trending';
         const cached = cache.get(cacheKey);
-        if (cached) return cached;
+        if (cached) return cached as any[];
 
         try {
             if (!this.apiKey && !this.readToken) {
@@ -70,7 +70,7 @@ class TmdbService {
     async getDetails(id: string): Promise<any | null> {
         const cacheKey = `tmdb_details_${id}`;
         const cached = cache.get(cacheKey);
-        if (cached) return cached;
+        if (cached) return cached as any;
 
         try {
             const cleanId = id.replace('tmdb_', '');
@@ -102,7 +102,7 @@ class TmdbService {
     async search(query: string): Promise<any[]> {
         const cacheKey = `tmdb_search_${query.toLowerCase()}`;
         const cached = cache.get(cacheKey);
-        if (cached) return cached;
+        if (cached) return cached as any[];
 
         try {
             const response = await axios.get(`${this.baseUrl}/search/multi`, {

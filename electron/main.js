@@ -13,6 +13,17 @@ const torrentService = require('../services/TorrentService');
 const isDev = !app.isPackaged;
 const { pathToFileURL } = require('url');
 
+// Load .env.local if present
+try {
+    const dotenv = require('dotenv');
+    const envPath = path.join(__dirname, '../.env.local');
+    if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath });
+    }
+} catch (e) {
+    console.warn('dotenv failed to load', e);
+}
+
 // Register custom protocol privileges early
 // ONLY register 'proxy' here. 'app' is handled by electron-serve or defaults.
 // registering 'app' as standard manually can sometimes break electron-serve's host-less '-' mapping.
@@ -25,10 +36,14 @@ protocol.registerSchemesAsPrivileged([
 // const loadURL = serve({ directory: 'out' });
 
 // Hardware Acceleration (Blueprint: GPU caching and performance optimization)
-// Usually enabled by default, but we can enforce some flags if needed.
-// app.disableHardwareAcceleration();
-// app.commandLine.appendSwitch('enable-gpu-rasterization');
-// app.commandLine.appendSwitch('enable-zero-copy');
+// Enabled by default, enforce GPU optimization flags for smooth video playback.
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-hardware-overlays', 'single-fullscreen,single-plane');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-accelerated-video-decode');
+app.commandLine.appendSwitch('enable-accelerated-video-encode');
+// app.disableHardwareAcceleration(); // Re-enabled for high-performance video playback
 
 ipcMain.on('frontend-log', (event, msg) => {
     console.log(`[Frontend] ${msg}`);
@@ -41,9 +56,8 @@ let mainWindow;
 const getPreloadPath = () => {
     console.log('[AG] IPC Invoke: get-player-preload-path (Universal)');
     const p = path.join(__dirname, 'player-preload.js');
-    console.log('[AG] Resolved Preload Path (RAW):', p);
-    console.log('[AG] Resolved Preload Path (URL):', pathToFileURL(p).href);
-    return pathToFileURL(p).href;
+    console.log('[AG] Resolved Preload Path:', p);
+    return p;
 };
 
 ipcMain.handle('get-player-preload-path-v2', getPreloadPath);
@@ -83,7 +97,7 @@ function createWindow() {
     // 4. Header Spoofing (Universal Referer Control)
     const applyRequestHeaders = (sess) => {
         sess.webRequest.onBeforeSendHeaders(
-            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*'] },
+            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.vidsrc.to/*', '*://*.vidsrc.xyz/*', '*://*.vidsrc.cc/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*'] },
             (details, callback) => {
                 const url = new URL(details.url);
                 const domain = url.hostname;
@@ -161,7 +175,7 @@ function createWindow() {
                         }
                     }
 
-// 2. Inject Robust CSP for ALL domains to allow NovaStream features (Torrent/Sources/Proxy)
+// 2. Inject Robust CSP for ALL domains to allow MaiWatch features (Torrent/Sources/Proxy)
 let csp = "";
 if (isDev) {
     // Development: Allow Next.js HMR, unsafe-eval for devtools, and localhost
@@ -171,7 +185,7 @@ if (isDev) {
     csp = "default-src 'self' 'unsafe-inline' https:;";
 }
 
-const domains = "https://inertial-event.vercel.app https://novastream.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu http://127.0.0.1:5000 http://localhost:5000";
+const domains = "https://inertial-event.vercel.app https://MaiWatch.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.vidsrc.to https://*.vidsrc.cc https://*.vidsrc.xyz http://127.0.0.1:5000 http://localhost:5000";
 
 // Rebuild script-src
 const scriptSrc = isDev 
@@ -181,11 +195,12 @@ csp += ` script-src ${scriptSrc} ${domains};`;
 
                     // Add styles, connect, img, media, frame, font (Condensed)
                     csp += ` style-src 'self' 'unsafe-inline' https: app: proxy: file: http://localhost:3000 ${domains};`;
-                    csp += ` connect-src 'self' ws: wss: https: proxy: app: file: http: ${domains} http://localhost:3000 ws://localhost:3000;`;
-                    csp += ` img-src 'self' data: blob: proxy: app: file: http: https://* http://localhost:3000;`;
+                    csp += ` connect-src 'self' ws: wss: http: https: proxy: app: file: http: ${domains} http://localhost:3000 ws://localhost:3000;`;
+                    csp += ` img-src 'self' data: blob: proxy: app: file: http: https: https://* http://localhost:3000;`;
                     csp += ` media-src 'self' blob: proxy: app: file: http: https: http://localhost:3000;`;
-                    csp += ` frame-src 'self' 'unsafe-inline' https://*.youtube.com https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.googlevideo.com data: blob: app: file: http://localhost:3000;`;
-                    csp += ` font-src 'self' https://fonts.gstatic.com data: app: proxy: file: http://localhost:3000;`;
+                    csp += ` frame-src 'self' 'unsafe-inline' https: http: data: blob: app: file: http://localhost:3000;`;
+                    csp += ` font-src 'self' https://fonts.gstatic.com data: app: proxy: file: http://localhost:3000 ${domains};`;
+                    csp += ` worker-src 'self' blob:;`;
 
                     // Remove existing CSP to prevent duplicates
                     const existingCspKey = Object.keys(newHeaders).find(k => k.toLowerCase() === 'content-security-policy');
@@ -363,7 +378,7 @@ csp += ` script-src ${scriptSrc} ${domains};`;
         
         // Visual feedback for any load failure in production
         if (!isDev) {
-            dialog.showErrorBox('NovaStream Load Error', 
+            dialog.showErrorBox('MaiWatch Load Error', 
                 `Failed to load: ${validatedURL}\nError: ${errorDescription} (${errorCode})`
             );
         }
@@ -456,8 +471,17 @@ app.on('ready', async () => {
         log('Loading secure environment...');
         await licenseManager.loadSecureEnv();
 
-    // 1. SYNC REGISTRATIONS (Must happen before any awaits)
-    // ---------------------------------------------------
+        // 1. SYNC REGISTRATIONS (Must happen before any awaits)
+        // ---------------------------------------------------
+        
+        // Setup Torrent Service Persistence
+        const downloadPath = path.join(userDataPath, 'Downloads');
+        if (!fs.existsSync(downloadPath)) {
+            try { fs.mkdirSync(downloadPath, { recursive: true }); } catch(e) {}
+        }
+        torrentService.updateConfig({ path: downloadPath });
+        log(`[Torrent] Persistence initialized at: ${downloadPath}`);
+
     
     // 0. Express Server for Production (Standard HTTP to fix YouTube/Embeds)
     if (!isDev) {
@@ -654,7 +678,7 @@ app.on('ready', async () => {
             // 1. Critical Reroute: Intercept absolute cloud URLs, app://, or localhost:3000 -> proxy://
             const isLocal = url.includes('localhost:3000') || url.includes('127.0.0.1:3000');
             const isVercelApi = url.startsWith('https://inertial-event.vercel.app/api/');
-            const isNovaStreamApi = url.startsWith('https://novastream.app/api/');
+            const isMaiWatchApi = url.startsWith('https://maiwatch.app/api/');
             
             if (url.startsWith('app://-/tmdb-api/') || (isLocal && url.includes('/tmdb-api/'))) {
                 const redirected = `proxy://-/tmdb-api/${url.split('/tmdb-api/')[1]}`;
@@ -665,7 +689,7 @@ app.on('ready', async () => {
                 const redirected = `proxy://-/tmdb-img/${url.split('/tmdb-img/')[1]}`;
                 return callback({ redirectURL: redirected });
             }
-            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi || isNovaStreamApi) {
+            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi || isMaiWatchApi) {
                 const pathPart = url.split('/api/')[1];
                 const redirected = `proxy://-/api/${pathPart}`;
                 
@@ -701,7 +725,9 @@ app.on('ready', async () => {
                 'outbrain', 'taboola', 'mgid', 'revcontent', 'adroll', 'adform', 'opera',
                 'click', 'redirect', 'popup', 'adbox', 'ad-cache', 'analytics',
                 'luckyorange', 'hotjar', 'histats', 'statcounter', 'quantserve',
-                'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront'
+                'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront',
+                'fastlane', 'adsystem', 'adservice', 'traffic', 'deliver', 'monetize',
+                'proads', 'ad-shield', 'anti-ad', 'popunder', 'click-under', 'best-ads'
             ].join('|'), 'i');
 
             // Surgical Exception: Allow DoubleClick if it's for YouTube (Referrer check)
@@ -780,7 +806,7 @@ app.on('ready', async () => {
                     dialog.showMessageBoxSync({
                         type: 'warning',
                         title: 'Activation Required',
-                        message: 'NovaStream requires activation to run. Please restart the app and enter a valid license key.',
+                        message: 'MaiWatch requires activation to run. Please restart the app and enter a valid license key.',
                         buttons: ['OK']
                     });
                     app.quit();
@@ -795,49 +821,53 @@ app.on('ready', async () => {
             log('Validation OK. Launching UI.');
         }
 
-        // 3. START BACKEND SERVER (Production Only)
+        // 3. LAZY BACKEND SYSTEM (Production Only)
         // ---------------------------------------------------
-        if (!isDev) {
+        let backendIdleTimeout = null;
+
+        const resetBackendTimeout = () => {
+            if (backendIdleTimeout) clearTimeout(backendIdleTimeout);
+            backendIdleTimeout = setTimeout(() => {
+                log('[AG] Backend idle for 10m. Shutting down to save resources.');
+                killAllChildProcesses();
+            }, 10 * 60 * 1000);
+        };
+
+        const ensureBackendStarted = async () => {
+            if (isDev) return;
+            if (global.serverProcess) {
+                resetBackendTimeout();
+                return;
+            }
+
             try {
                 const serverPath = path.join(app.getAppPath(), 'dist-server', 'index.js');
-                log(`[AG] Starting Backend Server from: ${serverPath}`);
+                log(`[AG] Lazily Starting Backend Server from: ${serverPath}`);
                 
-                if (!fs.existsSync(serverPath)) {
-                    log(`[AG CRITICAL] Backend file NOT FOUND at: ${serverPath}`);
-                } else {
-                    log(`[AG] Backend file found. Size: ${fs.statSync(serverPath).size} bytes`);
-                }
-                
-                // Inherit env (which now has decrypted keys) and set PORT
                 const serverEnv = { ...process.env, BACKEND_PORT: '5000', NODE_ENV: 'production' };
-                
                 global.serverProcess = fork(serverPath, [], {
                     env: serverEnv,
                     stdio: ['pipe', 'pipe', 'pipe', 'ipc']
                 });
 
-                global.serverProcess.on('error', (err) => {
-                    log(`[Backend Error] Failed to start: ${err.message}`);
+                global.serverProcess.on('exit', (code) => {
+                    log(`[Backend Exit] Code: ${code}`);
+                    global.serverProcess = null;
                 });
 
-                global.serverProcess.on('exit', (code, signal) => {
-                    log(`[Backend CRASH] Process exited with code ${code} signal ${signal}`);
-                });
-
-                global.serverProcess.stdout.on('data', (data) => {
-                    log(`[Backend] ${data.toString().trim()}`);
-                });
-
-                global.serverProcess.stderr.on('data', (data) => {
-                    log(`[Backend Error] ${data.toString().trim()}`);
-                });
-
-                log('[AG] Backend Server Spawned PID: ' + global.serverProcess.pid);
+                resetBackendTimeout();
+                
+                // Wait a bit for the server to actually bind to the port
+                await new Promise(resolve => setTimeout(resolve, 500));
             } catch (err) {
                 log(`[AG] FAILED to spawn backend: ${err.message}`);
-                dialog.showErrorBox('Server Error', 'Failed to start local server.\n' + err.message);
             }
-        }
+        };
+
+        ipcMain.handle('backend:wake-up', async () => {
+            await ensureBackendStarted();
+            return { status: 'ready' };
+        });
 
         createWindow();
     } catch (error) {
@@ -875,20 +905,32 @@ app.on('ready', async () => {
     });
 
     function killAllChildProcesses() {
-        // Kill backend server
+        // 1. Kill backend server specifically
         if (global.serverProcess) {
             console.log('[AG] Killing backend server PID:', global.serverProcess.pid);
             try {
-                // On Windows, kill the process tree
                 if (process.platform === 'win32') {
                     require('child_process').execSync(`taskkill /PID ${global.serverProcess.pid} /T /F`, { stdio: 'ignore' });
                 } else {
                     global.serverProcess.kill('SIGKILL');
                 }
             } catch (e) {
-                console.log('[AG] Process already dead or kill failed:', e.message);
+                console.log('[AG] Backend process already dead or kill failed:', e.message);
             }
             global.serverProcess = null;
+        }
+
+        // 2. Nuclear Cleanup: Hunt for common orphaned media processes (Windows only)
+        // This ensures stray ffmpeg or node instances from crashed/unclean exits don't hog resources.
+        if (process.platform === 'win32') {
+            try {
+                console.log('[AG] Performing nuclear cleanup of media orphans...');
+                require('child_process').execSync('taskkill /F /IM ffmpeg.exe /T', { stdio: 'ignore' });
+                // We avoid killing node.exe here to prevent killing the main process itself 
+                // but we could target specific child-node instances if we knew their signatures.
+            } catch (e) {
+                // Silently ignore if no processes found to kill
+            }
         }
     }
 });

@@ -1,128 +1,206 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
-import { ContentCard } from "@/components/content/ContentCard";
-import { ContentCardSkeleton } from "@/components/content/ContentCardSkeleton";
-import { Filter } from "lucide-react";
-import { contentApi } from "@/lib/api/content";
-import { Content } from "@/lib/types/content";
-import { FilterOverlay } from "@/components/browse/FilterOverlay";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { ContentCard } from '@/components/content/ContentCard';
+import { ContentCardSkeleton } from '@/components/content/ContentCardSkeleton';
+import { Filter } from 'lucide-react';
+import { contentApi } from '@/lib/api/content';
+import { Content } from '@/lib/types/content';
+import dynamic from 'next/dynamic';
+const FilterOverlay = dynamic(() => import('@/components/browse/FilterOverlay').then(mod => mod.FilterOverlay), {
+  ssr: false,
+});
+import { useThemeStore } from '@/store/themeStore';
+import PavilionEntrance from '@/components/content/PavilionEntrance';
+import HeritageCard from '@/components/content/HeritageCard';
+const DirectorSidebar = dynamic(() => import('@/components/content/DirectorSidebar'), { ssr: false });
+import { Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { MoodGrid } from '@/components/content/MoodGrid';
 
 interface FilterState {
-    genres: string[];
-    type: 'movie' | 'tv' | 'all';
-    sort: 'popularity.desc' | 'vote_average.desc' | 'primary_release_date.desc';
-    company?: number;
+  genres: string[];
+  type: 'movie' | 'tv' | 'all';
+  sort: 'popularity.desc' | 'vote_average.desc' | 'primary_release_date.desc';
+  company?: number;
 }
 
 export default function BrowsePage() {
-    const searchParams = useSearchParams();
-    const companyId = searchParams.get('company');
-    const brandName = searchParams.get('name');
-    
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filters, setFilters] = useState<FilterState>({
-        genres: [],
-        type: 'all',
-        sort: 'popularity.desc',
-        company: companyId ? parseInt(companyId) : undefined
-    });
+  const searchParams = useSearchParams();
+  const companyId = searchParams.get('company');
+  const brandName = searchParams.get('name');
 
-    // Update filters when URL params change
-    useEffect(() => {
-        if (companyId) {
-            setFilters(prev => ({ ...prev, company: parseInt(companyId) }));
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isPavilionEntering, setIsPavilionEntering] = useState(false);
+  const [selectedHeritageItem, setSelectedHeritageItem] = useState<Content | null>(null);
+
+  const theme = useThemeStore(state => state.theme);
+  const setTheme = useThemeStore(state => state.setTheme);
+  const isHeritageTheme = theme === 'heritage';
+
+  const [filters, setFilters] = useState<FilterState>({
+    genres: [],
+    type: 'all',
+    sort: 'popularity.desc',
+    company: companyId ? parseInt(companyId) : undefined,
+  });
+
+  // Update filters when URL params change
+  useEffect(() => {
+    if (companyId) {
+      setFilters(prev => ({ ...prev, company: parseInt(companyId) }));
+    }
+  }, [companyId]);
+
+  const { data: items, isLoading } = useQuery({
+    queryKey: ['browse', filters],
+    queryFn: async () => {
+      // Build params for discover
+      const params: Record<string, string | number | boolean | undefined> = {
+        sort_by: filters.sort,
+        page: 1,
+      };
+      if (filters.genres.length > 0) {
+        params.with_genres = filters.genres.join(',');
+      }
+      if (filters.company) {
+        params.with_companies = filters.company;
+      }
+
+      // Decide fetcher based on type
+      if (filters.type === 'all') {
+        if (filters.genres.length === 0 && filters.sort === 'popularity.desc' && !filters.company) {
+          return contentApi.getTrending();
+        } else {
+          const [movies, tv] = await Promise.all([
+            contentApi.discover(params, 'movie'),
+            contentApi.discover(params, 'tv'),
+          ]);
+          return [...movies, ...tv].sort(() => Math.random() - 0.5);
         }
-    }, [companyId]);
+      } else {
+        return contentApi.discover(params, filters.type);
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
-    const { data: items, isLoading } = useQuery({
-        queryKey: ["browse", filters],
-        queryFn: async () => {
-            // Build params for discover
-            const params: any = {
-                sort_by: filters.sort,
-                page: 1
-            };
-            if (filters.genres.length > 0) {
-                params.with_genres = filters.genres.join(",");
-            }
-            if (filters.company) {
-                params.with_companies = filters.company;
-            }
-
-            // Decide fetcher based on type
-            if (filters.type === 'all') {
-                if (filters.genres.length === 0 && filters.sort === 'popularity.desc' && !filters.company) {
-                    return contentApi.getTrending();
-                } else {
-                    const [movies, tv] = await Promise.all([
-                        contentApi.discover(params, 'movie'),
-                        contentApi.discover(params, 'tv')
-                    ]);
-                    return [...movies, ...tv].sort(() => Math.random() - 0.5);
-                }
-            } else {
-                return contentApi.discover(params, filters.type);
-            }
-        },
-        staleTime: 1000 * 60 * 5
-    });
-
-    return (
-        <div className="space-y-6 pt-24 px-4 md:px-12 pb-20">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">
-                        {brandName || 'Browse'}
-                    </h1>
-                    <p className="text-zinc-400 text-sm mt-1">
-                        {brandName ? 'Complete Collection' : filters.type === 'all' ? 'All Content' : filters.type === 'movie' ? 'Movies' : 'TV Shows'}
-                        {filters.genres.length > 0 && ` • ${filters.genres.length} filters active`}
-                    </p>
-                </div>
-
-                <button
-                    onClick={() => setIsFilterOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white/10 rounded-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
-                >
-                    <Filter size={16} />
-                    <span>Filters</span>
-                    {filters.genres.length > 0 && (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
-                            {filters.genres.length}
-                        </span>
-                    )}
-                </button>
-            </div>
-
-            {isLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-                    {Array(12).fill(0).map((_, i) => (
-                        <ContentCardSkeleton key={i} />
-                    ))}
-                </div>
-            ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-                    {items?.length === 0 ? (
-                        <div className="col-span-full py-20 text-center text-zinc-500">
-                            No content found matching your filters.
-                        </div>
-                    ) : (
-                        items?.map((item: Content) => (
-                            <ContentCard key={`${item.type}-${item.id}`} item={item} />
-                        ))
-                    )}
-                </div>
-            )}
-
-            <FilterOverlay
-                isOpen={isFilterOpen}
-                onClose={() => setIsFilterOpen(false)}
-                filters={filters}
-                setFilters={setFilters}
-            />
+  return (
+    <div className="space-y-6 pt-24 px-4 md:px-12 pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">{brandName || 'Browse'}</h1>
+          <p className="text-zinc-400 text-sm mt-1">
+            {brandName
+              ? 'Complete Collection'
+              : filters.type === 'all'
+                ? 'All Content'
+                : filters.type === 'movie'
+                  ? 'Movies'
+                  : 'TV Shows'}
+            {filters.genres.length > 0 && ` • ${filters.genres.length} filters active`}
+          </p>
         </div>
-    );
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (!isHeritageTheme) {
+                setIsPavilionEntering(true);
+              } else {
+                setTheme('Mai');
+              }
+            }}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95',
+              isHeritageTheme
+                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
+                : 'bg-white/5 text-white/60 hover:text-amber-500 border border-white/10'
+            )}
+          >
+            <Sparkles size={16} />
+            <span>{isHeritageTheme ? 'Exit Pavilion' : 'Heritage Portal'}</span>
+          </button>
+
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white/10 rounded-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+          >
+            <Filter size={16} />
+            <span>Filters</span>
+            {filters.genres.length > 0 && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
+                {filters.genres.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+ 
+      {!brandName && !isHeritageTheme && (
+        <div className="py-8 border-b border-white/5">
+           <div className="flex items-center gap-3 mb-8 text-zinc-500 font-black uppercase tracking-[0.3em] text-[10px]">
+              <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+              <span>Sanctuary Moods // Emotion-First Discovery</span>
+           </div>
+           <MoodGrid />
+        </div>
+      )}
+
+      <PavilionEntrance
+        isActive={isPavilionEntering}
+        onComplete={() => {
+          setTheme('heritage');
+          setIsPavilionEntering(false);
+        }}
+      />
+
+      <DirectorSidebar
+        isOpen={!!selectedHeritageItem}
+        onClose={() => setSelectedHeritageItem(null)}
+        item={selectedHeritageItem}
+      />
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+          {Array(12)
+            .fill(0)
+            .map((_, i) => (
+              <ContentCardSkeleton key={i} />
+            ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+          {items?.length === 0 ? (
+            <div className="col-span-full py-20 text-center text-zinc-500">No content found matching your filters.</div>
+          ) : (
+            items?.map((item: Content) =>
+              isHeritageTheme ? (
+                <HeritageCard
+                  key={`${item.type}-${item.id}`}
+                  item={item}
+                  onPlay={item => {
+                    // Trigger play logic or just open modal
+                    setSelectedHeritageItem(item);
+                  }}
+                  onInfo={item => setSelectedHeritageItem(item)}
+                />
+              ) : (
+                <ContentCard key={`${item.type}-${item.id}`} item={item} />
+              )
+            )
+          )}
+        </div>
+      )}
+
+      <FilterOverlay
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        setFilters={setFilters}
+      />
+    </div>
+  );
 }

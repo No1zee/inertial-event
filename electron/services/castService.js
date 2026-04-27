@@ -6,7 +6,7 @@ const ip = require('ip');
 class CastService {
     constructor() {
         this.devices = new Map(); // id -> { id, name, type, host, device (raw) }
-        this.dlna = dlnacasts();
+        this.dlna = null; // Lazy init
         this.browser = null;
         this.scanning = false;
     }
@@ -15,6 +15,11 @@ class CastService {
         if (this.scanning) return;
         this.scanning = true;
         this.devices.clear();
+
+        // Lazy init DLNA engine
+        if (!this.dlna) {
+            this.dlna = dlnacasts();
+        }
 
         // 1. Scan for DLNA
         try {

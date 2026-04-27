@@ -1,5 +1,5 @@
 {
-    "name": "novastream",
+    "name": "maiwatch",
     "version": "0.1.4",
     "description": "An AI-powered video streaming platform leveraging next-gen semantic discovery.",
     "private": true,
@@ -8,8 +8,8 @@
     },
     "main": "electron/main.js",
     "build": {
-        "appId": "com.novastream.app",
-        "productName": "NovaStream",
+        "appId": "com.maiwatch.app",
+        "productName": "MaiWatch",
         "directories": {
             "output": "dist"
         },
@@ -49,7 +49,7 @@
             "runAfterFinish": true,
             "createDesktopShortcut": "always",
             "createStartMenuShortcut": true,
-            "shortcutName": "NovaStream",
+            "shortcutName": "MaiWatch",
             "include": "build/installer.nsh"
         }
     },
@@ -84,20 +84,24 @@
         "ci:security": "./scripts/security-scan.sh",
         "db:backup": "./scripts/database.sh staging backup",
         "db:migrate": "./scripts/database.sh staging migrate",
-        "docker:build": "docker build -t novastream .",
+        "docker:build": "docker build -t maiwatch .",
         "docker:run": "docker-compose up -d",
-        "docker:stop": "docker-compose down"
+        "docker:stop": "docker-compose down",
+        "nuke": "powershell -ExecutionPolicy Bypass -File scripts/nuke.ps1"
     },
     "dependencies": {
         "@capacitor/android": "^8.0.1",
         "@capacitor/cli": "^8.0.1",
         "@capacitor/core": "^8.0.1",
+        "@chenglou/pretext": "^0.0.5",
+        "@consumet/extensions": "^1.8.8",
         "@ffmpeg-installer/ffmpeg": "^1.1.0",
         "@headlessui/react": "^2.2.9",
         "@heroicons/react": "^2.2.0",
         "@radix-ui/react-dialog": "^1.1.15",
         "@tanstack/react-query": "^5.0.0",
         "@tanstack/react-query-devtools": "^5.0.0",
+        "@tanstack/react-query-persist-client": "^5.100.3",
         "@vidstack/react": "^1.0.0",
         "@xenova/transformers": "^2.17.2",
         "axios": "^1.6.0",
@@ -116,8 +120,10 @@
         "fluent-ffmpeg": "^2.1.3",
         "framer-motion": "^10.16.0",
         "googleapis": "^129.0.0",
+        "gsap": "^3.15.0",
         "helmet": "^8.1.0",
         "hls.js": "^1.4.0",
+        "idb": "^8.0.3",
         "ip": "^2.0.1",
         "jsonwebtoken": "^9.0.3",
         "lucide-react": "^0.263.1",
@@ -190,8 +196,11 @@
         "wait-on": "^7.0.0"
     },
     "browserslist": [
-        "chrome >= 55",
-        "android >= 5",
-        "ios >= 10"
+        "chrome >= 90",
+        "android >= 9",
+        "ios >= 14",
+        "edge >= 90",
+        "firefox >= 90",
+        "safari >= 14"
     ]
 }

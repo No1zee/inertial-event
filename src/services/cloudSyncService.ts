@@ -1,5 +1,4 @@
-import { useHistoryStore } from '../lib/store/historyStore';
-import { useSeriesTrackingStore } from '../lib/store/seriesTrackingStore';
+import { useLocalDataStore } from '../lib/stores/localDataStore';
 import { useAuthStore } from '../lib/store/authStore';
 
 // Simple debounce to prevent spamming the backend on every second of video watched
@@ -7,109 +6,116 @@ let syncTimeout: NodeJS.Timeout | null = null;
 const SYNC_DEBOUNCE_MS = 10000; // 10 seconds
 
 export const CloudSyncService = {
-    /**
-     * Fetches the cloud state and merges it into local Zustand stores
-     */
-    async pullFromCloud() {
-        const { token, isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated || !token) return;
+  /**
+   * Fetches the cloud state and merges it into local unified store
+   */
+  async pullFromCloud() {
+    const { token, isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated || !token) return;
 
-        try {
-            const res = await fetch('/api/user/sync', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+    try {
+      const res = await fetch('/api/user/sync', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-            if (!res.ok) throw new Error('Failed to fetch sync state');
+      if (!res.ok) throw new Error('Failed to fetch sync state');
 
-            const appState = await res.json();
-            
-            if (appState && typeof appState === 'object') {
-                // Restore History Store
-                if (appState.history) {
-                    useHistoryStore.setState({ history: appState.history });
-                }
+      const appState = await res.json();
 
-                // Restore Series Tracking Store
-                if (appState.trackedSeries) {
-                    useSeriesTrackingStore.setState({ trackedSeries: appState.trackedSeries });
-                }
-                
-                console.log('[CloudSync] Successfully pulled and hydrated from cloud.');
-            }
-        } catch (error) {
-            console.error('[CloudSync] Pull error:', error);
+      if (appState && typeof appState === 'object') {
+        // Restore Unified Data Store
+        // We map legacy cloud fields if they exist, or use the new unified structure if the backend was updated
+        const { importData } = useLocalDataStore.getState();
+
+        if (appState.unifiedData) {
+          importData(JSON.stringify(appState.unifiedData));
+        } else if (appState.history || appState.trackedSeries) {
+          // Backwards compatibility for legacy cloud data
+          // We can't easily use importData here without a full schema,
+          // but we can at least manually merge them if needed.
+          // For now, we assume the user will migrate locally first.
+          console.warn('[CloudSync] Legacy cloud data detected. Local migration recommended.');
         }
-    },
 
-    /**
-     * Pushes current local Zustand state up to the user's account
-     */
-    async pushToCloud(immediate = false) {
-        const { token, isAuthenticated } = useAuthStore.getState();
-        if (!isAuthenticated || !token) return;
+        console.log('[CloudSync] Successfully pulled and hydrated from cloud.');
+      }
+    } catch (error) {
+      console.error('[CloudSync] Pull error:', error);
+    }
+  },
 
-        const performPush = async () => {
-            try {
-                const historyState = useHistoryStore.getState().history;
-                const trackingState = useSeriesTrackingStore.getState().trackedSeries;
+  /**
+   * Pushes current local unified state up to the user's account
+   */
+  async pushToCloud(immediate = false) {
+    const { token, isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated || !token) return;
 
-                const payload = {
-                    appState: {
-                        history: historyState,
-                        trackedSeries: trackingState
-                    }
-                };
+    const performPush = async () => {
+      try {
+        const storeState = useLocalDataStore.getState();
 
-                const res = await fetch('/api/user/sync', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!res.ok) throw new Error('Failed to push sync state');
-                console.log('[CloudSync] Successfully pushed state to cloud.');
-            } catch (error) {
-                console.error('[CloudSync] Push error:', error);
-            }
+        // Prepare a consolidated payload
+        const payload = {
+          appState: {
+            unifiedData: {
+              watchHistory: storeState.watchHistory,
+              contentState: storeState.contentState,
+              library: storeState.library,
+              collections: storeState.collections,
+              downloads: storeState.downloads,
+            },
+          },
         };
 
-        if (immediate) {
-            if (syncTimeout) clearTimeout(syncTimeout);
-            await performPush();
-        } else {
-            // Debounce standard pushes (e.g. from continuous video progress)
-            if (syncTimeout) clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(() => {
-                performPush();
-            }, SYNC_DEBOUNCE_MS);
-        }
-    },
-
-    /**
-     * Start the background observer that listens to local changes
-     * and automatically queues them for upload.
-     */
-    initBackgroundSync() {
-        // Subscribe to History Changes
-        useHistoryStore.subscribe((state, prevState) => {
-            // Quick check if something actually changed to avoid infinite loops
-            if (state.history !== prevState.history) {
-                this.pushToCloud();
-            }
+        const res = await fetch('/api/user/sync', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
         });
 
-        // Subscribe to Series Tracking Changes
-        useSeriesTrackingStore.subscribe((state, prevState) => {
-            if (state.trackedSeries !== prevState.trackedSeries) {
-                this.pushToCloud();
-            }
-        });
-        
-        console.log('[CloudSync] Background sync observer initialized.');
+        if (!res.ok) throw new Error('Failed to push sync state');
+        console.log('[CloudSync] Successfully pushed state to cloud.');
+      } catch (error) {
+        console.error('[CloudSync] Push error:', error);
+      }
+    };
+
+    if (immediate) {
+      if (syncTimeout) clearTimeout(syncTimeout);
+      await performPush();
+    } else {
+      // Debounce standard pushes (e.g. from continuous video progress)
+      if (syncTimeout) clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(() => {
+        performPush();
+      }, SYNC_DEBOUNCE_MS);
     }
+  },
+
+  /**
+   * Start the background observer that listens to local changes
+   * and automatically queues them for upload.
+   */
+  initBackgroundSync() {
+    // Subscribe to Local Data Store Changes
+    useLocalDataStore.subscribe((state, prevState) => {
+      // Check if significant data changed
+      const historyChanged = state.watchHistory !== prevState.watchHistory;
+      const libraryChanged = state.library !== prevState.library;
+      const collectionsChanged = state.collections !== prevState.collections;
+      const contentStateChanged = state.contentState !== prevState.contentState;
+
+      if (historyChanged || libraryChanged || collectionsChanged || contentStateChanged) {
+        this.pushToCloud();
+      }
+    });
+
+    console.log('[CloudSync] Background sync observer initialized.');
+  },
 };

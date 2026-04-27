@@ -11,8 +11,8 @@ export const getSources = async (req: Request, res: Response) => {
 
     debugLog('Request received for /api/sources');
     try {
-        const { id, title, season, episode, type } = req.query;
-        debugLog(`Query: id=${id}, title=${title}`);
+        const { id, title, season, episode, type, audioPreference } = req.query;
+        debugLog(`Query: id=${id}, title=${title}, audioPreference=${audioPreference}`);
         
         if (!sourceService) {
             debugLog('FATAL: sourceService is undefined');
@@ -25,7 +25,8 @@ export const getSources = async (req: Request, res: Response) => {
             parseInt(season as string) || 1,
             parseInt(episode as string) || 1,
             title as string,
-            (type as 'movie' | 'tv') || 'movie'
+            (type as 'movie' | 'tv' | 'anime' | 'series') || 'movie',
+            audioPreference as string
         );
         
         debugLog('Got result from service. Sending JSON.');
