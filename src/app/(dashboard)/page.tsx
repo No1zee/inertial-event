@@ -111,10 +111,6 @@ export default function DashboardPage() {
 
   const activeProfile = useActiveProfile();
 
-  if (!hydrated) {
-    return <div className="min-h-screen bg-black" />;
-  }
-
   const { data: trending } = useQuery<Content[]>({
     queryKey: ['trending', activeProfile?.preferences],
     queryFn: async () => {
@@ -124,9 +120,14 @@ export default function DashboardPage() {
       }
       return baseTrending;
     },
+    enabled: hydrated,
     staleTime: 1000 * 60 * 60, // 1 hour
     refetchOnWindowFocus: false,
   });
+
+  if (!hydrated) {
+    return <div className="min-h-screen bg-black" />;
+  }
 
   return (
     <div className="min-h-screen bg-black">
