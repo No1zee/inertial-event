@@ -13,6 +13,7 @@ import { HomeDashboard } from '@/components/home/HomeDashboard';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { useActiveProfile } from '@/lib/stores/localDataStore';
+import { useHydrated } from '@/hooks/useHydrated';
 import { cn } from '@/lib/utils';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
@@ -97,6 +98,7 @@ const RAIL_CONFIGS: RailConfig[] = [
 ];
 
 export default function DashboardPage() {
+  const hydrated = useHydrated();
   const [visibleCount, setVisibleCount] = useState(3);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sentinelRef);
@@ -108,6 +110,10 @@ export default function DashboardPage() {
   }, [isInView, visibleCount]);
 
   const activeProfile = useActiveProfile();
+
+  if (!hydrated) {
+    return <div className="min-h-screen bg-black" />;
+  }
 
   const { data: trending } = useQuery<Content[]>({
     queryKey: ['trending', activeProfile?.preferences],

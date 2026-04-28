@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
-import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext';
+import * as Pretext from '@chenglou/pretext';
+
+// Defensive check for Pretext library functions which might be mangled or missing in some build environments
+const prepareWithSegments = typeof Pretext?.prepareWithSegments === 'function' ? Pretext.prepareWithSegments : null;
+const layoutWithLines = typeof Pretext?.layoutWithLines === 'function' ? Pretext.layoutWithLines : null;
 
 interface PretextLine {
   text: string;
@@ -75,6 +79,10 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
       const safeFontSize = Math.max(1, isFinite(fontSize) ? fontSize : 32);
       const safeLineHeight = Math.max(0.1, isFinite(lineHeight) ? lineHeight : 1.2);
 
+      if (!prepareWithSegments || !layoutWithLines) {
+        throw new Error('Pretext library not initialized');
+      }
+
       const fontString = `${fontWeight} ${safeFontSize}px ${resolvedFont}`;
       const prepared = prepareWithSegments(text, fontString);
       const pxLineHeight = safeFontSize * safeLineHeight;
@@ -103,6 +111,7 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
       };
     }
   }, [text, fontSize, lineHeight, fontFamily, fontWeight, maxWidth]);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;

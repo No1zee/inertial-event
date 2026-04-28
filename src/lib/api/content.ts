@@ -1023,7 +1023,7 @@ export const contentApi = {
   getDiscoverByGenres: async (genreNames: string[], type: 'movie' | 'tv' = 'movie', limit: number = 10): Promise<Content[]> => {
     try {
       const genreIds = genreNames
-        .map(name => GENRE_MAP[name])
+        .map(name => GENRE_MAP[name.toLowerCase()])
         .filter(Boolean)
         .join(',');
       
@@ -1045,10 +1045,13 @@ export const contentApi = {
     }
   },
 
-  getPersonalizedMix: async (trendingContent: Content[], preferences: { genres: string[], vibes: string[] }): Promise<Content[]> => {
-    if (!preferences.genres.length && !preferences.vibes.length) return trendingContent;
+  getPersonalizedMix: async (trendingContent: Content[], preferences?: { genres: string[], vibes: string[] }): Promise<Content[]> => {
+    if (!preferences || (!preferences.genres?.length && !preferences.vibes?.length)) {
+      return trendingContent;
+    }
 
     try {
+      const genres = preferences.genres || [];
       // 2/5 (40%) should be influenced. If we have 20 items, 8 should be personalized.
       const totalCount = trendingContent.length;
       const personalizedCount = Math.ceil(totalCount * 0.4);
@@ -1056,12 +1059,14 @@ export const contentApi = {
 
       // Fetch personalized items (mix of movie and tv)
       const [pMovies, pTV] = await Promise.all([
-        contentApi.getDiscoverByGenres(preferences.genres, 'movie', 10),
-        contentApi.getDiscoverByGenres(preferences.genres, 'tv', 10)
+        contentApi.getDiscoverByGenres(genres, 'movie', 10),
+        contentApi.getDiscoverByGenres(genres, 'tv', 10)
       ]);
 
       const personalizedPool = [...pMovies, ...pTV];
       
+      if (personalizedPool.length === 0) return trendingContent;
+
       // Shuffle personalized pool
       const shuffledPersonalized = personalizedPool.sort(() => Math.random() - 0.5).slice(0, personalizedCount);
       
@@ -1088,26 +1093,36 @@ export const contentApi = {
 };
 
 const GENRE_MAP: Record<string, number> = {
-  'Action': 28,
-  'Adventure': 12,
-  'Animation': 16,
-  'Comedy': 35,
-  'Crime': 80,
-  'Documentary': 99,
-  'Drama': 18,
-  'Family': 10751,
-  'Fantasy': 14,
-  'History': 36,
-  'Horror': 27,
-  'Music': 10402,
-  'Mystery': 9648,
-  'Romance': 10749,
-  'Sci-Fi': 878,
-  'Thriller': 53,
-  'War': 10752,
-  'Western': 37,
-  'Sci-Fi & Fantasy': 10765,
-  'Action & Adventure': 10759
+  'action': 28,
+  'adventure': 12,
+  'animation': 16,
+  'comedy': 35,
+  'crime': 80,
+  'documentary': 99,
+  'docs': 99,
+  'drama': 18,
+  'family': 10751,
+  'fantasy': 14,
+  'history': 36,
+  'horror': 27,
+  'music': 10402,
+  'mystery': 9648,
+  'romance': 10749,
+  'sci-fi': 878,
+  'science fiction': 878,
+  'thriller': 53,
+  'war': 10752,
+  'western': 37,
+  'tv movie': 10770,
+  'action & adventure': 10759,
+  'kids': 10762,
+  'news': 10763,
+  'reality': 10764,
+  'sci-fi & fantasy': 10765,
+  'soap': 10766,
+  'talk': 10767,
+  'war & politics': 10768,
+  'politics': 10768
 };
 
 export const prioritizeContent = (contents: Content[]): Content[] => {

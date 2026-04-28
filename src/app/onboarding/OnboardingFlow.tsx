@@ -16,7 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 import { usePreferencesActions } from '@/lib/stores/preferencesStore';
-import { useLocalDataStore } from '@/lib/stores/localDataStore';
+import { useLocalDataStore, useProfileActions } from '@/lib/stores/localDataStore';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -40,6 +40,12 @@ const GENRES = [
   { id: 'thriller', name: 'Thriller', icon: '🔪' },
   { id: 'war', name: 'War', icon: '🎖️' },
   { id: 'western', name: 'Western', icon: '🤠' },
+  { id: 'kids', name: 'Kids', icon: '👶' },
+  { id: 'news', name: 'News', icon: '📰' },
+  { id: 'reality', name: 'Reality', icon: '📺' },
+  { id: 'soap', name: 'Soap', icon: '🧼' },
+  { id: 'talk', name: 'Talk', icon: '💬' },
+  { id: 'politics', name: 'Politics', icon: '🏛️' },
 ];
 
 const VIBES = [
@@ -60,6 +66,7 @@ export function OnboardingFlow() {
   
   const { setHasCompletedOnboarding, setPreferredGenres, setPreferredVibes } = usePreferencesActions();
   const { createProfile, setActiveProfile, profiles } = useLocalDataStore();
+  const { updateProfile } = useProfileActions();
 
   const handleNext = () => setStep(s => s + 1);
 

@@ -16,7 +16,11 @@ export function SmartCollections() {
   const watchHistory = useLocalDataStore(state => state.watchHistory);
 
   useEffect(() => {
-    const historyIds = Object.keys(watchHistory);
+    // Correctly map contentIds from the watch history array
+    const historyIds = Array.isArray(watchHistory) 
+      ? watchHistory.map(h => h.contentId).filter(Boolean)
+      : [];
+      
     getSmartCollections(historyIds).then(data => {
       setCollections(data);
       setIsLoading(false);
