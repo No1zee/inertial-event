@@ -9,7 +9,7 @@ import { BrandBlock } from '@/components/brand/BrandBlock';
 import { contentApi } from '@/lib/api/content';
 
 import { useLastWatched } from '@/lib/stores/localDataStore';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 const TV_RAILS = [
   // Fresh & New

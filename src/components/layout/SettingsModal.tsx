@@ -7,7 +7,7 @@ import { useLayoutState, useLayoutActions } from '@/lib/stores/uiStore';
 import { useUserPreferences, usePreferenceActions } from '@/lib/stores/localDataStore';
 import { cn } from '@/lib/utils';
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 export const SettingsModal: React.FC = () => {
   const { isSettingsOpen } = useLayoutState();

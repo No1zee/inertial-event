@@ -10,7 +10,7 @@ import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 
 import { useLastWatched } from '@/lib/stores/localDataStore';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 const currentYear = new Date().getFullYear();
 

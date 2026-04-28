@@ -7,7 +7,7 @@ import { Content } from '@/lib/types/content';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUIStore } from '@/lib/stores/uiStore';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 import { motion } from 'framer-motion';
 import { useLocalDataStore, useLibraryActions } from '@/lib/stores/localDataStore';
 import { contentApi } from '@/lib/api/content';

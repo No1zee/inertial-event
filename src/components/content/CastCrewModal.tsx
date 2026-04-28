@@ -9,7 +9,7 @@ import { Content } from '@/lib/types/content';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { ContentCard } from './ContentCard';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 export const CastCrewModal: React.FC = () => {
   const { castModal, closeCastModal, openContentModal } = useUIStore(state => ({

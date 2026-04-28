@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Play, Info } from 'lucide-react';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { PretextHeadline } from '../Common/PretextHeadline';
 import { useQuery } from '@tanstack/react-query';

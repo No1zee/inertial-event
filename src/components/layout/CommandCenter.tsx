@@ -13,7 +13,7 @@ import { Content } from '@/lib/types/content';
 import { useUISounds } from '@/hooks/useUISounds';
 import { cn } from '@/lib/utils';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 export const CommandCenter: React.FC = () => {
   const router = useRouter();

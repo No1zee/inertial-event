@@ -14,7 +14,7 @@ import { contentApi } from '@/lib/api/content';
 import { useLocalDataStore, useLibraryActions } from '@/lib/stores/localDataStore';
 import { useUIStore } from '@/lib/stores/uiStore';
 import { shallow } from 'zustand/shallow';
-import { useHydrated } from '@/hooks/useHydrated';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 import { AtmosphericPreview } from './AtmosphericPreview';
 import { PretextHeadline } from '../Common/PretextHeadline';
 import { streamingOptimizer } from '@/services/streamingOptimizer';
