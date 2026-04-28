@@ -16,7 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 import { usePreferencesActions } from '@/lib/stores/preferencesStore';
-import { useLocalDataStore, useProfileActions } from '@/lib/stores/localDataStore';
+import { useLocalDataStore, useProfileActions, useProfiles } from '@/lib/stores/localDataStore';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -65,46 +65,57 @@ export function OnboardingFlow() {
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   
   const { setHasCompletedOnboarding, setPreferredGenres, setPreferredVibes } = usePreferencesActions();
-  const { createProfile, setActiveProfile, profiles } = useLocalDataStore();
-  const { updateProfile } = useProfileActions();
+  const { createProfile, setActiveProfile, updateProfile } = useProfileActions();
+  const profiles = useProfiles();
 
   const handleNext = () => setStep(s => s + 1);
 
   const handleComplete = (isGuest = false) => {
-    // 1. If it's a guest, create a new profile and set it as active
-    if (isGuest) {
-      const guestId = createProfile({
-        name: 'Guest',
-        avatar: '/avatars/default.png',
-        isKids: false,
-        isLocked: false,
-        isGuest: true,
-        preferences: {
-          genres: [],
-          vibes: []
-        }
-      });
+    console.log('🏁 [AG] Completing onboarding...', { isGuest, profileName });
+    
+    try {
+      // 1. If it's a guest, create a new profile and set it as active
+      if (isGuest) {
+        console.log('👤 Creating guest profile...');
+        const guestId = createProfile({
+          name: 'Guest',
+          avatar: '/avatars/default.png',
+          isKids: false,
+          isLocked: false,
+          isGuest: true,
+          preferences: {
+            genres: [],
+            vibes: []
+          }
+        });
+        
+        console.log('✅ Guest profile created:', guestId);
+        setActiveProfile(guestId);
+      } else {
+        // 2. If it's a real user, update the 'primary' profile with their choices
+        console.log('👤 Updating primary profile...', { selectedGenres, selectedVibes });
+        updateProfile('primary', {
+          name: profileName || 'User',
+          preferences: {
+            genres: selectedGenres,
+            vibes: selectedVibes
+          }
+        });
+        setActiveProfile('primary');
+      }
       
-      setActiveProfile(guestId);
-    } else {
-      // 2. If it's a real user, update the 'primary' profile with their choices
-      updateProfile('primary', {
-        name: profileName || 'User',
-        preferences: {
-          genres: selectedGenres,
-          vibes: selectedVibes
-        }
-      });
-      setActiveProfile('primary');
+      // 3. Save global preferences for fallback
+      setPreferredGenres(isGuest ? [] : selectedGenres);
+      setPreferredVibes(isGuest ? [] : selectedVibes);
+      setHasCompletedOnboarding(true);
+      
+      console.log('🚀 Onboarding complete. Redirecting home...');
+      
+      // 4. Navigate home
+      router.push('/');
+    } catch (error) {
+      console.error('❌ [AG] Onboarding completion failed:', error);
     }
-    
-    // 3. Save global preferences for fallback
-    setPreferredGenres(isGuest ? [] : selectedGenres);
-    setPreferredVibes(isGuest ? [] : selectedVibes);
-    setHasCompletedOnboarding(true);
-    
-    // 4. Navigate home
-    router.push('/');
   };
 
   const toggleGenre = (id: string) => {
@@ -316,7 +327,7 @@ export function OnboardingFlow() {
                 Back
               </Button>
               <Button 
-                onClick={handleComplete}
+                onClick={() => handleComplete()}
                 className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
               >
                 Start Watching
