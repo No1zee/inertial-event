@@ -4,6 +4,11 @@ const path = require('path');
 
 const outDir = path.join(__dirname, 'out');
 
+if (!fs.existsSync(outDir)) {
+    console.log('No static output directory (out/) found. Skipping HTML path fix.');
+    process.exit(0);
+}
+
 function getAllHtmlFiles(dirPath, arrayOfFiles) {
     const files = fs.readdirSync(dirPath);
 
@@ -28,9 +33,6 @@ try {
     htmlFiles.forEach(file => {
         let content = fs.readFileSync(file, 'utf8');
         
-        // Next.js produces absolute paths like /_next/static/... which break in file:// protocol
-        // We need to replace them with relative paths based on depth
-        
         const relativePath = path.relative(path.dirname(file), outDir);
         const prefix = relativePath ? relativePath.replace(/\\/g, '/') + '/' : './';
 
@@ -45,6 +47,5 @@ try {
     
     console.log('HTML fix complete.');
 } catch (e) {
-    console.log('Error fixing HTML:', e);
-    // Warning mainly, don't fail build if out dir doesn't exist yet (though it should)
+    console.log('Error during HTML fix:', e.message);
 }
