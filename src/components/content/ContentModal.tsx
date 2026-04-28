@@ -186,7 +186,7 @@ export default function ContentModal() {
 
   return (
     <Transition show={isOpen} as={Fragment}>
-      <Dialog onClose={closeModal} className="relative z-50">
+      <Dialog onClose={closeModal} className="relative z-[1150]">
         {/* Backdrop with darker tint and blur */}
         <Transition.Child
           as={Fragment}
