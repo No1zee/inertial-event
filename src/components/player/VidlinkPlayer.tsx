@@ -396,9 +396,18 @@ export function VidlinkPlayer({
     aegisShield.updateCurrentSource(activeSource.id);
   }, [activeSource.id]);
 
+  const playbackRef = useRef({ currentTime: 0, duration: 0 });
+  useEffect(() => {
+    const unsub = usePlayerStore.subscribe(
+      (state) => ({ currentTime: state.currentTime, duration: state.duration }),
+      (vals) => { playbackRef.current = vals; }
+    );
+    return unsub;
+  }, []);
+
   useEffect(() => {
     const checkAndPrefetchNext = async () => {
-      const { currentTime, duration } = usePlayerStore.getState();
+      const { currentTime, duration } = playbackRef.current;
       if (type !== 'movie' && hasNext && duration > 0 && currentTime / duration > 0.8) {
         streamingOptimizer.preloadSources(tmdbId, type, Number(season), nextEpisodeNumber, content?.title || '', playerPrefs.audioLanguage);
       }

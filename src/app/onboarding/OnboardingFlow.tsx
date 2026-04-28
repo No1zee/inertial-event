@@ -73,7 +73,7 @@ export function OnboardingFlow() {
   const handleComplete = (isGuest = false) => {
     // 1. If it's a guest, create a new profile and set it as active
     if (isGuest) {
-      createProfile({
+      const guestId = createProfile({
         name: 'Guest',
         avatar: '/avatars/default.png',
         isKids: false,
@@ -85,12 +85,7 @@ export function OnboardingFlow() {
         }
       });
       
-      // Get the newly created profile (it's the last one)
-      const allProfiles = useLocalDataStore.getState().profiles;
-      const guestProfile = allProfiles[allProfiles.length - 1];
-      if (guestProfile) {
-        setActiveProfile(guestProfile.id);
-      }
+      setActiveProfile(guestId);
     } else {
       // 2. If it's a real user, update the 'primary' profile with their choices
       updateProfile('primary', {

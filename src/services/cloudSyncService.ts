@@ -1,5 +1,5 @@
 import { useLocalDataStore } from '../lib/stores/localDataStore';
-import { useAuthStore } from '../lib/store/authStore';
+import { useAuthStore } from '../lib/stores/authStore';
 import { API_BASE_URL } from './api';
 
 // Simple debounce to prevent spamming the backend on every second of video watched

@@ -180,7 +180,7 @@ interface LocalDataStore {
   globalPreferences: UserPreferences;
 
   // Profile Actions
-  createProfile: (profile: Omit<UserProfile, 'id' | 'createdAt'>) => void;
+  createProfile: (profile: Omit<UserProfile, 'id' | 'createdAt'>) => string;
   updateProfile: (id: string, updates: Partial<UserProfile>) => void;
   deleteProfile: (id: string) => void;
   setActiveProfile: (id: string) => void;
@@ -229,7 +229,7 @@ interface LocalDataStore {
   getLibraryItem: (contentId: string) => LibraryItem | undefined;
 
   // Collection Actions
-  createCollection: (collection: Omit<Collection, 'id' | 'createdAt' | 'updatedAt' | 'items'>) => void;
+  createCollection: (collection: Omit<Collection, 'id' | 'createdAt' | 'updatedAt' | 'items'>) => string;
   updateCollection: (id: string, updates: Partial<Collection>) => void;
   deleteCollection: (id: string) => void;
   addToCollection: (collectionId: string, contentId: string) => void;
@@ -332,6 +332,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           set(state => ({
             profiles: [...state.profiles, { ...profile, id, createdAt: Date.now() }],
           }));
+          return id;
         },
 
         updateProfile: (id, updates) =>
@@ -588,6 +589,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
               { ...collection, id, createdAt, updatedAt: createdAt, items: [], pinned: false },
             ],
           }));
+          return id;
         },
 
         updateCollection: (id, updates) =>

@@ -18,6 +18,7 @@ import { Content } from '@/lib/types/content';
 import { GENRE_MAP } from '@/lib/api/content';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
+import { cn } from '@/lib/utils';
 
 const BrandBlock = dynamic(() => import('@/components/brand/BrandBlock').then(mod => mod.BrandBlock), {
   ssr: false,

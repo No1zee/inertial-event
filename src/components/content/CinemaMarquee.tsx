@@ -11,6 +11,7 @@ import { useUIStore } from '@/lib/stores/uiStore';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 interface CinemaMarqueeProps {
   items?: Content[];
@@ -30,12 +31,13 @@ export function ParallaxBackground({ src }: { src: string }) {
 }
 
 export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
+  const isHydrated = useHydrated();
   const [index, setIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [scrollingProgress, setScrollingProgress] = useState(0);
   const router = useRouter();
-  const openContentModal = typeof useUIStore === 'function' ? useUIStore(state => state.openContentModal) : null;
-  const getResumeData = typeof useLocalDataStore === 'function' ? useLocalDataStore(state => state.getResumeData) : null;
+  const openContentModal = useUIStore(state => state.openContentModal);
+  const getResumeData = useLocalDataStore(state => state.getResumeData);
 
   const currentItem = Array.isArray(items) && items.length > 0 ? items[index % items.length] : null;
 
@@ -55,7 +57,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
     };
   }, [items, items.length, index]);
 
-  if (!currentItem) return <div className="h-[85vh] w-full bg-zinc-950 animate-pulse rounded-[3rem] mx-4 my-2" />;
+  if (!isHydrated || !currentItem) return <div className="h-[85vh] w-full bg-zinc-950 animate-pulse rounded-[3rem] mx-4 my-2" />;
 
   const handlePlay = () => {
     if (!currentItem) return;

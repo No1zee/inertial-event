@@ -869,7 +869,7 @@ export const contentApi = {
 
       const res = await axios.get(url);
       const results = (res.data.results || []).filter(
-        (item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv' || !item.media_type
+        (item: any) => item.media_type === 'movie' || item.media_type === 'tv' || !item.media_type
       );
       
       return prioritizeContent(results.map((item: TMDBItem) => {
@@ -1093,6 +1093,7 @@ export const contentApi = {
 };
 
 const GENRE_MAP: Record<string, number> = {
+  // Movies
   'action': 28,
   'adventure': 12,
   'animation': 16,
@@ -1114,6 +1115,8 @@ const GENRE_MAP: Record<string, number> = {
   'war': 10752,
   'western': 37,
   'tv movie': 10770,
+  
+  // TV Specific
   'action & adventure': 10759,
   'kids': 10762,
   'news': 10763,
@@ -1122,7 +1125,45 @@ const GENRE_MAP: Record<string, number> = {
   'soap': 10766,
   'talk': 10767,
   'war & politics': 10768,
-  'politics': 10768
+  'politics': 10768,
+
+  // Aliases & Variations
+  'scifi': 878,
+  'sf': 878,
+  'romcom': 10749,
+  'biography': 36,
+  'musical': 10402,
+  'superhero': 28,
+  'anime': 16,
+  'cartoon': 16,
+  'classic': 18,
+  'indie': 18,
+  'sports': 99,
+  'nature': 99,
+  'true crime': 80,
+  'psychological': 53,
+  'supernatural': 14,
+  'dystopian': 878,
+  'cyberpunk': 878,
+  'slasher': 27,
+  'zombie': 27,
+  'vampire': 27,
+  'martial arts': 28,
+  'heist': 80,
+  'legal': 18,
+  'medical': 18,
+  'period drama': 36,
+  'dark comedy': 35,
+  'parody': 35,
+  'satire': 35,
+  'space': 878,
+  'time travel': 878,
+  'noir': 80,
+  'neo-noir': 80,
+  'detective': 9648,
+  'supernatural thriller': 53,
+  'survival': 12,
+  'disaster': 28
 };
 
 export const prioritizeContent = (contents: Content[]): Content[] => {
