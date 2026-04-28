@@ -7,9 +7,9 @@ import { CinemaMarquee } from '@/components/content/CinemaMarquee';
 import { AtmosphericRail } from '@/components/content/AtmosphericRail';
 import { ProximityBento } from '@/components/content/ProximityBento';
 import { SmartCollections } from '@/components/home/SmartCollections';
-import { CriticsVault } from '@/components/home/CriticsVault';
+import { CriticsChoice } from '@/components/home/CriticsChoice';
 import { StudioRail } from '@/components/home/StudioRail';
-import { AurelianDashboard } from '@/components/home/AurelianDashboard';
+import { HomeDashboard } from '@/components/home/HomeDashboard';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,7 @@ const RAIL_CONFIGS: RailConfig[] = [
   { id: 'popular_tv', title: 'Global Series', fetcher: contentApi.getPopularTV, aspectRatio: '16:9' as const },
   {
     id: 'african_cinema',
-    title: 'African Cinematic Heritage',
+    title: 'African Cinema',
     fetcher: contentApi.getAfricanMovies,
     aspectRatio: 'poster' as const,
     providerId: 'acu',
@@ -59,7 +59,7 @@ const RAIL_CONFIGS: RailConfig[] = [
   },
   {
     id: 'korean_dramas',
-    title: 'Masterclass: K-Drama',
+    title: 'Korean Dramas',
     fetcher: contentApi.getKoreanDramas,
     aspectRatio: 'poster' as const,
   },
@@ -83,7 +83,7 @@ const RAIL_CONFIGS: RailConfig[] = [
   },
   {
     id: 'scifi',
-    title: 'Future Realism',
+    title: 'Sci-Fi Picks',
     fetcher: () => contentApi.getByGenre(878, 'movie'),
     aspectRatio: '16:9' as const,
   },
@@ -119,14 +119,14 @@ export default function DashboardPage() {
       <CinemaMarquee items={trending} />
 
       <div className="relative z-10 -mt-32 pb-32">
-        {/* 1. Aurelian Command Center (Greeting + Pipeline + Pulse) */}
-        <AurelianDashboard />
+        {/* 1. Home Command Center (Greeting + Pipeline + Pulse) */}
+        <HomeDashboard />
 
         {/* 2. Studio / Brand Shortcuts */}
         <StudioRail />
 
-        {/* 2.5 The Critic's Vault (S-Class Serendipity) */}
-        <CriticsVault />
+        {/* 2.5 Critics Choice (S-Class Serendipity) */}
+        <CriticsChoice />
 
         {/* 3. AI Curated Vaults */}
         <SmartCollections />
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             <div className="flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
               <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
-                Expanding Experience
+                Loading more...
               </span>
             </div>
           </div>

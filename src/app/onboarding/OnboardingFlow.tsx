@@ -23,22 +23,32 @@ import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 const GENRES = [
   { id: 'action', name: 'Action', icon: '💥' },
-  { id: 'sci-fi', name: 'Sci-Fi', icon: '🛸' },
-  { id: 'drama', name: 'Drama', icon: '🎭' },
-  { id: 'horror', name: 'Horror', icon: '👻' },
-  { id: 'comedy', name: 'Comedy', icon: '😂' },
+  { id: 'adventure', name: 'Adventure', icon: '⛰️' },
   { id: 'animation', name: 'Animation', icon: '🎨' },
+  { id: 'comedy', name: 'Comedy', icon: '😂' },
+  { id: 'crime', name: 'Crime', icon: '🕵️' },
   { id: 'documentary', name: 'Docs', icon: '📽️' },
+  { id: 'drama', name: 'Drama', icon: '🎭' },
+  { id: 'family', name: 'Family', icon: '👨‍👩‍👧' },
+  { id: 'fantasy', name: 'Fantasy', icon: '🧙' },
+  { id: 'history', name: 'History', icon: '📜' },
+  { id: 'horror', name: 'Horror', icon: '👻' },
+  { id: 'music', name: 'Music', icon: '🎵' },
+  { id: 'mystery', name: 'Mystery', icon: '🔍' },
   { id: 'romance', name: 'Romance', icon: '❤️' },
+  { id: 'sci-fi', name: 'Sci-Fi', icon: '🛸' },
+  { id: 'thriller', name: 'Thriller', icon: '🔪' },
+  { id: 'war', name: 'War', icon: '🎖️' },
+  { id: 'western', name: 'Western', icon: '🤠' },
 ];
 
 const VIBES = [
-  { id: 'neon-noir', name: 'Neon Noir', desc: 'Saturated, high-contrast cityscapes.' },
-  { id: 'cyberpunk', name: 'Cyberpunk', desc: 'Gritty tech, neon glitches.' },
-  { id: 'cinematic', name: 'Institutional', desc: 'Wide frames, pure composition.' },
-  { id: 'minimalist', name: 'Minimalist', desc: 'Clean lines, focused breathing room.' },
-  { id: 'brutalist', name: 'Brutalist', desc: 'Raw concrete, bold typography.' },
-  { id: 'ethereal', name: 'Ethereal', desc: 'Soft lighting, dreamlike sequences.' },
+  { id: 'chilled', name: 'Chilled Out', desc: 'Relaxing, slow-paced stories for a quiet night.' },
+  { id: 'high-energy', name: 'High Energy', desc: 'Intense, fast-paced action and thrillers.' },
+  { id: 'thought-provoking', name: 'Deep & Thought-Provoking', desc: 'Complex stories that stay with you long after.' },
+  { id: 'dark-gritty', name: 'Dark & Gritty', desc: 'Raw, realistic, and intense underworld atmospheres.' },
+  { id: 'lighthearted', name: 'Lighthearted & Fun', desc: 'Easy watching, feel-good stories and laughs.' },
+  { id: 'epic', name: 'Epic & Grand', desc: 'Massive scale, legendary tales, and big visuals.' },
 ];
 
 export function OnboardingFlow() {
@@ -57,7 +67,7 @@ export function OnboardingFlow() {
     // 1. Create or update profile
     const profileId = Math.random().toString(36).substring(2, 11);
     createProfile({
-      name: isGuest ? 'Guest' : (profileName || 'Director'),
+      name: isGuest ? 'Guest' : (profileName || 'User'),
       avatar: '/avatars/default.png',
       isKids: false,
       isLocked: false,
@@ -118,14 +128,14 @@ export function OnboardingFlow() {
           >
             <div className="space-y-4">
               <PretextHeadline 
-                text="INITIALIZING MAI WATCH" 
+                text="GETTING STARTED" 
                 fontSize={12}
                 fontWeight={900}
                 letterSpacing="0.5em"
                 className="text-primary uppercase" 
               />
               <PretextHeadline 
-                text="The Cinematic Sanctuary" 
+                text="Your Personal Cinema" 
                 fontSize={56}
                 fontWeight={900}
                 letterSpacing="-0.04em"
@@ -134,14 +144,14 @@ export function OnboardingFlow() {
             </div>
             
             <p className="text-zinc-400 text-lg max-w-md leading-relaxed">
-              Step into the world's most advanced S-Tier streaming architecture. Optimized for high-fidelity motion and directorial purity.
+              Experience cinema the way it was meant to be seen. Tailored to your taste, with every frame optimized for your screen.
             </p>
 
             <Button 
               onClick={handleNext}
               className="h-16 px-12 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
             >
-              Initialize Sequence
+              Continue
               <ArrowRight size={20} />
             </Button>
           </motion.div>
@@ -157,13 +167,13 @@ export function OnboardingFlow() {
           >
             <div className="text-center space-y-2">
               <PretextHeadline 
-                text="System Protocol" 
+                text="Account Setup" 
                 fontSize={12}
                 fontWeight={900}
                 letterSpacing="0.4em"
                 className="text-primary uppercase" 
               />
-              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Create Director Account</h2>
+              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Create Account</h2>
             </div>
 
             <div className="w-full space-y-8">
@@ -174,11 +184,10 @@ export function OnboardingFlow() {
                       <Camera size={24} className="text-white" />
                    </div>
                 </div>
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Select Director Avatar</span>
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Select Profile Picture</span>
               </div>
-
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-2">Director Name</label>
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-2">Your Name</label>
                 <input 
                   type="text"
                   value={profileName}
@@ -202,7 +211,7 @@ export function OnboardingFlow() {
                 disabled={!profileName.trim()}
                 className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
               >
-                Next Sequence
+                Next
               </Button>
             </div>
           </motion.div>
@@ -218,13 +227,13 @@ export function OnboardingFlow() {
           >
             <div className="text-center space-y-2">
               <PretextHeadline 
-                text="Aesthetic Alignment" 
+                text="Personalize" 
                 fontSize={12}
                 fontWeight={900}
                 letterSpacing="0.4em"
                 className="text-primary uppercase" 
               />
-              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Choose Your Vibe</h2>
+              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Pick your vibes</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -234,7 +243,7 @@ export function OnboardingFlow() {
                     <Film size={16} className="text-zinc-500" />
                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Favorite Genres</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
                     {GENRES.map(genre => (
                       <button
                         key={genre.id}
@@ -292,7 +301,7 @@ export function OnboardingFlow() {
                 onClick={handleComplete}
                 className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
               >
-                Enter sanctuary
+                Start Watching
                 <ShieldCheck size={20} />
               </Button>
             </div>

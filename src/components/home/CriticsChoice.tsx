@@ -11,7 +11,7 @@ import { PretextHeadline } from '../Common/PretextHeadline';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
-export function CriticsVault() {
+export function CriticsChoice() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 

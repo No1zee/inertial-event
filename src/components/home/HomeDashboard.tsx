@@ -12,7 +12,7 @@ import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { cn } from '@/lib/utils';
 
-export const AurelianDashboard: React.FC = () => {
+export const HomeDashboard: React.FC = () => {
   const activeProfile = useActiveProfile();
   const continueWatching = useContinueWatching();
   const router = useRouter();
@@ -56,7 +56,7 @@ export const AurelianDashboard: React.FC = () => {
         <div className="flex items-center gap-4 mb-2">
           <div className="h-[1px] w-8 bg-amber-500/50" />
           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-500/70">
-            Aurelian Control / {greeting}
+            Welcome Back / {greeting}
           </span>
         </div>
         <PretextHeadline
@@ -114,7 +114,7 @@ export const AurelianDashboard: React.FC = () => {
                 ))}
               {continueWatching.length === 0 && (
                 <div className="w-full h-32 rounded-[2rem] bg-zinc-900/20 border border-white/5 flex items-center justify-center border-dashed">
-                  <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Pipeline Empty</span>
+                  <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Nothing here yet</span>
                 </div>
               )}
             </AnimatePresence>
@@ -221,7 +221,7 @@ const PulseCard = ({ item, index, onClick }: { item: Content; index: number; onC
     />
     <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">
       <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-      <span className="text-[8px] font-black text-white uppercase tracking-tighter">Live Pulse</span>
+      <span className="text-[8px] font-black text-white uppercase tracking-tighter">Hot Now</span>
     </div>
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent p-5 flex flex-col justify-end">
       <PretextHeadline
