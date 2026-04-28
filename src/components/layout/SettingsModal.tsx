@@ -24,10 +24,12 @@ export const SettingsModal: React.FC = () => {
     { id: 'search', label: 'Search Intelligence', icon: Search },
   ];
 
-  if (!isSettingsOpen) return null;
+  const isHydrated = useHydrated();
+  if (!isHydrated) return null;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
+      {isSettingsOpen && (
       <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6 md:p-12">
         <motion.div
           initial={{ opacity: 0 }}
