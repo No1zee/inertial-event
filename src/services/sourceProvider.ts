@@ -1,4 +1,7 @@
+import { API_BASE_URL } from './api';
+
 interface StreamSource {
+
   url: string;
   quality: string;
   type: 'hls' | 'mp4' | 'torrent' | 'embed';
@@ -15,21 +18,10 @@ class SourceProvider {
   private cache: Map<string, Map<string, StreamSource[]>> = new Map();
 
   async getSources(contentId: string, type: 'movie' | 'tv' | 'anime', title: string): Promise<StreamSource[]> {
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL &&
-      process.env.NEXT_PUBLIC_API_URL !== 'undefined' &&
-      !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')
-        ? process.env.NEXT_PUBLIC_API_URL
-        : '';
-    try {
-      // Normalize URL to prevent double /api/api
-      const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
-      const endpoint =
-        baseUrl.endsWith('/api') && baseUrl.endsWith('/api/api') ? baseUrl.replace('/api/api', '/api') : baseUrl;
-
       const response = await fetch(
-        `${endpoint}/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`
+        `${API_BASE_URL}/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`
       );
+
       if (!response.ok) {
         const errorBody = await response.text();
         console.error('[SourceProvider] API error:', response.status, response.statusText, 'Body:', errorBody);
@@ -54,16 +46,7 @@ class SourceProvider {
     }
 
     const sources = new Map<string, StreamSource[]>();
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL &&
-      process.env.NEXT_PUBLIC_API_URL !== 'undefined' &&
-      !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')
-        ? process.env.NEXT_PUBLIC_API_URL
-        : '';
-
-    // Single call to backend which handles aggregator logic (Vidlink + Torrent + etc)
-    const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
-    const url = `${baseUrl}/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;
+    const url = `${API_BASE_URL}/sources?id=${content.id}&type=${content.type}&title=${encodeURIComponent(content.title)}&season=${season}&episode=${episode}`;
 
     try {
       const response = await fetch(url);

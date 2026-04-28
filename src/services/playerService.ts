@@ -1,7 +1,10 @@
+import { API_BASE_URL } from './api';
+
 export const playerService = {
+
   saveProgress: async (userId: string, contentId: string, episodeNumber: number, progress: number) => {
     // Bridges to backend via api
-    const response = await fetch('/api/user/history', {
+    const response = await fetch(`${API_BASE_URL}/user/history`, {
       method: 'POST',
       body: JSON.stringify({ userId, contentId, episodeNumber, progress }),
       headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,6 @@
 import { useLocalDataStore } from '../lib/stores/localDataStore';
 import { useAuthStore } from '../lib/store/authStore';
+import { API_BASE_URL } from './api';
 
 // Simple debounce to prevent spamming the backend on every second of video watched
 let syncTimeout: NodeJS.Timeout | null = null;
@@ -14,7 +15,7 @@ export const CloudSyncService = {
     if (!isAuthenticated || !token) return;
 
     try {
-      const res = await fetch('/api/user/sync', {
+      const res = await fetch(`${API_BASE_URL}/user/sync`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -70,7 +71,7 @@ export const CloudSyncService = {
           },
         };
 
-        const res = await fetch('/api/user/sync', {
+        const res = await fetch(`${API_BASE_URL}/user/sync`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

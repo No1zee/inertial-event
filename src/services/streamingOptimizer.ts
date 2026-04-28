@@ -4,6 +4,8 @@
  */
 
 import { SOURCES, StreamingSource } from '@/lib/config/sources';
+import { API_BASE_URL } from './api';
+
 
 interface SourceHealth {
   id: string;
@@ -191,7 +193,7 @@ class StreamingOptimizer {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-        const response = await fetch(`/api/sources?${params.toString()}`, {
+        const response = await fetch(`${API_BASE_URL}/sources?${params.toString()}`, {
           signal: controller.signal,
         });
 

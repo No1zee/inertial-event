@@ -143,6 +143,37 @@ export function VidlinkPlayer({
 
   const nextEpisodeNumber = Number(episode || 1) + 1;
 
+  const handleIpcMessage = useCallback((event: Event) => {
+    const electronEvent = event as WebviewIpcEvent;
+    const channel = electronEvent.channel;
+    const data = electronEvent.args?.[0] as Record<string, unknown> | undefined;
+
+    if (channel === 'video-ended' || channel === 'AG_ENDED') {
+      if (!transitionTriggeredRef.current) {
+        transitionTriggeredRef.current = true;
+        onNextRef.current?.();
+      }
+    } else if (channel === 'AG_UPDATE' && data) {
+      const { currentTime, duration } = data as { currentTime: number; duration: number };
+      if (content && currentTime > 0) {
+        setCurrentTime(currentTime);
+        setDuration(duration);
+        addToHistory({
+          contentId: tmdbId,
+          type,
+          title: content.title || 'Untitled',
+          poster: content.poster || '',
+          backdrop: content.backdrop || '',
+          currentTime,
+          duration,
+          season: type !== 'movie' ? Number(season) : undefined,
+          episode: type !== 'movie' ? Number(episode) : undefined,
+        });
+      }
+    }
+  }, [tmdbId, type, content, season, episode, setCurrentTime, setDuration, addToHistory]);
+
+
   const onWebviewRef = useCallback(
     (wv: HTMLWebViewElement | null) => {
       if (!wv || webviewRef.current === wv) return;
@@ -173,8 +204,9 @@ export function VidlinkPlayer({
       wv.addEventListener('dom-ready', handleDomReady);
       wv.addEventListener('console-message', handleConsoleMessage as unknown as EventListener);
       wv.addEventListener('did-fail-load', handleFailLoad as unknown as EventListener);
+      wv.addEventListener('ipc-message', handleIpcMessage as unknown as EventListener);
     },
-    [initialProgress]
+    [initialProgress, handleIpcMessage]
   );
 
   useEffect(() => {
@@ -465,6 +497,21 @@ export function VidlinkPlayer({
       });
     }
   }, [content, tmdbId, type, season, episode, addToHistory]);
+
+  useEffect(() => {
+    if (content) {
+      loadMedia({
+        id: tmdbId,
+        type,
+        title: content.title || 'Untitled',
+        poster: content.poster || '',
+        season: Number(season),
+        episode: Number(episode),
+        source: src,
+      });
+    }
+  }, [loadMedia, tmdbId, type, content, season, episode, src]);
+
 
   if (!isHydrated) return null;
 
