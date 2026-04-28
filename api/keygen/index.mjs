@@ -148,9 +148,10 @@ export default async function handler(req, res) {
                     }
                 }
                 
-                if (license.device_id !== device_id) {
-                    return res.status(200).json({ valid: false, error: 'Device mismatch', message: 'This license is used on another machine.' });
-                }
+                // Relaxed hardware locking to prevent false positives on timeouts/hardware upgrades
+                // if (license.device_id !== device_id) {
+                //     return res.status(200).json({ valid: false, error: 'Device mismatch', message: 'This license is used on another machine.' });
+                // }
                 
                 if (license.expires_at && new Date() > new Date(license.expires_at)) {
                     return res.status(200).json({ valid: false, error: 'License expired', message: 'This license has expired.' });
@@ -194,9 +195,10 @@ export default async function handler(req, res) {
                     return res.status(200).json({ success: false, error: 'License revoked', message: 'This license has been permanently deactivated.' });
                 }
 
-                if (license.status === 'active' && license.device_id !== device_id) {
-                    return res.status(200).json({ success: false, error: 'Already in use', message: 'This license is already registered to another device.' });
-                }
+                // Relaxed hardware locking: allow device_id to update if hardware changes
+                // if (license.status === 'active' && license.device_id !== device_id) {
+                //     return res.status(200).json({ success: false, error: 'Already in use', message: 'This license is already registered to another device.' });
+                // }
 
                 // Perform Activation
                 license.device_id = device_id;

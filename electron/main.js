@@ -874,7 +874,7 @@ app.on('ready', async () => {
         const errorMsg = `FATAL BOOT ERROR: ${error.stack}`;
         if (log) log(errorMsg); else console.error(errorMsg);
         
-        dialog.showErrorBox('NovaStream Boot Failure', 
+        dialog.showErrorBox('MaiWatch Boot Failure', 
             `The application failed to start.\n\nError: ${error.message}\n\nCheck logs at: ${app.getPath('userData')}\\startup.log`
         );
         app.quit();

@@ -142,8 +142,8 @@ class LicenseManager {
     }
 
     getLicenseKey() {
-        // Path to license file - In production this should be C:\ProgramData\NovaStream\license.dat
-        const PROD_LICENSE_PATH = 'C:\\ProgramData\\NovaStream\\license.dat';
+        // Path to license file - In production this should be C:\ProgramData\MaiWatch\license.dat
+        const PROD_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
         const DEV_LICENSE_PATH = path.join(app.getPath('userData'), 'license.dat');
 
         logger(`[LicenseManager] Checking for license at: "${PROD_LICENSE_PATH}" and "${DEV_LICENSE_PATH}"`);
@@ -224,8 +224,14 @@ class LicenseManager {
 
         } catch (error) {
             // Network Error or Server Down -> Check Offline Cache
-            if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message.includes('Network Error')) {
-                console.warn('[LicenseManager] Server unreachable, checking offline cache...');
+            const isServerDown = error.code === 'ECONNREFUSED' || 
+                                 error.code === 'ETIMEDOUT' || 
+                                 error.message.includes('Network Error') || 
+                                 error.message.includes('status code 50') ||
+                                 (error.response && error.response.status >= 500);
+
+            if (isServerDown) {
+                console.warn('[LicenseManager] Server unreachable or returned 500, checking offline cache...');
                 const cached = store.get('validation');
                 
                 if (cached && cached.valid && cached.license_key === licenseKey) {
@@ -307,7 +313,7 @@ class LicenseManager {
     }
 
     getLicensePath() {
-        const PROD_LICENSE_PATH = 'C:\\ProgramData\\NovaStream\\license.dat';
+        const PROD_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
         const DEV_LICENSE_PATH = require('path').join(app.getPath('userData'), 'license.dat');
         return app.isPackaged ? PROD_LICENSE_PATH : DEV_LICENSE_PATH;
     }
