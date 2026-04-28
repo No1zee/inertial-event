@@ -19,9 +19,12 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
   const router = useRouter();
   const { addToLibrary, removeFromLibrary, isInLibrary } = useContentStore();
   const { getVariant } = useExperiment();
-  const variant = getVariant('hero_layout');
+  const [mounted, setMounted] = useState(false);
+  const variant = mounted ? getVariant('hero_layout') : 'A';
 
-  // Pick a random featured item on mount for "fresh rotation"
+  // Defensive filtering of items to prevent null-pointer exceptions
+  const safeItems = useMemo(() => items.filter(item => item && (item.id || item._id)), [items]);
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -29,48 +32,53 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
   const [_direction, setDirection] = useState(1);
 
   useEffect(() => {
-    if (items.length > 0) {
-      setActiveIndex(Math.floor(Math.random() * items.length));
-    }
-  }, [items]);
+    setMounted(true);
+  }, []);
 
-  const content = useMemo(() => items[activeIndex] || {}, [items, activeIndex]);
-  const isFavorited = isInLibrary(content.id?.toString() || content._id || '');
+  useEffect(() => {
+    if (safeItems.length > 0) {
+      setActiveIndex(Math.floor(Math.random() * safeItems.length));
+    }
+  }, [safeItems]);
+
+  const content = useMemo(() => safeItems[activeIndex] || {}, [safeItems, activeIndex]);
+  const isFavorited = isInLibrary(content?.id?.toString() || content?._id || '');
 
   // Auto-play trailer after delay
   useEffect(() => {
     setTrailerError(false);
     setShowTrailer(false);
     const timer = setTimeout(() => {
-      if (content.trailerUrl) setShowTrailer(true);
+      if (content?.trailerUrl) setShowTrailer(true);
     }, 3000);
     return () => clearTimeout(timer);
   }, [content]);
 
   const handlePlay = () => {
+    if (!content?.id && !content?._id) return;
     logExperimentEvent('hero_layout', variant as ExperimentGroup, 'play_click');
     router.push(`/watch?id=${content.id || content._id}&type=${content.type || 'movie'}`);
   };
 
-  if (!items.length) return null;
+  if (!safeItems.length) return null;
 
   return (
     <div className="relative w-full h-[85vh] min-h-[700px] overflow-hidden group/hero">
       {/* Background / Trailer Container */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={content.id || content._id}
+          key={content?.id || content?._id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }} // Faster transition
           className="absolute inset-0 bg-background"
         >
-          {showTrailer && content.trailerUrl && !trailerError ? (
+          {showTrailer && content?.trailerUrl && !trailerError ? (
             <div className="relative w-full h-full scale-[1.35] overflow-hidden pointer-events-none">
               <iframe
                 src={`${content.trailerUrl}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${content.trailerUrl.split('/').pop()}`}
-                title={`${content.title} trailer`}
+                title={`${content?.title} trailer`}
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none border-none"
                 allow="autoplay"
                 onLoad={() => {}}
@@ -86,8 +94,8 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                 className="absolute inset-0"
               >
                 <OptimizedImage
-                  src={content.backdropUrl || content.posterUrl}
-                  alt={content.title}
+                  src={content?.backdropUrl || content?.posterUrl}
+                  alt={content?.title}
                   fill
                   className="object-cover will-change-transform"
                   priority
@@ -107,7 +115,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
       {/* Content Info */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={`info-${content.id || content._id}`}
+          key={`info-${content?.id || content?._id}`}
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 50 }}
@@ -127,12 +135,12 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
               </span>
             ) : (
               <span className="px-3 py-1 bg-primary text-[10px] font-black rounded-lg uppercase tracking-[0.2em] shadow-lg shadow-primary/20 text-primary-foreground">
-                {content.type}
+                {content?.type}
               </span>
             )}
-            <span className="text-muted-foreground font-bold tracking-widest text-sm">{content.year}</span>
+            <span className="text-muted-foreground font-bold tracking-widest text-sm">{content?.year}</span>
             <div className="flex items-center space-x-1">
-              <span className="text-yellow-600 font-black tracking-tighter">★ {content.rating || '8.4'}</span>
+              <span className="text-yellow-600 font-black tracking-tighter">★ {content?.rating || '8.4'}</span>
               <span className="text-[10px] text-muted-foreground/60 font-bold">/ 10</span>
             </div>
           </motion.div>
@@ -143,7 +151,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             transition={{ delay: 0.3 }}
             className="text-7xl lg:text-8xl font-black tracking-tighter text-foreground drop-shadow-sm italic"
           >
-            {content.title}
+            {content?.title}
           </motion.h1>
 
           <motion.p
@@ -152,7 +160,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             transition={{ delay: 0.4 }}
             className="text-xl text-muted-foreground line-clamp-2 font-medium max-w-xl"
           >
-            {content.description}
+            {content?.description}
           </motion.p>
 
           <motion.div
@@ -163,7 +171,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
           >
             <button
               onClick={handlePlay}
-              aria-label={`Stream ${content.title} now`}
+              aria-label={`Stream ${content?.title} now`}
               className={cn(
                 'flex items-center space-x-3 text-primary-foreground px-10 py-5 rounded-2xl font-black transition-all active:scale-95 shadow-2xl group/play overflow-hidden relative',
                 'bg-primary hover:bg-primary/90'
@@ -177,7 +185,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             </button>
 
             <button
-              aria-label={`View details for ${content.title}`}
+              aria-label={`View details for ${content?.title}`}
               className="flex items-center space-x-3 bg-surface-deep/60 backdrop-blur-xl text-foreground px-10 py-5 rounded-2xl font-black hover:bg-surface-deep/80 transition-all active:scale-95 border border-border shadow-2xl"
             >
               <Info size={24} />
@@ -187,10 +195,10 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             <button
               onClick={() =>
                 isFavorited
-                  ? removeFromLibrary(content.id?.toString() || content._id || '')
-                  : addToLibrary(content.id?.toString() || content._id || '')
+                  ? removeFromLibrary(content?.id?.toString() || content?._id || '')
+                  : addToLibrary(content?.id?.toString() || content?._id || '')
               }
-              aria-label={isFavorited ? `Remove ${content.title} from library` : `Add ${content.title} to library`}
+              aria-label={isFavorited ? `Remove ${content?.title} from library` : `Add ${content?.title} to library`}
               className={`p-5 rounded-2xl transition-all border shadow-2xl ${
                 isFavorited
                   ? 'bg-primary border-primary text-primary-foreground'
@@ -202,12 +210,12 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
 
             <button
               onClick={() => {
-                const url = `${window.location.origin}/watch?id=${content.id || content._id}&ref=user_share`;
+                const url = `${window.location.origin}/watch?id=${content?.id || content?._id}&ref=user_share`;
                 if (navigator.share) {
                   navigator
                     .share({
-                      title: content.title,
-                      text: `I'm exploring ${content.title} at MaiWatch Scenery!`,
+                      title: content?.title,
+                      text: `I'm exploring ${content?.title} at MaiWatch Scenery!`,
                       url: url,
                     })
                     .then(() => logExperimentEvent('viral_loop', 'A' as ExperimentGroup, 'share_success'));
@@ -255,7 +263,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
 
         {/* Visual indicator for rotating featured list if needed */}
         <div className="flex items-center space-x-2 bg-background/40 backdrop-blur p-2 rounded-full border border-border">
-          {items.map((_, i) => (
+          {safeItems.map((_, i) => (
             <button
               key={i}
               onClick={() => {
@@ -263,7 +271,9 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                 setActiveIndex(i);
               }}
               aria-label={`Go to featured item ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-500 ${i === activeIndex ? 'w-8 bg-primary' : 'w-1.5 bg-muted'}`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                i === activeIndex ? 'w-8 bg-primary' : 'w-1.5 bg-muted'
+              }`}
             />
           ))}
         </div>

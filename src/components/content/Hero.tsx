@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Play, Info, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -21,30 +21,29 @@ interface HeroProps {
 export function Hero({ items = [] }: HeroProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [index, setIndex] = useState(0);
   const [uiVisible, setUiVisible] = useState(true);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const currentItem = items && items.length > 0 ? items[index % items.length] : null;
+  const safeItems = useMemo(() => items?.filter(item => item && (item.id || item._id)) || [], [items]);
 
-  // Auto-advance carousel
   useEffect(() => {
-    if (!items || items.length === 0) return;
+    if (safeItems.length > 0) {
+      const timer = setInterval(() => {
+        setActiveIndex(current => (current + 1) % safeItems.length);
+      }, 8000);
+      return () => clearInterval(timer);
+    }
+  }, [safeItems]);
 
-    const timer = setTimeout(() => {
-      setIndex(prev => (prev + 1) % items.length);
-    }, 12000);
-
-    return () => clearTimeout(timer);
-  }, [index, items, items.length]);
+  const currentItem = safeItems[activeIndex] || {};
 
   // Show UI on interaction
   const handleInteraction = () => {
     if (!uiVisible) setUiVisible(true);
   };
 
-  // Safety check: if no items, show a basic skeleton
-  if (!currentItem) return <HeroSkeleton />;
+  if (!safeItems.length) return null;
 
   return (
     <section
@@ -54,7 +53,7 @@ export function Hero({ items = [] }: HeroProps) {
     >
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentItem.id}
+          key={currentItem?.id || currentItem?._id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -76,7 +75,7 @@ export function Hero({ items = [] }: HeroProps) {
         <AnimatePresence mode="wait">
           {uiVisible && (
             <motion.div
-              key={currentItem.id + '-text'}
+              key={(currentItem?.id || currentItem?._id) + '-text'}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 30 }}
@@ -143,14 +142,16 @@ export function Hero({ items = [] }: HeroProps) {
                   animate={isNavigating ? { scale: [1, 0.95, 1], opacity: [1, 0.7, 1] } : {}}
                   transition={isNavigating ? { repeat: Infinity, duration: 0.6, ease: "easeInOut" } : {}}
                   onClick={async () => {
-                    if (isNavigating) return;
+                    if (isNavigating || (!currentItem?.id && !currentItem?._id)) return;
                     setIsNavigating(true);
-                    router.push(`/watch?id=${String(currentItem.id).replace('tmdb_', '')}&type=${currentItem.type}`);
+                    const cleanId = String(currentItem.id || currentItem._id).replace('tmdb_', '');
+                    router.push(`/watch?id=${cleanId}&type=${currentItem.type || 'movie'}`);
                   }}
                   onMouseEnter={() => {
+                    if (!currentItem?.id) return;
                     queryClient.prefetchQuery({
-                      queryKey: ['content', 'details', String(currentItem.id), currentItem.type],
-                      queryFn: () => contentApi.getDetails(currentItem.id, currentItem.type),
+                      queryKey: ['content', 'details', String(currentItem.id), currentItem.type || 'movie'],
+                      queryFn: () => contentApi.getDetails(currentItem.id, currentItem.type || 'movie'),
                       staleTime: 10 * 60 * 1000,
                     });
                   }}
@@ -185,17 +186,17 @@ export function Hero({ items = [] }: HeroProps) {
           uiVisible ? 'opacity-100' : 'opacity-0'
         )}
       >
-        {items.map((_, i) => (
+        {safeItems.map((_, i) => (
           <button
             key={i}
             aria-label={`Go to slide ${i + 1}`}
             onClick={e => {
               e.stopPropagation();
-              setIndex(i);
+              setActiveIndex(i);
             }}
             className={cn(
               'w-1.5 h-1.5 rounded-full transition-all duration-300 shadow shadow-black/50',
-              i === index ? 'h-6 bg-white' : 'bg-white/30 hover:bg-white/60'
+              i === activeIndex ? 'h-6 bg-white' : 'bg-white/30 hover:bg-white/60'
             )}
           />
         ))}

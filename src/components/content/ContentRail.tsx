@@ -112,14 +112,16 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
               </div>
             </div>
           ) : isVisible ? (
-            items.map(item => (
-              <div
-                key={`${item.type}-${item.id}`}
-                className="transition-transform duration-300 hover:scale-[1.03] will-change-transform"
-              >
-                <ContentCard item={item} aspectRatio={aspectRatio} />
-              </div>
-            ))
+            items
+              .filter(item => item && (item.id || item._id))
+              .map(item => (
+                <div
+                  key={`${item.type || 'movie'}-${item.id || item._id}`}
+                  className="transition-transform duration-300 hover:scale-[1.03] will-change-transform"
+                >
+                  <ContentCard item={item} aspectRatio={aspectRatio} />
+                </div>
+              ))
           ) : (
             Array(8)
               .fill(0)

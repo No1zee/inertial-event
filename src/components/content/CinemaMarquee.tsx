@@ -60,7 +60,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
   const handlePlay = () => {
     if (!currentItem) return;
     const contentType =
-      currentItem.type || (currentItem.seasonsList && currentItem.seasonsList.length > 0 ? 'tv' : 'movie');
+      currentItem?.type || (currentItem?.seasonsList && currentItem.seasonsList.length > 0 ? 'tv' : 'movie');
     const resumeData = getResumeData(String(currentItem.id));
 
     if (resumeData) {
@@ -220,17 +220,20 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
         </div>
 
         <div className="absolute bottom-12 left-10 lg:left-24 z-20 flex gap-3">
-          {items.slice(0, 5).map((item, i) => (
-            <button
-              key={item.id}
-              onClick={() => setIndex(i)}
-              aria-label={`Switch to story ${i + 1}`}
-              className={cn(
-                'h-1 rounded-full transition-all duration-700',
-                i === index ? 'w-16 bg-red-600' : 'w-6 bg-zinc-800 hover:bg-zinc-600'
-              )}
-            />
-          ))}
+          {items
+            ?.filter(item => item && (item.id || item._id))
+            .slice(0, 5)
+            .map((item, i) => (
+              <button
+                key={item?.id || item?._id || i}
+                onClick={() => setIndex(i)}
+                aria-label={`Switch to story ${i + 1}`}
+                className={cn(
+                  'h-1 rounded-full transition-all duration-700',
+                  i === index ? 'w-16 bg-red-600' : 'w-6 bg-zinc-800 hover:bg-zinc-600'
+                )}
+              />
+            ))}
         </div>
       </div>
     </section>

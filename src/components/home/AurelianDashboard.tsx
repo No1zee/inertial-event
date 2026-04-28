@@ -85,21 +85,27 @@ export const AurelianDashboard: React.FC = () => {
           </div>
           
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-            <AnimatePresence mode="popLayout">
-              {continueWatching.slice(0, 5).map((item, idx) => (
-                <PipelineCard 
-                  key={item.id} 
-                  item={item} 
-                  index={idx}
-                  onClick={() => {
-                    const providerQuery = item.providerId ? `&provider=${item.providerId}` : '';
-                    const url = item.type === 'movie'
-                      ? `/watch?id=${item.contentId}&type=movie${providerQuery}`
-                      : `/watch?id=${item.contentId}&type=tv&season=${item.season || 1}&episode=${item.episode || 1}${providerQuery}`;
-                    router.push(url);
-                  }}
-                />
-              ))}
+            <AnimatePresence mode="wait">
+              {continueWatching
+                .filter(item => item && item.id)
+                .slice(0, 5)
+                .map((item, idx) => (
+                  <PipelineCard
+                    key={item.id}
+                    item={item}
+                    index={idx}
+                    onClick={() => {
+                      const providerQuery = item.providerId ? `&provider=${item.providerId}` : '';
+                      const url =
+                        item.type === 'movie'
+                          ? `/watch?id=${item.contentId}&type=movie${providerQuery}`
+                          : `/watch?id=${item.contentId}&type=tv&season=${item.season || 1}&episode=${
+                              item.episode || 1
+                            }${providerQuery}`;
+                      router.push(url);
+                    }}
+                  />
+                ))}
               {continueWatching.length === 0 && (
                 <div className="w-full h-32 rounded-[2rem] bg-zinc-900/20 border border-white/5 flex items-center justify-center border-dashed">
                   <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Pipeline Empty</span>
@@ -123,14 +129,17 @@ export const AurelianDashboard: React.FC = () => {
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-            {trending?.slice(0, 5).map((item, idx) => (
-              <PulseCard 
-                key={item.id} 
-                item={item} 
-                index={idx}
-                onClick={() => router.push(`/watch?id=${item.id}&type=${item.media_type || 'movie'}`)}
-              />
-            ))}
+            {trending
+              ?.filter(item => item && (item.id || item._id))
+              .slice(0, 5)
+              .map((item, idx) => (
+                <PulseCard
+                  key={item.id || item._id}
+                  item={item}
+                  index={idx}
+                  onClick={() => router.push(`/watch?id=${item.id || item._id}&type=${item.type || 'movie'}`)}
+                />
+              ))}
           </div>
         </div>
       </div>
@@ -153,7 +162,7 @@ const PipelineCard = ({ item, index, onClick }: { item: ContinueWatchingItem; in
     >
     <OptimizedImage
       src={item.backdrop || item.poster || ''}
-      alt={item.title}
+      alt={item.title || 'Untitled'}
       fill
       className="object-cover opacity-40 group-hover/card:opacity-80 transition-all duration-700 group-hover/card:scale-110"
     />

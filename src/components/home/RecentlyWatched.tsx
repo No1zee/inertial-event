@@ -154,7 +154,7 @@ export default function RecentlyWatched() {
     const contentMap = new Map<string, WatchHistoryItem>();
 
     watchHistory
-      .filter(item => item.poster || item.backdrop || item.poster_path || item.backdrop_path)
+      .filter(item => item && item.contentId && (item.poster || item.backdrop || item.poster_path || item.backdrop_path))
       .forEach(item => {
         if (!contentMap.has(item.contentId) || contentMap.get(item.contentId)!.lastWatched < item.lastWatched) {
           contentMap.set(item.contentId, item);

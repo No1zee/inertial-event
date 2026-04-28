@@ -12,6 +12,9 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = ({ item, isFocused, onFocus }) => {
   const router = useRouter();
+
+  if (!item || (!item.id && !item._id)) return null;
+
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
