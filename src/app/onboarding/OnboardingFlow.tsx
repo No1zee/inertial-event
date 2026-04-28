@@ -272,7 +272,15 @@ export function OnboardingFlow() {
               <Button 
                 onClick={handleNext}
                 disabled={!profileName.trim()}
-                className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:sc        {step === 2 && (
+                className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+              >
+                Next
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 2 && (
           <motion.div 
             key="genres"
             initial={{ opacity: 0, x: 20 }}
@@ -399,7 +407,7 @@ export function OnboardingFlow() {
                <Button 
                 onClick={() => setStep(2)}
                 variant="outline"
-                className="flex-1 h-16 rounded-2xl border-white/5 text-zinc-500 font-black uppercase tracking-widest"
+                className="flex-1 h-16 rounded-2xl border-white/5 text-zinc-600 font-black uppercase tracking-widest text-[10px] hover:text-white"
               >
                 Back
               </Button>
@@ -418,11 +426,6 @@ export function OnboardingFlow() {
             >
               Skip for now
             </button>
-          </motion.div>
-        )}ching
-                <ShieldCheck size={20} />
-              </Button>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
