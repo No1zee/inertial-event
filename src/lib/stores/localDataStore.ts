@@ -167,6 +167,7 @@ export interface UserProfile {
   createdAt: number;
   preferences?: {
     genres: string[];
+    genreWeights?: Record<string, number>;
     vibes: string[];
   };
 }

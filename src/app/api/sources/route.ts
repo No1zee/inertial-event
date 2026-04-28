@@ -9,7 +9,13 @@ export async function GET(request: NextRequest) {
   const title = searchParams.get('title') || '';
   const audioPreference = searchParams.get('audioPreference') || 'dub';
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  
+  if (!backendUrl) {
+    console.warn('[SourcesProxy] NEXT_PUBLIC_API_URL is not set. Returning empty sources.');
+    return NextResponse.json({ sources: [], subtitles: [] });
+  }
+
   const targetUrl = `${backendUrl}/api/sources?id=${id}&type=${type}&season=${season}&episode=${episode}&title=${encodeURIComponent(title)}&audioPreference=${audioPreference}`;
 
   console.log(`[SourcesProxy] Fetching from: ${targetUrl}`);

@@ -100,21 +100,58 @@ const RAIL_CONFIGS: RailConfig[] = [
     fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv'),
     aspectRatio: 'poster' as const,
   },
+  {
+    id: 'documentary',
+    title: 'Truth in Vision',
+    fetcher: () => contentApi.getByGenre(99, 'movie'),
+    aspectRatio: 'poster' as const,
+  },
+  {
+    id: 'comedy',
+    title: 'Infinite Laughs',
+    fetcher: () => contentApi.getByGenre(35, 'movie'),
+    aspectRatio: 'poster' as const,
+  },
+  {
+    id: 'horror',
+    title: 'Late Night Thrills',
+    fetcher: () => contentApi.getByGenre(27, 'movie'),
+    aspectRatio: 'poster' as const,
+  },
 ];
+
+import { useMemo } from 'react';
 
 export default function DashboardPage() {
   const hydrated = useHydrated();
+  const activeProfile = useActiveProfile();
   const [visibleCount, setVisibleCount] = useState(3);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sentinelRef);
 
+  const sortedRails = useMemo(() => {
+    if (!hydrated || !activeProfile?.preferences?.genreWeights) return RAIL_CONFIGS;
+    
+    const weights = activeProfile.preferences.genreWeights;
+    
+    // Create a scoring map
+    return [...RAIL_CONFIGS].sort((a, b) => {
+      const weightA = weights[a.id] || 0;
+      const weightB = weights[b.id] || 0;
+      
+      // If both have weights, sort by weight
+      if (weightA !== weightB) return weightB - weightA;
+      
+      // Default stable sort
+      return 0;
+    });
+  }, [hydrated, activeProfile?.preferences?.genreWeights]);
+
   useEffect(() => {
-    if (isInView && visibleCount < RAIL_CONFIGS.length) {
+    if (isInView && visibleCount < sortedRails.length) {
       setVisibleCount(prev => prev + 2);
     }
-  }, [isInView, visibleCount]);
-
-  const activeProfile = useActiveProfile();
+  }, [isInView, visibleCount, sortedRails.length]);
 
   const { data: trending } = useQuery<Content[]>({
     queryKey: ['trending', activeProfile?.preferences],
@@ -173,7 +210,7 @@ export default function DashboardPage() {
 
         {/* 5. Dynamic Content Rails */}
         <div className="space-y-12">
-          {RAIL_CONFIGS.slice(0, visibleCount).map(config => (
+          {sortedRails.slice(0, visibleCount).map(config => (
             <div key={config.id} className="relative">
               <AtmosphericAsyncRail config={config} />
             </div>
@@ -181,7 +218,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Infinite Scroll Sentinel */}
-        {visibleCount < RAIL_CONFIGS.length && (
+        {visibleCount < sortedRails.length && (
           <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />

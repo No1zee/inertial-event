@@ -59,6 +59,7 @@ export interface UIPreferences {
 
 export interface ContentPreferences {
   preferredGenres: string[];
+  genreWeights?: Record<string, number>;
   preferredVibes: string[];
   blockedGenres: string[];
   preferredLanguages: string[];
@@ -133,6 +134,7 @@ interface UserPreferencesStore
 
   // Actions - Content Preferences
   setPreferredGenres: (genres: string[]) => void;
+  setGenreWeights: (weights: Record<string, number>) => void;
   addPreferredGenre: (genre: string) => void;
   removePreferredGenre: (genre: string) => void;
   setPreferredVibes: (vibes: string[]) => void;
@@ -223,6 +225,7 @@ const defaultUIPreferences: UIPreferences = {
 
 const defaultContentPreferences: ContentPreferences = {
   preferredGenres: [],
+  genreWeights: {},
   preferredVibes: [],
   blockedGenres: [],
   preferredLanguages: ['en'],
@@ -337,6 +340,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
 
         // Content Preferences Actions
         setPreferredGenres: preferredGenres => set({ preferredGenres }),
+        setGenreWeights: genreWeights => set({ genreWeights }),
         addPreferredGenre: genre =>
           set(state => ({
             preferredGenres: state.preferredGenres.includes(genre)
@@ -644,6 +648,7 @@ export const usePreferencesActions = () =>
       setActiveSourceId: state.setActiveSourceId,
       setPlayerSettings: state.setPlayerSettings,
       setPreferredGenres: state.setPreferredGenres,
+      setGenreWeights: state.setGenreWeights,
       setPreferredVibes: state.setPreferredVibes,
       addPreferredVibe: state.addPreferredVibe,
       removePreferredVibe: state.removePreferredVibe,
@@ -730,6 +735,7 @@ export const useContentPreferences = () =>
   usePreferencesStore(
     state => ({
       preferredGenres: state.preferredGenres,
+      genreWeights: state.genreWeights,
       blockedGenres: state.blockedGenres,
       preferredLanguages: state.preferredLanguages,
       adultContent: state.adultContent,

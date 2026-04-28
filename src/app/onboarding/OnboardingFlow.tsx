@@ -20,6 +20,7 @@ import { useLocalDataStore, useProfileActions, useProfiles } from '@/lib/stores/
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { GenreBubbles } from './components/GenreBubbles';
 
 const GENRES = [
   { id: 'action', name: 'Action', icon: '💥' },
@@ -46,7 +47,18 @@ const GENRES = [
   { id: 'soap', name: 'Soap', icon: '🧼' },
   { id: 'talk', name: 'Talk', icon: '💬' },
   { id: 'politics', name: 'Politics', icon: '🏛️' },
+  { id: 'anime', name: 'Anime', icon: '🗾' },
+  { id: 'cyberpunk', name: 'Cyberpunk', icon: '🦾' },
+  { id: 'noir', name: 'Neo-Noir', icon: '🕶️' },
+  { id: 'space', name: 'Space Opera', icon: '🌌' },
+  { id: 'supernatural', name: 'Supernatural', icon: '🔮' },
 ];
+
+const AVATARS = [
+  'Felix', 'Aneka', 'Caleb', 'Buddy', 'Jasper', 
+  'Lucky', 'Milo', 'Oliver', 'Peanut', 'Pumpkin',
+  'Shadow', 'Simba', 'Smokey', 'Toby', 'Zoe'
+].map(seed => `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`);
 
 const VIBES = [
   { id: 'chilled', name: 'Chilled Out', desc: 'Relaxing, slow-paced stories for a quiet night.' },
@@ -61,10 +73,16 @@ export function OnboardingFlow() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [profileName, setProfileName] = useState('');
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
+  const [genreWeights, setGenreWeightsState] = useState<Record<string, number>>({});
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   
-  const { setHasCompletedOnboarding, setPreferredGenres, setPreferredVibes } = usePreferencesActions();
+  const { 
+    setHasCompletedOnboarding, 
+    setPreferredGenres, 
+    setGenreWeights,
+    setPreferredVibes 
+  } = usePreferencesActions();
   const { createProfile, setActiveProfile, updateProfile } = useProfileActions();
   const profiles = useProfiles();
 
@@ -79,7 +97,7 @@ export function OnboardingFlow() {
         console.log('👤 Creating guest profile...');
         const guestId = createProfile({
           name: 'Guest',
-          avatar: '/avatars/default.png',
+          avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
           isKids: false,
           isLocked: false,
           isGuest: true,
@@ -93,11 +111,15 @@ export function OnboardingFlow() {
         setActiveProfile(guestId);
       } else {
         // 2. If it's a real user, update the 'primary' profile with their choices
-        console.log('👤 Updating primary profile...', { selectedGenres, selectedVibes });
+        console.log('👤 Updating primary profile...', { genreWeights, selectedVibes });
+        const selectedGenreIds = Object.keys(genreWeights).filter(id => genreWeights[id] > 0);
+        
         updateProfile('primary', {
           name: profileName || 'User',
+          avatar: selectedAvatar,
           preferences: {
-            genres: selectedGenres,
+            genres: selectedGenreIds,
+            genreWeights: genreWeights,
             vibes: selectedVibes
           }
         });
@@ -105,7 +127,9 @@ export function OnboardingFlow() {
       }
       
       // 3. Save global preferences for fallback
-      setPreferredGenres(isGuest ? [] : selectedGenres);
+      const finalGenreIds = Object.keys(genreWeights).filter(id => genreWeights[id] > 0);
+      setPreferredGenres(isGuest ? [] : finalGenreIds);
+      setGenreWeights(isGuest ? {} : genreWeights);
       setPreferredVibes(isGuest ? [] : selectedVibes);
       setHasCompletedOnboarding(true);
       
@@ -118,10 +142,11 @@ export function OnboardingFlow() {
     }
   };
 
-  const toggleGenre = (id: string) => {
-    setSelectedGenres(prev => 
-      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
-    );
+  const handleWeightChange = (id: string, weight: number) => {
+    setGenreWeightsState(prev => ({
+      ...prev,
+      [id]: weight
+    }));
   };
 
   const toggleVibe = (id: string) => {
@@ -202,19 +227,10 @@ export function OnboardingFlow() {
                 letterSpacing="0.4em"
                 className="text-primary uppercase" 
               />
-              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Create Account</h2>
+              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Identity</h2>
             </div>
 
             <div className="w-full space-y-8">
-              <div className="flex flex-col items-center gap-6">
-                <div className="w-32 h-32 rounded-[2.5rem] bg-zinc-900 border border-white/10 flex items-center justify-center relative group cursor-pointer overflow-hidden">
-                   <User size={48} className="text-zinc-700" />
-                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera size={24} className="text-white" />
-                   </div>
-                </div>
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Select Profile Picture</span>
-              </div>
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-2">Your Name</label>
                 <input 
@@ -224,6 +240,31 @@ export function OnboardingFlow() {
                   placeholder="Enter your name..."
                   className="w-full h-16 bg-white/[0.02] border border-white/10 rounded-2xl px-6 text-xl font-bold text-white placeholder:text-zinc-700 focus:outline-none focus:border-primary/50 transition-colors"
                 />
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Select Avatar</span>
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Bottts Series</span>
+                </div>
+                <div className="grid grid-cols-5 gap-4">
+                  {AVATARS.map((avatar, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedAvatar(avatar)}
+                      className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all hover:scale-105 active:scale-95 ${
+                        selectedAvatar === avatar ? 'border-primary shadow-[0_0_20px_rgba(255,0,0,0.3)]' : 'border-white/5 opacity-50 grayscale hover:grayscale-0 hover:opacity-100'
+                      }`}
+                    >
+                      <OptimizedImage src={avatar} alt={`Avatar ${i}`} fill className="object-cover" />
+                      {selectedAvatar === avatar && (
+                        <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                          <Check size={20} className="text-white drop-shadow-md" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -266,27 +307,19 @@ export function OnboardingFlow() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-               {/* Genres */}
+               {/* Genres - Circle Construct */}
                <div className="space-y-6">
                   <div className="flex items-center gap-3 ml-2">
                     <Film size={16} className="text-zinc-500" />
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Favorite Genres</span>
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Genre Construct</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
-                    {GENRES.map(genre => (
-                      <button
-                        key={genre.id}
-                        onClick={() => toggleGenre(genre.id)}
-                        className={`h-14 rounded-xl border transition-all flex items-center justify-between px-4 ${
-                          selectedGenres.includes(genre.id) 
-                            ? 'bg-white text-black border-white' 
-                            : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'
-                        }`}
-                      >
-                        <span className="font-bold text-sm uppercase tracking-wider">{genre.name}</span>
-                        <span className="text-lg">{genre.icon}</span>
-                      </button>
-                    ))}
+                  
+                  <div className="bg-black/20 rounded-[3rem] border border-white/5 p-4 overflow-hidden h-[500px] flex items-center justify-center">
+                    <GenreBubbles 
+                      genres={GENRES} 
+                      weights={genreWeights}
+                      onWeightChange={handleWeightChange}
+                    />
                   </div>
                </div>
 

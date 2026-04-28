@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutActions, useAuthStore } from '@/lib/stores';
+import { useLayoutActions, useAuthStore, useActiveProfile } from '@/lib/stores';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -10,8 +10,10 @@ import { MagneticButton } from '@/components/Common/MagneticButton';
 export function Navbar() {
   const { setCommandCenterOpen } = useLayoutActions();
   const { user } = useAuthStore();
+  const activeProfile = useActiveProfile();
 
-  const avatarUrl = user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'user'}`;
+  const displayName = activeProfile?.name || user?.username || 'Guest';
+  const avatarUrl = activeProfile?.avatar || user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
   return (
     <header className="sticky top-0 z-30 w-full h-20 bg-transparent px-8 flex items-center justify-between pointer-events-none">
@@ -38,7 +40,7 @@ export function Navbar() {
               Vault Status
             </span>
             <span className="text-xs font-semibold text-zinc-400 group-hover:text-white transition-colors">
-              {user?.username || 'Guest'}
+              {displayName}
             </span>
           </div>
           <MagneticButton distance={0.1}>

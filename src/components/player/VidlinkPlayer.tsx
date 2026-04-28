@@ -558,16 +558,26 @@ export function VidlinkPlayer({
                 <PretextHeadline text="PROCESSING STREAM" className="text-2xl font-bold tracking-tighter" />
               </div>
             ) : (
-              <webview
-                ref={onWebviewRef}
-                src={src}
-                preload={preloadPath || undefined}
-                className="flex-1 w-full h-full"
-                allowFullScreen
-                webpreferences="contextIsolation=no, nodeIntegration=no"
-                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                data-testid="video-player"
-              />
+              typeof window !== 'undefined' && window.electron ? (
+                <webview
+                  ref={onWebviewRef}
+                  src={src}
+                  preload={preloadPath || undefined}
+                  className="flex-1 w-full h-full"
+                  allowFullScreen
+                  webpreferences="contextIsolation=no, nodeIntegration=no"
+                  useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                  data-testid="video-player"
+                />
+              ) : (
+                <iframe
+                  src={src}
+                  className="flex-1 w-full h-full border-none"
+                  allowFullScreen
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  data-testid="video-player"
+                />
+              )
             )}
           </div>
         )}

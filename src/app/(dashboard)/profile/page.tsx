@@ -1,18 +1,28 @@
 'use client';
 
 import { useAuthStore } from '@/lib/stores';
-import { useLocalDataStore } from '@/lib/stores/localDataStore';
-import { User, Mail, Shield, Clock, Bookmark, Camera, LogOut } from 'lucide-react';
+import { useLocalDataStore, useProfiles, useActiveProfile, useProfileActions } from '@/lib/stores/localDataStore';
+import { User, Mail, Shield, Clock, Bookmark, Camera, LogOut, Users, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 import { LoginForm } from '@/components/auth/LoginForm';
 
 export default function ProfilePage() {
   const { user, logout } = useAuthStore();
+  const profiles = useProfiles();
+  const activeProfile = useActiveProfile();
+  const { setActiveProfile, deleteProfile } = useProfileActions();
+  
   const historyCount = useLocalDataStore(state => state.watchHistory.length);
   const libraryCount = useLocalDataStore(state => state.library.length);
+
+  const handleLogout = () => {
+    logout();
+    setActiveProfile('');
+  };
 
   if (!user) {
     return (
@@ -29,15 +39,14 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-4xl mx-auto space-y-8"
       >
-        {/* Profile Header */}
         <div className="relative h-48 md:h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-red-600 to-red-900 shadow-2xl">
           <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute bottom-8 left-8 flex items-end gap-6">
+          <div className="absolute bottom-8 left-8 flex items-end gap-6 w-full pr-16">
             <div className="relative group">
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-zinc-900 border-4 border-zinc-950 overflow-hidden shadow-2xl">
                 <Image
-                  src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                  alt={user.username}
+                  src={activeProfile?.avatar || user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeProfile?.name || user.username}`}
+                  alt={activeProfile?.name || user.username}
                   width={128}
                   height={128}
                   className="w-full h-full object-cover"
@@ -50,11 +59,11 @@ export default function ProfilePage() {
                 <Camera size={16} />
               </button>
             </div>
-            <div className="pb-2">
+            <div className="pb-2 flex-1">
               <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight drop-shadow-lg">
-                {user.username}
+                {activeProfile?.name || user.username}
               </h1>
-              <p className="text-red-100/80 font-medium">MaiWatch Member</p>
+              <p className="text-red-100/80 font-medium">Vault ID: {activeProfile?.id || 'Root'}</p>
             </div>
           </div>
         </div>
@@ -126,10 +135,78 @@ export default function ProfilePage() {
                 <span className="text-red-500 font-bold">Next billing: Feb 15, 2026</span>
               </div>
             </div>
-            <Button variant="danger" className="mt-8" onClick={logout}>
-              <LogOut size={18} className="mr-2" />
-              Log Out
-            </Button>
+            <div className="flex gap-4 mt-8">
+              <Button variant="outline" className="flex-1" onClick={() => window.location.href = '/onboarding'}>
+                 <UserPlus size={18} className="mr-2" />
+                 Reset Onboarding
+              </Button>
+              <Button variant="danger" className="flex-1" onClick={handleLogout}>
+                <LogOut size={18} className="mr-2" />
+                Log Out
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Management */}
+        <div className="bg-zinc-900/50 border border-white/5 p-8 rounded-3xl space-y-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Users className="text-red-500" size={24} />
+              <h2 className="text-2xl font-bold text-white">Switch Profiles</h2>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {profiles.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setActiveProfile(p.id)}
+                className={cn(
+                  "group flex flex-col items-center gap-3 transition-all",
+                  activeProfile?.id === p.id ? "opacity-100" : "opacity-40 hover:opacity-100"
+                )}
+              >
+                <div className={cn(
+                  "w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-2 transition-all group-hover:scale-105",
+                  activeProfile?.id === p.id ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : "border-white/10 group-hover:border-white/30"
+                )}>
+                  <Image
+                    src={p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`}
+                    alt={p.name}
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className={cn(
+                  "text-xs font-bold uppercase tracking-widest transition-colors",
+                  activeProfile?.id === p.id ? "text-red-500" : "text-zinc-500 group-hover:text-white"
+                )}>
+                  {p.name}
+                </span>
+                {p.id !== 'primary' && activeProfile?.id !== p.id && (
+                  <span 
+                    onClick={(e) => { e.stopPropagation(); deleteProfile(p.id); }}
+                    className="text-[10px] text-zinc-600 hover:text-red-500 transition-colors uppercase font-black"
+                  >
+                    Delete
+                  </span>
+                )}
+              </button>
+            ))}
+            
+            <button
+              onClick={() => window.location.href = '/onboarding'}
+              className="group flex flex-col items-center gap-3 opacity-40 hover:opacity-100 transition-all"
+            >
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center group-hover:border-white/30 group-hover:bg-white/5 transition-all">
+                <UserPlus size={32} className="text-zinc-500 group-hover:text-white" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-white">
+                New Vault
+              </span>
+            </button>
           </div>
         </div>
       </motion.div>

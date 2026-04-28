@@ -29,15 +29,9 @@ export type AuthSession = {
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
     set => ({
-      user: {
-        id: '1',
-        username: 'Operator',
-        email: 'operator@MaiWatch.io',
-        role: 'admin',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=operator',
-      }, // Mock user for now if needed, or keep null
-      token: 'mock-token',
-      isAuthenticated: true,
+      user: null,
+      token: null,
+      isAuthenticated: false,
 
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
