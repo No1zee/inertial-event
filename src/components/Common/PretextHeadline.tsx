@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
-import * as Pretext from '@chenglou/pretext';
+import * as PretextModule from '@chenglou/pretext';
 
-// Defensive check for Pretext library functions which might be mangled or missing in some build environments
+// Handle both standard and default-wrapped exports which can occur in minified bundles
+const Pretext = (PretextModule as any).default || PretextModule;
+
 const prepareWithSegments = typeof Pretext?.prepareWithSegments === 'function' ? Pretext.prepareWithSegments : null;
 const layoutWithLines = typeof Pretext?.layoutWithLines === 'function' ? Pretext.layoutWithLines : null;
 

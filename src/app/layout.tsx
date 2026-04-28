@@ -8,6 +8,8 @@ import { LivingBackground } from '../components/layout/LivingBackground';
 import { SeriesTracker } from '../components/Common/SeriesTracker';
 import { RouteInterceptor } from '../components/Common/RouteInterceptor';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -137,6 +139,8 @@ export default function RootLayout({
           <BrowserInit />
           {process.env.NODE_ENV === 'development' && <StatsOverlay />}
           {children}
+          <Analytics />
+          <SpeedInsights />
         </AppProviders>
       </body>
     </html>

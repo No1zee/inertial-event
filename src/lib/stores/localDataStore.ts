@@ -898,12 +898,12 @@ export const useWatchHistory = () => useLocalDataStore(state => state.watchHisto
 export const useLibrary = () => useLocalDataStore(state => state.library, shallow);
 export const useCollections = () => useLocalDataStore(state => state.collections, shallow);
 export const useDownloads = () => useLocalDataStore(state => state.downloads, shallow);
-export const useContinueWatching = () => useLocalDataStore(state => state.getContinueWatching(), shallow);
-export const useLastWatched = () => useLocalDataStore(state => state.getLastWatched(), shallow);
+export const useContinueWatching = () => useLocalDataStore(state => typeof state.getContinueWatching === 'function' ? state.getContinueWatching() : [], shallow);
+export const useLastWatched = () => useLocalDataStore(state => typeof state.getLastWatched === 'function' ? state.getLastWatched() : null, shallow);
 
 export const useProfiles = () => useLocalDataStore(state => state.profiles, shallow);
 export const useActiveProfile = () =>
-  useLocalDataStore(state => state.profiles.find(p => p.id === state.activeProfileId), shallow);
+  useLocalDataStore(state => Array.isArray(state.profiles) ? state.profiles.find(p => p.id === state.activeProfileId) : undefined, shallow);
 export const useUserPreferences = () => useLocalDataStore(state => state.globalPreferences, shallow);
 
 // Action selectors for cleaner imports

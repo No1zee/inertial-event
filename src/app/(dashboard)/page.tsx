@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useInView } from 'framer-motion';
 import { CinemaMarquee } from '@/components/content/CinemaMarquee';
@@ -11,14 +12,17 @@ import { CriticsChoice } from '@/components/home/CriticsChoice';
 import { StudioRail } from '@/components/home/StudioRail';
 import { HomeDashboard } from '@/components/home/HomeDashboard';
 import { contentApi } from '@/lib/api/content';
-import { Content } from '@/lib/types/content';
 import { useActiveProfile } from '@/lib/stores/localDataStore';
-import { useHydrated } from '@/hooks/useHydrated';
-import { cn } from '@/lib/utils';
-import { getOptimizedImageUrl } from '@/lib/utils/image';
+import { useHydrated } from '@/lib/hooks/useHydrated';
+import { Content } from '@/lib/types/content';
+import { GENRE_MAP } from '@/lib/api/content';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
-const BrandBlock = lazy(() => import('@/components/brand/BrandBlock').then(mod => ({ default: mod.BrandBlock })));
+const BrandBlock = dynamic(() => import('@/components/brand/BrandBlock').then(mod => mod.BrandBlock), {
+  ssr: false,
+  loading: () => <div className="h-[600px] animate-pulse bg-zinc-900 mx-10 lg:mx-24 rounded-[4rem]" />
+});
 
 interface RailConfig {
   id: string;

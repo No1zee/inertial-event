@@ -34,10 +34,10 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [scrollingProgress, setScrollingProgress] = useState(0);
   const router = useRouter();
-  const openContentModal = useUIStore(state => state.openContentModal);
-  const getResumeData = useLocalDataStore(state => state.getResumeData);
+  const openContentModal = typeof useUIStore === 'function' ? useUIStore(state => state.openContentModal) : null;
+  const getResumeData = typeof useLocalDataStore === 'function' ? useLocalDataStore(state => state.getResumeData) : null;
 
-  const currentItem = items && items.length > 0 ? items[index % items.length] : null;
+  const currentItem = Array.isArray(items) && items.length > 0 ? items[index % items.length] : null;
 
   useEffect(() => {
     if (!items || items.length === 0) return;
@@ -199,7 +199,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
                 fill="transparent"
                 strokeDasharray="125.6"
                 strokeDashoffset={125.6 - (125.6 * scrollingProgress) / 100}
-                className="text-red-600 transition-all duration-&lsqb;12000ms&rsqb; ease-linear"
+                className="text-red-600 transition-all duration-[12000ms] ease-linear"
               />
             </svg>
             <span className="absolute text-[9px] font-bold text-zinc-500 tracking-tighter">
