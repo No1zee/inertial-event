@@ -29,8 +29,8 @@ const GENRES = [
   { id: 'sci-fi', name: 'Sci-Fi', icon: '🛸', isTop: true },
   { id: 'thriller', name: 'Thriller', icon: '🔪', isTop: true },
   { id: 'animation', name: 'Animation', icon: '🎨', isTop: true },
-  { id: 'horror', name: 'Horror', icon: '👻', isTop: true },
-  { id: 'documentary', name: 'Docs', icon: '📽️', isTop: true },
+  { id: 'horror', name: 'Horror', icon: '👻' },
+  { id: 'documentary', name: 'Docs', icon: '📽️' },
   { id: 'adventure', name: 'Adventure', icon: '⛰️' },
   { id: 'crime', name: 'Crime', icon: '🕵️' },
   { id: 'family', name: 'Family', icon: '👨‍👩‍👧' },
@@ -55,10 +55,17 @@ const GENRES = [
 ];
 
 const AVATARS = [
-  'Felix', 'Aneka', 'Caleb', 'Buddy', 'Jasper', 
-  'Lucky', 'Milo', 'Oliver', 'Peanut', 'Pumpkin',
-  'Shadow', 'Simba', 'Smokey', 'Toby', 'Zoe'
-].map(seed => `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9`);
+  { seed: 'Felix', color: 'b6e3f4' },
+  { seed: 'Aneka', color: 'c0aede' },
+  { seed: 'Caleb', color: 'd1d4f9' },
+  { seed: 'Buddy', color: 'ffd5dc' },
+  { seed: 'Jasper', color: 'ffebae' },
+  { seed: 'Lucky', color: 'c1f4e5' },
+  { seed: 'Milo', color: 'd0f4b6' },
+  { seed: 'Oliver', color: 'f4d8b6' },
+  { seed: 'Peanut', color: 'f4b6b6' },
+  { seed: 'Pumpkin', color: 'f4b6f0' },
+].map(a => `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${a.seed}&backgroundColor=${a.color}`);
 
 const VIBES = [
   { id: 'chilled', name: 'Chilled Out', desc: 'Relaxing, slow-paced stories for a quiet night.' },
@@ -92,59 +99,48 @@ export function OnboardingFlow() {
   const handleComplete = (isGuest = false) => {
     console.log('🏁 [AG] Completing onboarding...', { isGuest, profileName });
     
-    try {
-      // 1. If it's a guest, create a new profile and set it as active
-      if (isGuest) {
-        console.log('👤 Creating guest profile...');
-        const guestId = createProfile({
-          name: 'Guest',
-          avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
-          isKids: false,
-          isLocked: false,
-          isGuest: true,
-          preferences: {
-            genres: [],
-            vibes: []
-          }
-        });
-        
-        console.log('✅ Guest profile created:', guestId);
-        setActiveProfile(guestId);
-      } else {
-        // 2. If it's a real user, update the 'primary' profile with their choices
-        console.log('👤 Updating primary profile...', { selectedGenres, selectedVibes });
-        
-        // Simple weighting for now: selected = 1, others = 0
-        const genreWeights: Record<string, number> = {};
-        selectedGenres.forEach(id => { genreWeights[id] = 1; });
+    // Set to completion splash first
+    setStep(4);
+    
+    setTimeout(() => {
+      try {
+        if (isGuest) {
+          const guestId = createProfile({
+            name: 'Guest',
+            avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
+            isKids: false,
+            isLocked: false,
+            isGuest: true,
+            preferences: { genres: [], vibes: [] }
+          });
+          setActiveProfile(guestId);
+        } else {
+          const genreWeights: Record<string, number> = {};
+          selectedGenres.forEach(id => { genreWeights[id] = 1; });
 
-        updateProfile('primary', {
-          name: profileName || 'User',
-          avatar: selectedAvatar,
-          preferences: {
-            genres: selectedGenres,
-            genreWeights: genreWeights,
-            vibes: selectedVibes
-          }
-        });
-        setActiveProfile('primary');
+          updateProfile('primary', {
+            name: profileName || 'User',
+            avatar: selectedAvatar,
+            preferences: {
+              genres: selectedGenres,
+              genreWeights: genreWeights,
+              vibes: selectedVibes
+            }
+          });
+          setActiveProfile('primary');
+        }
+        
+        setPreferredGenres(isGuest ? [] : selectedGenres);
+        const finalWeights: Record<string, number> = {};
+        selectedGenres.forEach(id => { finalWeights[id] = 1; });
+        setGenreWeights(isGuest ? {} : finalWeights);
+        setPreferredVibes(isGuest ? [] : selectedVibes);
+        setHasCompletedOnboarding(true);
+        router.push('/');
+      } catch (error) {
+        console.error('❌ [AG] Onboarding completion failed:', error);
       }
-      
-      // 3. Save global preferences for fallback
-      setPreferredGenres(isGuest ? [] : selectedGenres);
-      const finalWeights: Record<string, number> = {};
-      selectedGenres.forEach(id => { finalWeights[id] = 1; });
-      setGenreWeights(isGuest ? {} : finalWeights);
-      setPreferredVibes(isGuest ? [] : selectedVibes);
-      setHasCompletedOnboarding(true);
-      
-      console.log('🚀 Onboarding complete. Redirecting home...');
-      
-      // 4. Navigate home
-      router.push('/');
-    } catch (error) {
-      console.error('❌ [AG] Onboarding completion failed:', error);
-    }
+    }, 2000); // 2 second reward moment
   };
 
   const toggleGenre = (id: string) => {
@@ -217,11 +213,19 @@ export function OnboardingFlow() {
             exit={{ opacity: 0, x: -20 }}
             className="relative z-20 w-full max-w-2xl mx-auto p-12 rounded-[3rem] bg-white/[0.03] border border-white/5 backdrop-blur-3xl shadow-2xl flex flex-col items-center gap-12"
           >
-            <div className="text-center space-y-2">
-              <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Identity</span>
-              <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Who's watching?</h2>
-              <p className="text-zinc-500 text-sm font-medium">Choose a name and a custom avatar for your vault.</p>
+            <div className="flex items-center justify-between w-full">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Vault Setup</span>
+                <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Who's watching?</h2>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 1 of 3</span>
+                <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full w-1/3 bg-primary rounded-full" />
+                </div>
+              </div>
             </div>
+            <p className="text-zinc-500 text-sm font-medium -mt-6">Choose a name (max 12 chars) and a custom avatar for your vault.</p>
 
             <div className="w-full space-y-8">
               <div className="space-y-4">
@@ -245,8 +249,8 @@ export function OnboardingFlow() {
                     <button
                       key={i}
                       onClick={() => setSelectedAvatar(avatar)}
-                      className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all hover:scale-105 active:scale-95 ${
-                        selectedAvatar === avatar ? 'border-primary shadow-[0_0_20px_rgba(255,0,0,0.3)]' : 'border-white/5 opacity-50 grayscale hover:grayscale-0 hover:opacity-100'
+                      className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all hover:scale-105 active:scale-95 group ${
+                        selectedAvatar === avatar ? 'border-primary shadow-[0_0_20px_rgba(255,0,0,0.3)]' : 'border-white/5 opacity-80 grayscale-0 hover:border-white/30 hover:opacity-100'
                       }`}
                     >
                       <OptimizedImage src={avatar} alt={`Avatar ${i}`} fill className="object-cover" />
@@ -262,19 +266,18 @@ export function OnboardingFlow() {
             </div>
 
             <div className="flex gap-4 w-full">
-               <Button 
+               <button 
                 onClick={() => handleComplete(true)}
-                variant="outline"
-                className="flex-1 h-16 rounded-2xl border-white/5 text-zinc-600 font-black uppercase tracking-widest text-[10px] hover:text-white"
+                className="text-[10px] font-black text-zinc-600 uppercase tracking-widest hover:text-white transition-colors flex-1 text-center"
               >
                 Skip to Guest
-              </Button>
+              </button>
               <Button 
                 onClick={handleNext}
-                disabled={!profileName.trim()}
-                className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                disabled={!profileName.trim() || profileName.length > 12}
+                className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
               >
-                Next
+                {profileName.length > 12 ? 'Name Too Long' : 'Continue'}
               </Button>
             </div>
           </motion.div>
@@ -294,16 +297,16 @@ export function OnboardingFlow() {
                 <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Favorite Genres</h2>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 1 of 2</span>
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 2 of 3</span>
                 <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
-                  <div className="h-full w-1/2 bg-primary rounded-full" />
+                  <div className="h-full w-2/3 bg-primary rounded-full" />
                 </div>
               </div>
             </div>
 
             <p className="text-zinc-500 text-sm font-medium">Pick at least 3 to improve your recommendations.</p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {GENRES.filter(g => showAllGenres || g.isTop).map(genre => (
                 <button
                   key={genre.id}
@@ -311,11 +314,14 @@ export function OnboardingFlow() {
                   className={cn(
                     "h-14 rounded-xl border transition-all flex items-center justify-between px-4 group",
                     selectedGenres.includes(genre.id) 
-                      ? 'bg-white text-black border-white' 
+                      ? 'bg-primary text-black border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]' 
                       : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10'
                   )}
                 >
-                  <span className="font-bold text-[10px] uppercase tracking-widest truncate">{genre.name}</span>
+                  <div className="flex items-center gap-2">
+                    {selectedGenres.includes(genre.id) && <Check size={12} strokeWidth={4} />}
+                    <span className="font-bold text-[10px] uppercase tracking-widest truncate">{genre.name}</span>
+                  </div>
                   <span className="text-lg group-hover:scale-125 transition-transform">{genre.icon}</span>
                 </button>
               ))}
@@ -326,7 +332,7 @@ export function OnboardingFlow() {
                   className="h-14 rounded-xl border border-white/5 bg-white/5 text-zinc-500 hover:bg-white/10 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
                 >
                   <Sparkles size={14} />
-                  More
+                  See All
                 </button>
               )}
             </div>
@@ -344,7 +350,7 @@ export function OnboardingFlow() {
                 disabled={selectedGenres.length < 3}
                 className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-30"
               >
-                {selectedGenres.length < 3 ? `Pick ${3 - selectedGenres.length} More` : 'Next'}
+                {selectedGenres.length < 3 ? `${selectedGenres.length} of 3 selected` : 'Continue'}
               </Button>
             </div>
           </motion.div>
@@ -364,16 +370,16 @@ export function OnboardingFlow() {
                 <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Tonight's Mood</h2>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 2 of 2</span>
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 3 of 3</span>
                 <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
                   <div className="h-full w-full bg-primary rounded-full" />
                 </div>
               </div>
             </div>
 
-            <p className="text-zinc-500 text-sm font-medium">How do you want to feel when you watch?</p>
+            <p className="text-zinc-500 text-sm font-medium">How do you want to feel tonight? Pick one to personalize your feed.</p>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {VIBES.map(vibe => (
                 <button
                   key={vibe.id}
@@ -386,15 +392,15 @@ export function OnboardingFlow() {
                   )}
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="font-black text-xs uppercase tracking-[0.2em]">{vibe.name}</span>
+                    <span className="font-black text-[10px] uppercase tracking-[0.2em]">{vibe.name}</span>
                     {selectedVibes.includes(vibe.id) ? (
-                      <Check size={16} />
+                      <Check size={16} strokeWidth={4} />
                     ) : (
                       <Zap size={16} className="opacity-0 group-hover:opacity-30 transition-opacity" />
                     )}
                   </div>
                   <span className={cn(
-                    "text-[10px] font-medium leading-relaxed",
+                    "text-[10px] font-medium leading-tight",
                     selectedVibes.includes(vibe.id) ? 'text-black/60' : 'text-zinc-500'
                   )}>
                     {vibe.desc}

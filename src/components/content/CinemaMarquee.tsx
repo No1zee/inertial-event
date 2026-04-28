@@ -57,7 +57,23 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
     };
   }, [items, items.length, index]);
 
-  if (!isHydrated || !currentItem) return <div className="h-[85vh] w-full bg-zinc-950 animate-pulse rounded-[3rem] mx-4 my-2" />;
+  if (!isHydrated || !currentItem) {
+    return (
+      <div className="h-[70vh] sm:h-[80vh] lg:h-[88vh] w-full px-4 py-2">
+        <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] lg:rounded-[3.5rem] bg-zinc-900 animate-pulse">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
+          <div className="absolute bottom-24 lg:bottom-32 left-10 lg:left-24 space-y-6">
+            <div className="h-4 w-32 bg-zinc-800 rounded-full" />
+            <div className="h-16 lg:h-24 w-[300px] lg:w-[600px] bg-zinc-800 rounded-2xl" />
+            <div className="flex gap-4">
+              <div className="h-12 w-40 bg-zinc-800 rounded-xl" />
+              <div className="h-12 w-40 bg-zinc-800 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handlePlay = () => {
     if (!currentItem) return;

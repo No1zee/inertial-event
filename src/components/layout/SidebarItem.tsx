@@ -109,7 +109,7 @@ export function SidebarItem({
       </div>
 
       {/* Label (Pretext) */}
-      {isOpen && (
+      {isOpen ? (
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -137,28 +137,20 @@ export function SidebarItem({
                 {count}
               </span>
             )}
-            {isApp && label === 'African Cinematic Universe' && (
-              <div
-                className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_8px_#EAB308]"
-                title="Heritage Certified"
-              />
-            )}
           </div>
         </motion.div>
-      )}
-
-      {/* Tooltip for Collapsed State */}
-      {!isOpen && (
-        <div
-          className={cn(
-            'absolute left-full ml-4 px-3 py-1.5 bg-background border border-border rounded-lg text-xs font-bold text-primary shadow-xl opacity-0 group-hover/item:opacity-100 translate-x-2 group-hover/item:translate-x-0 transition-all duration-300 pointer-events-none whitespace-nowrap z-[100]',
-            hoverColor &&
-              'text-[var(--item-hover-color)] border-[var(--item-hover-color)]/20 shadow-[var(--item-hover-color)]/10'
-          )}
-        >
-          {label}
+      ) : (
+        <div className="absolute bottom-1 w-full flex justify-center pointer-events-none">
+          <span className={cn(
+            "text-[7px] font-black uppercase tracking-tighter opacity-0 group-hover/item:opacity-100 transition-opacity",
+            isActive ? "text-primary/80" : "text-zinc-500"
+          )}>
+            {label.split(' ')[0]}
+          </span>
         </div>
       )}
+
+
     </Link>
   );
 }

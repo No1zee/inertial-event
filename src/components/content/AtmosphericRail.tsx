@@ -234,7 +234,9 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
             Array(6)
               .fill(0)
               .map((_, i) => (
-                <div key={i} className={cn('shrink-0 animate-pulse bg-zinc-900/50 rounded-lg', getCardWidth())} />
+                <div key={i} className={cn('shrink-0 animate-pulse bg-zinc-900 rounded-[2rem] relative overflow-hidden', getCardWidth(), aspectRatio === 'poster' ? 'aspect-[2/3]' : 'aspect-video')}>
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
+                </div>
               ))}
           <div className="min-w-[4rem] lg:min-w-[8rem] shrink-0" />
         </div>
