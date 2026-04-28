@@ -25,9 +25,13 @@ export default function BrowserInit() {
     const activeProfile = profiles.find(p => p.id === activeProfileId);
     
     if (activeProfile?.isGuest) {
-      console.log('🧹 [AG] Guest Session detected. Resetting for new visit...');
-      deleteProfile(activeProfileId!);
-      setHasCompletedOnboarding(false);
+      console.log('🧹 [AG] Guest Session detected in BrowserInit. checking route...');
+      // Only reset if we are NOT on the onboarding page (prevents loop during onboarding)
+      if (window.location.pathname !== '/onboarding') {
+        console.log('🧹 [AG] Resetting guest session for new visit...');
+        deleteProfile(activeProfileId!);
+        setHasCompletedOnboarding(false);
+      }
     }
 
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
