@@ -23,8 +23,14 @@ export const AurelianDashboard: React.FC = () => {
   }, []);
 
   const { data: trending } = useQuery<Content[]>({
-    queryKey: ['trending_pulse'],
-    queryFn: () => contentApi.getTrending(1),
+    queryKey: ['trending_pulse', activeProfile?.preferences],
+    queryFn: async () => {
+      const baseTrending = await contentApi.getTrending(1);
+      if (activeProfile?.preferences?.genres?.length || activeProfile?.preferences?.vibes?.length) {
+        return contentApi.getPersonalizedMix(baseTrending, activeProfile.preferences);
+      }
+      return baseTrending;
+    },
     staleTime: 1000 * 60 * 30,
   });
 
@@ -98,8 +104,8 @@ export const AurelianDashboard: React.FC = () => {
                       const providerQuery = item.providerId ? `&provider=${item.providerId}` : '';
                       const url =
                         item.type === 'movie'
-                          ? `/watch?id=${item.contentId}&type=movie${providerQuery}`
-                          : `/watch?id=${item.contentId}&type=tv&season=${item.season || 1}&episode=${
+                          ? `/watch?id=${item.id}&type=movie${providerQuery}`
+                          : `/watch?id=${item.id}&type=tv&season=${item.season || 1}&episode=${
                               item.episode || 1
                             }${providerQuery}`;
                       router.push(url);
@@ -130,14 +136,14 @@ export const AurelianDashboard: React.FC = () => {
 
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {trending
-              ?.filter(item => item && (item.id || item._id))
+              ?.filter(item => item && item.id)
               .slice(0, 5)
               .map((item, idx) => (
                 <PulseCard
-                  key={item.id || item._id}
+                  key={item.id}
                   item={item}
                   index={idx}
-                  onClick={() => router.push(`/watch?id=${item.id || item._id}&type=${item.type || 'movie'}`)}
+                  onClick={() => router.push(`/watch?id=${item.id}&type=${item.type || 'movie'}`)}
                 />
               ))}
           </div>
@@ -209,7 +215,7 @@ const PulseCard = ({ item, index, onClick }: { item: Content; index: number; onC
   >
     <OptimizedImage
       src={item.backdrop_path || item.poster_path || ''}
-      alt={item.title || item.name || ''}
+      alt={item.title || ''}
       fill
       className="object-cover opacity-50 group-hover/card:opacity-90 transition-all duration-700 group-hover/card:scale-110"
     />
@@ -219,7 +225,7 @@ const PulseCard = ({ item, index, onClick }: { item: Content; index: number; onC
     </div>
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent p-5 flex flex-col justify-end">
       <PretextHeadline
-        text={item.title || item.name || ''}
+        text={item.title || ''}
         fontSize={10}
         fontWeight={900}
         letterSpacing="-0.02em"

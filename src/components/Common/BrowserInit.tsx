@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializeTheme } from '@/lib/stores';
+import { initializeTheme, useUIPreferences } from '@/lib/stores';
+import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import 'core-js/stable';
 import 'resize-observer-polyfill';
@@ -16,6 +17,16 @@ export default function BrowserInit() {
     }
 
     initializeTheme();
+
+    // Guest Mode Reset Logic (Resets after every visit)
+    const { activeProfileId, profiles, deleteProfile } = useLocalDataStore.getState();
+    const activeProfile = profiles.find(p => p.id === activeProfileId);
+    
+    if (activeProfile?.isGuest) {
+      console.log('🧹 [AG] Guest Session detected. Resetting for new visit...');
+      deleteProfile(activeProfileId!);
+      useUIPreferences.getState().setHasCompletedOnboarding(false);
+    }
 
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       window.addEventListener('load', () => {

@@ -18,6 +18,7 @@ class SourceProvider {
   private cache: Map<string, Map<string, StreamSource[]>> = new Map();
 
   async getSources(contentId: string, type: 'movie' | 'tv' | 'anime', title: string): Promise<StreamSource[]> {
+    try {
       const response = await fetch(
         `${API_BASE_URL}/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`
       );

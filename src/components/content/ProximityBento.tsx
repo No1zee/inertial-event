@@ -28,7 +28,7 @@ export function ProximityBento() {
 
   const { data: bangers } = useQuery<Content[]>({
     queryKey: ['spotlight_bangers'],
-    queryFn: () => contentApi.getBangers(1),
+    queryFn: () => contentApi.getBangers('movie', 1),
     staleTime: 1000 * 60 * 60,
   });
 

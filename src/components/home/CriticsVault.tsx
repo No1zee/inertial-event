@@ -28,6 +28,16 @@ export function CriticsVault() {
   // Pick a single "Masterpiece" from the underrated list
   const masterpiece = bangers?.[0];
 
+  const { data: reviews } = useQuery<any[]>({
+    queryKey: ['masterpiece_reviews', masterpiece?.id],
+    queryFn: () => masterpiece ? contentApi.getReviews(masterpiece.id, masterpiece.type) : Promise.resolve([]),
+    enabled: !!masterpiece,
+    staleTime: 1000 * 60 * 60,
+  });
+
+  // Pick a high-quality review
+  const topReview = reviews?.find(r => r.content.length > 100 && r.content.length < 500) || reviews?.[0];
+
   if (!mounted || !masterpiece) return null;
 
   return (
@@ -43,7 +53,7 @@ export function CriticsVault() {
             <Trophy size={14} />
           </div>
           <PretextHeadline
-            text="The Critic's Vault"
+            text="Critics Choice"
             fontSize={12}
             fontWeight={900}
             letterSpacing="0.4em"
@@ -120,7 +130,7 @@ export function CriticsVault() {
               <Quote className="text-amber-500/40" size={32} />
               <div className="space-y-4">
                 <PretextHeadline
-                  text="Director's Perspective"
+                  text="Critics' Consensus"
                   fontSize={10}
                   fontWeight={700}
                   letterSpacing="0.3em"
@@ -129,13 +139,18 @@ export function CriticsVault() {
                 <div className="relative">
                   {/* We use Pretext for the actual description to give it that "printed" feel */}
                   <PretextHeadline
-                    text={masterpiece.heritage?.curatorNote || masterpiece.description?.slice(0, 350) + '...'}
-                    fontSize={16}
+                    text={topReview?.content || masterpiece.heritage?.curatorNote || masterpiece.description?.slice(0, 350) + '...'}
+                    fontSize={15}
                     fontWeight={500}
                     lineHeight={1.6}
                     maxWidth={400}
                     className="text-zinc-300 italic leading-relaxed"
                   />
+                  {topReview?.author && (
+                    <div className="mt-4 text-[10px] font-bold text-amber-500/60 uppercase tracking-widest">
+                      — {topReview.author}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

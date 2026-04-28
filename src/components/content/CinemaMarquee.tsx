@@ -221,11 +221,11 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
 
         <div className="absolute bottom-12 left-10 lg:left-24 z-20 flex gap-3">
           {items
-            ?.filter(item => item && (item.id || item._id))
+            ?.filter(item => item && item.id)
             .slice(0, 5)
             .map((item, i) => (
               <button
-                key={item?.id || item?._id || i}
+                key={item?.id || i}
                 onClick={() => setIndex(i)}
                 aria-label={`Switch to story ${i + 1}`}
                 className={cn(

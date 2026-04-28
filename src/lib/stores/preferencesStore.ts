@@ -59,6 +59,7 @@ export interface UIPreferences {
 
 export interface ContentPreferences {
   preferredGenres: string[];
+  preferredVibes: string[];
   blockedGenres: string[];
   preferredLanguages: string[];
   adultContent: boolean;
@@ -134,6 +135,9 @@ interface UserPreferencesStore
   setPreferredGenres: (genres: string[]) => void;
   addPreferredGenre: (genre: string) => void;
   removePreferredGenre: (genre: string) => void;
+  setPreferredVibes: (vibes: string[]) => void;
+  addPreferredVibe: (vibe: string) => void;
+  removePreferredVibe: (vibe: string) => void;
   setBlockedGenres: (genres: string[]) => void;
   addBlockedGenre: (genre: string) => void;
   removeBlockedGenre: (genre: string) => void;
@@ -219,6 +223,7 @@ const defaultUIPreferences: UIPreferences = {
 
 const defaultContentPreferences: ContentPreferences = {
   preferredGenres: [],
+  preferredVibes: [],
   blockedGenres: [],
   preferredLanguages: ['en'],
   adultContent: false,
@@ -341,6 +346,17 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
         removePreferredGenre: genre =>
           set(state => ({
             preferredGenres: state.preferredGenres.filter(g => g !== genre),
+          })),
+        setPreferredVibes: preferredVibes => set({ preferredVibes }),
+        addPreferredVibe: vibe =>
+          set(state => ({
+            preferredVibes: state.preferredVibes.includes(vibe)
+              ? state.preferredVibes
+              : [...state.preferredVibes, vibe],
+          })),
+        removePreferredVibe: vibe =>
+          set(state => ({
+            preferredVibes: state.preferredVibes.filter(v => v !== vibe),
           })),
         setBlockedGenres: blockedGenres => set({ blockedGenres }),
         addBlockedGenre: genre =>

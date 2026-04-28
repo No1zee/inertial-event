@@ -75,7 +75,6 @@ export const EndCreditsOverlay: React.FC<EndCreditsOverlayProps> = ({
                   text="Director's Sequence" 
                   fontSize={48} 
                   fontWeight={900} 
-                  fontStyle="italic" 
                   letterSpacing="-0.02em" 
                   className="text-white uppercase" 
                 />
@@ -102,7 +101,6 @@ export const EndCreditsOverlay: React.FC<EndCreditsOverlayProps> = ({
                           text={nextContent.title} 
                           fontSize={30} 
                           fontWeight={900} 
-                          fontStyle="italic" 
                           className="text-white uppercase" 
                         />
                         {nextContent.season && (

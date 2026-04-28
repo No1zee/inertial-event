@@ -137,6 +137,7 @@ export interface ContinueWatchingItem {
   lastWatched: number;
   season?: number;
   episode?: number;
+  providerId?: string;
 }
 
 export interface UserPreferences {
@@ -162,7 +163,12 @@ export interface UserProfile {
   pin?: string;
   isKids: boolean;
   isLocked: boolean;
+  isGuest?: boolean;
   createdAt: number;
+  preferences?: {
+    genres: string[];
+    vibes: string[];
+  };
 }
 
 interface LocalDataStore {
@@ -268,6 +274,10 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
             isKids: false,
             isLocked: false,
             createdAt: Date.now(),
+            preferences: {
+              genres: [],
+              vibes: [],
+            },
           },
         ],
         activeProfileId: 'primary',

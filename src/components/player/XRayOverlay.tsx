@@ -332,7 +332,6 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                     fontSize={36}
                     fontWeight={900}
                     letterSpacing="-0.05em"
-                    fontStyle="italic"
                     className="text-white uppercase"
                  />
               </div>
@@ -370,7 +369,6 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                              text={selectedPerson.name} 
                              fontSize={36} 
                              fontWeight={900} 
-                             fontStyle="italic" 
                              className="text-white uppercase" 
                            />
                            <p className="text-primary font-bold uppercase tracking-widest text-xs mt-2">{selectedPerson.character}</p>

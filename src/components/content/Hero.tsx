@@ -25,7 +25,7 @@ export function Hero({ items = [] }: HeroProps) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const safeItems = useMemo(() => items?.filter(item => item && (item.id || item._id)) || [], [items]);
+  const safeItems = useMemo(() => items?.filter(item => item && item.id) || [], [items]);
 
   useEffect(() => {
     if (safeItems.length > 0) {
@@ -53,7 +53,7 @@ export function Hero({ items = [] }: HeroProps) {
     >
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentItem?.id || currentItem?._id}
+          key={currentItem?.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -75,7 +75,7 @@ export function Hero({ items = [] }: HeroProps) {
         <AnimatePresence mode="wait">
           {uiVisible && (
             <motion.div
-              key={(currentItem?.id || currentItem?._id) + '-text'}
+              key={String(currentItem?.id) + '-text'}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 30 }}
@@ -142,9 +142,9 @@ export function Hero({ items = [] }: HeroProps) {
                   animate={isNavigating ? { scale: [1, 0.95, 1], opacity: [1, 0.7, 1] } : {}}
                   transition={isNavigating ? { repeat: Infinity, duration: 0.6, ease: "easeInOut" } : {}}
                   onClick={async () => {
-                    if (isNavigating || (!currentItem?.id && !currentItem?._id)) return;
+                    if (isNavigating || !currentItem?.id) return;
                     setIsNavigating(true);
-                    const cleanId = String(currentItem.id || currentItem._id).replace('tmdb_', '');
+                    const cleanId = String(currentItem.id).replace('tmdb_', '');
                     router.push(`/watch?id=${cleanId}&type=${currentItem.type || 'movie'}`);
                   }}
                   onMouseEnter={() => {

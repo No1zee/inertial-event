@@ -291,22 +291,6 @@ export const contentApi = {
     }
   },
 
-  getRecommendations: async (_id: string): Promise<Content[]> => {
-    try {
-      // const cleanId = id.replace('tmdb_', '');
-      // We can't easily know the type from just ID here without lookup, but usually recommendations come from same type.
-      // Try movie first, if fail/empty try tv. Or better, pass type if possible.
-      // For now, let's assume we can get type or just try both.
-      // Actually, best is to ask the caller to provide valid context or just return empty if id invalid.
-      // Let's rely on the fact that we can often guess or duplicate.
-      // A safer bet: The history item SHOULD have the type. But if we only have ID...
-      // Optimization: The caller (Page) has the history item, so it knows the type.
-      // Let's update signature to take type.
-      return [];
-    } catch {
-      return [];
-    }
-  },
 
   getSimilar: async (id: string, type: 'movie' | 'tv' | 'anime'): Promise<Content[]> => {
     try {
@@ -1035,6 +1019,95 @@ export const contentApi = {
       return [];
     }
   },
+
+  getDiscoverByGenres: async (genreNames: string[], type: 'movie' | 'tv' = 'movie', limit: number = 10): Promise<Content[]> => {
+    try {
+      const genreIds = genreNames
+        .map(name => GENRE_MAP[name])
+        .filter(Boolean)
+        .join(',');
+      
+      if (!genreIds) return [];
+
+      const res = await axios.get(
+        getTmdbUrl(
+          `/discover/${type}`,
+          `with_genres=${genreIds}&sort_by=popularity.desc&language=en-US&page=1`
+        )
+      );
+      
+      return (res.data.results || [])
+        .slice(0, limit)
+        .map((item: TMDBItem) => transformToContent({ ...item, type }));
+    } catch (e) {
+      console.error('Failed to discover by genres:', e);
+      return [];
+    }
+  },
+
+  getPersonalizedMix: async (trendingContent: Content[], preferences: { genres: string[], vibes: string[] }): Promise<Content[]> => {
+    if (!preferences.genres.length && !preferences.vibes.length) return trendingContent;
+
+    try {
+      // 2/5 (40%) should be influenced. If we have 20 items, 8 should be personalized.
+      const totalCount = trendingContent.length;
+      const personalizedCount = Math.ceil(totalCount * 0.4);
+      const baseCount = totalCount - personalizedCount;
+
+      // Fetch personalized items (mix of movie and tv)
+      const [pMovies, pTV] = await Promise.all([
+        contentApi.getDiscoverByGenres(preferences.genres, 'movie', 10),
+        contentApi.getDiscoverByGenres(preferences.genres, 'tv', 10)
+      ]);
+
+      const personalizedPool = [...pMovies, ...pTV];
+      
+      // Shuffle personalized pool
+      const shuffledPersonalized = personalizedPool.sort(() => Math.random() - 0.5).slice(0, personalizedCount);
+      
+      // Combine: Base trending (60%) + Personalized (40%)
+      const baseTrending = trendingContent.slice(0, baseCount);
+      
+      // Final mix shuffled slightly so personalized items aren't all at the end
+      return [...baseTrending, ...shuffledPersonalized].sort(() => Math.random() - 0.5);
+    } catch (e) {
+      console.error('Failed to create personalized mix:', e);
+      return trendingContent;
+    }
+  },
+
+  getReviews: async (id: string | number, type: 'movie' | 'tv' = 'movie'): Promise<Array<{ author: string; content: string; url: string }>> => {
+    try {
+      const cleanId = String(id).replace('tmdb_', '');
+      const res = await axios.get(getTmdbUrl(`/${type}/${cleanId}/reviews`, 'language=en-US'));
+      return res.data.results || [];
+    } catch {
+      return [];
+    }
+  }
+};
+
+const GENRE_MAP: Record<string, number> = {
+  'Action': 28,
+  'Adventure': 12,
+  'Animation': 16,
+  'Comedy': 35,
+  'Crime': 80,
+  'Documentary': 99,
+  'Drama': 18,
+  'Family': 10751,
+  'Fantasy': 14,
+  'History': 36,
+  'Horror': 27,
+  'Music': 10402,
+  'Mystery': 9648,
+  'Romance': 10749,
+  'Sci-Fi': 878,
+  'Thriller': 53,
+  'War': 10752,
+  'Western': 37,
+  'Sci-Fi & Fantasy': 10765,
+  'Action & Adventure': 10759
 };
 
 export const prioritizeContent = (contents: Content[]): Content[] => {
@@ -1080,7 +1153,7 @@ export const prioritizeContent = (contents: Content[]): Content[] => {
   });
 };
 
-const transformToContent = (item: TMDBItem): Content => {
+const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime'): Content => {
   return {
     id: String(item._id || item.id || `tmdb_${item.tmdbId}`),
     title: item.title || item.name || 'Unknown Title',
@@ -1094,7 +1167,16 @@ const transformToContent = (item: TMDBItem): Content => {
     backdrop_path: item.backdrop_path || item.backdropUrl || undefined,
     rating: item.rating || item.vote_average || 0,
     releaseDate: item.year || item.release_date || item.first_air_date || '2024',
-    type: (item.type || item.media_type || 'movie') as 'movie' | 'tv' | 'anime',
+    type: (() => {
+      const rawType = forcedType || item.media_type || item.type || 'movie';
+      const typeStr = String(rawType).toLowerCase();
+      if (typeStr === 'movie' || typeStr === 'tv' || typeStr === 'anime') {
+        return typeStr as 'movie' | 'tv' | 'anime';
+      }
+      // Fallback for TMDB person or invalid values
+      if (item.first_air_date || item.name) return 'tv';
+      return 'movie';
+    })(),
     genres: (item.genres || []).map((g: { name: string } | string) => (typeof g === 'object' ? g.name : g)),
     lastAirDate: item.last_air_date || undefined,
     originalLanguage: item.original_language || undefined,
