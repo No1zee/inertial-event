@@ -38,11 +38,11 @@ export function useContentDetails(id: string | number, type: 'movie' | 'tv' | 'a
   });
 }
 
-export function useSeasonDetails(id: string | number, seasonNumber: number, enabledOverride: boolean = true) {
+export function useSeasonDetails(id: string | number, seasonNumber: number, type: string = 'tv', enabledOverride: boolean = true) {
   return useQuery({
     queryKey: ['season', id, seasonNumber],
     queryFn: () => contentApi.getSeasonDetails(id, seasonNumber),
-    enabled: !!id && !!seasonNumber && enabledOverride,
+    enabled: !!id && !!seasonNumber && enabledOverride && type !== 'movie',
     staleTime: 60 * 60 * 1000, // 1 hour
   });
 }

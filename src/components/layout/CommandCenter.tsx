@@ -8,7 +8,7 @@ import { OptimizedImage } from '../ui/OptimizedImage';
 import { useLayoutState, useLayoutActions, useUIStore } from '@/lib/stores/uiStore';
 import { SearchBar } from '@/components/content/SearchBar';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
-import { searchContentServer } from '@/lib/actions/content';
+import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { useUISounds } from '@/hooks/useUISounds';
 import { cn } from '@/lib/utils';
@@ -37,7 +37,7 @@ export const CommandCenter: React.FC = () => {
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const data = await searchContentServer(query);
+        const data = await contentApi.searchContent(query);
         const topResults = data.slice(0, 8);
         setResults(topResults);
         
@@ -84,11 +84,9 @@ export const CommandCenter: React.FC = () => {
     { label: 'Archives', icon: Bookmark, href: '/watchlist', desc: 'Curated Watchlist' },
   ];
 
-  if (!isHydrated) return null;
-
   return (
     <AnimatePresence>
-      {isCommandCenterOpen && (
+      {isHydrated && isCommandCenterOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 md:p-12">
           <motion.div
             initial={{ opacity: 0 }}

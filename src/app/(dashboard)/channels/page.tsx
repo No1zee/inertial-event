@@ -1,4 +1,4 @@
-import { getAllBroadcasts } from '@/lib/actions/channels';
+import { getAllBroadcasts } from '@/lib/api/broadcast';
 import ChannelsClient from './ChannelsClient';
 import { Metadata } from 'next';
 

@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { contentApi } from '@/lib/api/content';
-import { getRecommendationsServer } from '@/lib/actions/content';
 import { useLocalDataStore, useLibraryActions } from '@/lib/stores/localDataStore';
 import { useUIStore } from '@/lib/stores/uiStore';
 import { shallow } from 'zustand/shallow';
@@ -116,7 +115,7 @@ export default function ContentModal() {
         }
       });
 
-      getRecommendationsServer(content.id, apiType as 'movie' | 'tv').then(setRecommendations);
+      contentApi.getRecommendations(content.id, apiType as 'movie' | 'tv').then(setRecommendations);
 
       // Trigger trailer preview after a 1.5s delay
       const previewTimer = setTimeout(() => {
@@ -132,7 +131,8 @@ export default function ContentModal() {
 
   // Episodes fetch
   useEffect(() => {
-    if (isOpen && content && (content.type === 'tv' || content.type === 'anime')) {
+    const actualType = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
+    if (isOpen && content && (actualType === 'tv' || actualType === 'anime')) {
       setIsLoadingEpisodes(true);
       contentApi.getSeasonDetails(content.id, selectedSeason).then(data => {
         const seasonData = data as TMDBSeasonResponse;

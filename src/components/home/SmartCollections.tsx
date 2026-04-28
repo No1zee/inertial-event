@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, FolderOpen, ChevronRight } from 'lucide-react';
-import { getSmartCollectionsServer, SmartCollection } from '@/lib/actions/collections';
+import { getSmartCollections, SmartCollection } from '@/lib/api/collections';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { PretextHeadline } from '../Common/PretextHeadline';
@@ -17,7 +17,7 @@ export function SmartCollections() {
 
   useEffect(() => {
     const historyIds = Object.keys(watchHistory);
-    getSmartCollectionsServer(historyIds).then(data => {
+    getSmartCollections(historyIds).then(data => {
       setCollections(data);
       setIsLoading(false);
     });

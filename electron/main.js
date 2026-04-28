@@ -179,10 +179,10 @@ function createWindow() {
 let csp = "";
 if (isDev) {
     // Development: Allow Next.js HMR, unsafe-eval for devtools, and localhost
-    csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000;";
+    csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000 http://127.0.0.1:3000 ws://127.0.0.1:3000;";
 } else {
     // Production: NO unsafe-eval, strict origin
-    csp = "default-src 'self' 'unsafe-inline' https:;";
+    csp = "default-src 'self' 'unsafe-inline' https: http://127.0.0.1:* http://localhost:*;";
 }
 
 const domains = "https://inertial-event.vercel.app https://MaiWatch.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.vidsrc.to https://*.vidsrc.cc https://*.vidsrc.xyz http://127.0.0.1:5000 http://localhost:5000";
@@ -617,6 +617,7 @@ app.on('ready', async () => {
                 const isLocalRoute = url.pathname.includes('/sources') || 
                                     url.pathname.includes('/scrape') || 
                                     url.pathname.includes('/refresh') ||
+                                    url.pathname.includes('/health') ||
                                     url.pathname.includes('/local');
                 
                 const cloudBase = 'https://inertial-event.vercel.app';
@@ -752,7 +753,6 @@ app.on('ready', async () => {
             log('Development mode: Skipping license validation');
         } else {
             log('Validating license...');
-            // Safety timeout for validation
             let validationResult;
             try {
                 validationResult = await Promise.race([
@@ -765,60 +765,54 @@ app.on('ready', async () => {
                     dialog.showMessageBoxSync({
                         type: 'error',
                         title: 'License Revoked',
-                        message: 'Your license validation failed.\\n\\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\\n\\nPlease enter a new key to continue.',
+                        message: 'Your license validation failed.\n\nServer Message: ' + err.message.replace('LICENSE_REVOKED:', '').trim() + '\n\nPlease enter a new key to continue.',
                         buttons: ['OK']
                     });
-                    // Force activation flow
                     validationResult = { requiresActivation: true };
                 } else {
-                    throw err;
+                    log(`[Warning] License validation encountered an error: ${err.message}. Attempting to proceed with cached status.`);
+                    // We try to get whatever is in the store directly as a last resort
+                    try {
+                        const store = await licenseManager.getStore();
+                        const cached = store.get('validation');
+                        if (cached && cached.valid) {
+                            log('[Recovery] Using cached validation status after error.');
+                            validationResult = { valid: true, source: 'boot-recovery' };
+                        } else {
+                            validationResult = { requiresActivation: true };
+                        }
+                    } catch (e) {
+                        validationResult = { requiresActivation: true };
+                    }
                 }
             }
             
-            // Check if activation is required
             if (validationResult.requiresActivation) {
-                log('No license found. Showing activation window...');
-                
-                // Import activation window module
+                log('Activation required. Showing activation window...');
                 const { createActivationWindow } = require('./activationWindow');
-                
-                // Create standalone activation window (no hidden parent needed)
                 const activationWin = createActivationWindow(null);
                 
-                // Wait for activation to complete or window close
                 const activationSuccess = await new Promise((resolve) => {
                     let wasActivated = false;
-                    
-                    // Listen for successful activation signal
                     ipcMain.once('activation-success', () => {
                         wasActivated = true;
-                        log('Activation signal received!');
                         activationWin.close();
                     });
-                    
-                    activationWin.on('closed', () => {
-                        resolve(wasActivated);
-                    });
+                    activationWin.on('closed', () => resolve(wasActivated));
                 });
                 
                 if (!activationSuccess) {
-                    log('User closed activation without completing. Exiting.');
-                    dialog.showMessageBoxSync({
-                        type: 'warning',
-                        title: 'Activation Required',
-                        message: 'MaiWatch requires activation to run. Please restart the app and enter a valid license key.',
-                        buttons: ['OK']
-                    });
+                    log('Activation aborted.');
                     app.quit();
                     return;
                 }
-                
-                log('Activation completed. Proceeding...');
             } else if (!validationResult.valid) {
-                throw new Error('License validation failed');
+                log('License invalid. Exiting.');
+                app.quit();
+                return;
             }
             
-            log('Validation OK. Launching UI.');
+            log(`Validation Success (${validationResult.source || 'verified'}). Launching UI.`);
         }
 
         // 3. LAZY BACKEND SYSTEM (Production Only)

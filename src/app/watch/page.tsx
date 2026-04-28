@@ -102,7 +102,7 @@ function WatchContent() {
   // Watch history is now initialized natively in the player components to prevent race conditions
 
   // 2. Fetch Season Details
-  const { data: seasonDetails } = useSeasonDetails(id || '', currentSeason, type !== 'movie');
+  const { data: seasonDetails } = useSeasonDetails(id || '', currentSeason, type, type !== 'movie');
 
   if (contentLoading) {
     return (

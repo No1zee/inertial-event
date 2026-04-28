@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Clock } from 'lucide-react';
-import { BroadcastState } from '@/lib/actions/channels';
+import { BroadcastState } from '@/lib/api/broadcast';
 import NativePlayer from '@/components/player/NativePlayer';
 import { cn } from '@/lib/utils';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';

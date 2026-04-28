@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Snowflake, Play, Info } from 'lucide-react';
-import { SmartCollection } from '@/lib/actions/collections';
+import { SmartCollection } from '@/lib/api/collections';
 import { OptimizedImage } from './ui/OptimizedImage';
 import { PretextHeadline } from './Common/PretextHeadline';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';

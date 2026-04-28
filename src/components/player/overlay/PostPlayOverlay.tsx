@@ -8,6 +8,7 @@ import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Button } from '@/components/ui/button';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
+import { contentApi } from '@/lib/api/content';
 
 interface TMDBItem {
   id: string | number;
@@ -52,9 +53,9 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
       setTrailerUrl(null);
 
       try {
-        const res = await fetch(`/tmdb-api/${type === 'movie' ? 'movie' : 'tv'}/${item.id}/videos`);
-        const data = await res.json();
-        const clips = data.results || [];
+        const typeParam = type === 'movie' ? 'movie' : 'tv';
+        const videos = await contentApi.getVideos(item.id, typeParam);
+        const clips = videos || [];
         const trailer =
           clips.find((v: { type: string; site: string }) => v.type === 'Trailer' && v.site === 'YouTube') ||
           clips.find((v: { site: string }) => v.site === 'YouTube');
@@ -73,10 +74,17 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
 
   const fetchRecommendations = useCallback(async () => {
     try {
-      const res = await fetch(`/tmdb-api/${type}/${currentId}/recommendations`);
-      const data = await res.json();
-      if (data.results && data.results.length > 0) {
-        const valid: TMDBItem[] = data.results.filter((m: TMDBItem) => m.backdrop_path).slice(0, 4);
+      const typeParam = type === 'anime' ? 'tv' : type;
+      const results = await contentApi.getRecommendations(currentId, typeParam as 'movie' | 'tv');
+      if (results && results.length > 0) {
+        // transform results back to TMDBItem format if needed
+        const valid: any[] = results.map(c => ({
+          id: c.id,
+          title: c.title,
+          backdrop_path: c.backdrop_path || c.backdrop,
+          vote_average: c.rating,
+          overview: c.description
+        })).slice(0, 4);
         setRecommendations(valid);
         if (valid.length > 0) selectItem(valid[0]);
       }
@@ -102,16 +110,18 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
   );
 
   const fetchNextEpisode = useCallback(async () => {
-    if (!nextEpisode) return;
+    if (!nextEpisode || type === 'movie') return;
     try {
-      const res = await fetch(`/tmdb-api/tv/${currentId}/season/${nextEpisode.season}/episode/${nextEpisode.episode}`);
-      const data = await res.json();
+      const data = await contentApi.getSeasonDetails(currentId, nextEpisode.season);
+      // find specific episode
+      const episodes = (data as any)?.episodes || [];
+      const ep = episodes.find((e: any) => e.episode_number === nextEpisode.episode);
 
-      if (data) {
+      if (ep) {
         const epData = {
-          ...data,
-          title: data.name || `Episode ${nextEpisode.episode}`,
-          backdrop_path: data.still_path || data.backdrop_path,
+          ...ep,
+          title: ep.name || `Episode ${nextEpisode.episode}`,
+          backdrop_path: ep.still_path || ep.backdrop_path,
           nextEpisodeParams: nextEpisode,
         };
         setSelectedItem(epData);

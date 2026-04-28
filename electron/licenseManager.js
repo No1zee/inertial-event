@@ -7,7 +7,14 @@ const crypto = require('crypto');
 const { app } = require('electron');
 
 // This will be resolved dynamically to ensure env changes after load are reflected
-const getBaseUrl = () => (process.env.KEYGEN_SERVER_URL || 'http://localhost:4000/api').replace(/\/$/, '');
+const getBaseUrl = () => {
+    let url = process.env.KEYGEN_SERVER_URL || 'https://inertial-event.vercel.app/api/keygen';
+    // If it's a relative URL, prepend the production domain
+    if (url.startsWith('/')) {
+        url = `https://inertial-event.vercel.app${url}`;
+    }
+    return url.replace(/\/$/, '');
+};
 
 const ENCRYPTION_KEY = Buffer.from('4ee9ccf17e082f9d5a9c3b88e04b4d7f6c3a1b2c3d4e5f6a7b8c9d0e1f2a3b4c', 'hex');
 const IV = Buffer.from('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6', 'hex');
@@ -142,21 +149,21 @@ class LicenseManager {
     }
 
     getLicenseKey() {
-        // Path to license file - In production this should be C:\ProgramData\MaiWatch\license.dat
+        // Path to license file
         const PROD_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
-        const DEV_LICENSE_PATH = path.join(app.getPath('userData'), 'license.dat');
+        const USER_LICENSE_PATH = path.join(app.getPath('userData'), 'license.dat');
 
-        logger(`[LicenseManager] Checking for license at: "${PROD_LICENSE_PATH}" and "${DEV_LICENSE_PATH}"`);
+        logger(`[LicenseManager] Checking for license at: "${USER_LICENSE_PATH}" and "${PROD_LICENSE_PATH}"`);
 
-        // Try Prod path first
+        // Try UserData path first (more reliable permissions)
+        if (fs.existsSync(USER_LICENSE_PATH)) {
+            logger('[LicenseManager] Found license in UserData');
+            return fs.readFileSync(USER_LICENSE_PATH, 'utf8').trim();
+        }
+        // Try Prod/ProgramData path as secondary
         if (fs.existsSync(PROD_LICENSE_PATH)) {
             logger('[LicenseManager] Found license in ProgramData');
             return fs.readFileSync(PROD_LICENSE_PATH, 'utf8').trim();
-        }
-        // Try Dev/UserData path
-        if (fs.existsSync(DEV_LICENSE_PATH)) {
-            logger('[LicenseManager] Found license in UserData');
-            return fs.readFileSync(DEV_LICENSE_PATH, 'utf8').trim();
         }
         
         logger('[LicenseManager] No license file found in any standard location.');
@@ -189,16 +196,45 @@ class LicenseManager {
                 gpu: 'Disabled for Speed',
                 hostname: os.hostname
             };
-
+        try {
             // Online Validation
             const baseUrl = getBaseUrl();
             const validationUrl = `${baseUrl}/validate`.replace(/([^:])\/\//g, '$1/');
             logger(`[LicenseManager Debug] Requesting validation from: ${validationUrl}`);
-            const response = await axios.post(validationUrl, {
-                license_key: licenseKey,
-                device_id: deviceId,
-                machine_info: machineInfo
-            }, { timeout: 8000 });
+            
+            let response;
+            try {
+                response = await axios.post(validationUrl, {
+                    license_key: licenseKey,
+                    device_id: deviceId,
+                    machine_info: machineInfo
+                }, { timeout: 10000 }); // Slightly longer timeout
+            } catch (networkError) {
+                // If the server is 404, 5xx, or timed out -> Fallback to cache if valid
+                const isTransient = !networkError.response || 
+                                   networkError.response.status >= 500 || 
+                                   networkError.response.status === 404 ||
+                                   networkError.code === 'ECONNREFUSED' ||
+                                   networkError.code === 'ETIMEDOUT';
+
+                if (isTransient) {
+                    console.warn(`[LicenseManager] Transient error (${networkError.response?.status || networkError.code}), attempting cache fallback...`);
+                    const cached = store.get('validation');
+                    if (cached && cached.valid && cached.license_key === licenseKey) {
+                        const lastChecked = cached.last_checked || 0;
+                        const hoursSinceCheck = (Date.now() - lastChecked) / (1000 * 60 * 60);
+                        
+                        if (hoursSinceCheck < 720) { // 30 days
+                            if (cached.expires_at && new Date(cached.expires_at) < new Date()) {
+                                throw new Error('LICENSE_EXPIRED');
+                            }
+                            logger(`[LicenseManager] Resilient Fallback: Using cache (Validated ${Math.floor(hoursSinceCheck)}h ago)`);
+                            return { valid: true, source: 'offline-resilient', ...cached };
+                        }
+                    }
+                }
+                throw networkError;
+            }
 
             if (response.data.valid) {
                 // Update Cache
@@ -206,54 +242,37 @@ class LicenseManager {
                     valid: true,
                     expires_at: response.data.expires_at,
                     last_checked: Date.now(),
-                    license_key: licenseKey
+                    license_key: licenseKey,
+                    access_type: response.data.access_type
                 });
                 return { valid: true, source: 'online', ...response.data };
             } else {
                 // Server explicitly said INVALID or REVOKED
-                console.warn('[LicenseManager] ACCESS REVOKED BY SERVER');
+                console.warn('[LicenseManager] ACCESS REVOKED BY SERVER:', response.data.error);
                 
-                // Nuclear Option: Delete credentials to prevent further attempts until re-install
-                try {
-                    store.delete('validation');
-                } catch (e) {}
-
-                // Throw specific error for main process to handle
-                throw new Error('LICENSE_REVOKED: ' + (response.data.error || 'Access revoked by server.'));
+                // Nuclear Option: Delete credentials only if explicitly revoked or invalid
+                if (response.data.error === 'License revoked' || response.data.error === 'Invalid license key') {
+                    try {
+                        store.delete('validation');
+                    } catch (e) {}
+                    throw new Error('LICENSE_REVOKED: ' + (response.data.message || response.data.error));
+                }
+                
+                return { valid: false, error: response.data.error };
             }
 
         } catch (error) {
-            // Network Error or Server Down -> Check Offline Cache
-            const isServerDown = error.code === 'ECONNREFUSED' || 
-                                 error.code === 'ETIMEDOUT' || 
-                                 error.message.includes('Network Error') || 
-                                 error.message.includes('status code 50') ||
-                                 (error.response && error.response.status >= 500);
+            if (error.message && error.message.includes('LICENSE_REVOKED')) throw error;
+            if (error.message === 'LICENSE_EXPIRED') throw error;
 
-            if (isServerDown) {
-                console.warn('[LicenseManager] Server unreachable or returned 500, checking offline cache...');
-                const cached = store.get('validation');
-                
-                if (cached && cached.valid && cached.license_key === licenseKey) {
-                    // Check local expiry (24h grace period or actual expiry?)
-                    // Plan said "Cache validation ... 24 hours"
-                    const lastChecked = cached.last_checked || 0;
-                    const now = Date.now();
-                    const hoursSinceCheck = (now - lastChecked) / (1000 * 60 * 60);
-
-                    if (hoursSinceCheck < 24) {
-                         // Check actual license expiry if permanent/trial
-                         if (cached.expires_at && new Date(cached.expires_at) < new Date()) {
-                             throw new Error('Offline license expired.');
-                         }
-                         return { valid: true, source: 'offline-cache', expires_at: cached.expires_at };
-                    } else {
-                        throw new Error('Offline validation expired (24h limit). Connect to internet.');
-                    }
-                }
+            // Final safety fallback
+            const cached = store.get('validation');
+            if (cached && cached.valid && cached.license_key === licenseKey) {
+                 logger('[LicenseManager] Critical recovery: Reverting to last known good cache state.');
+                 return { valid: true, source: 'safety-fallback', ...cached };
             }
             
-            throw error; // Re-throw if not a network error or cache missing
+            throw error;
         }
     }
 
@@ -284,13 +303,19 @@ class LicenseManager {
                 const fs = require('fs');
                 const path = require('path');
                 
-                // Ensure directory exists
-                const dir = path.dirname(licensePath);
-                if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, { recursive: true });
+                try {
+                    // Ensure directory exists
+                    const dir = path.dirname(licensePath);
+                    if (!fs.existsSync(dir)) {
+                        fs.mkdirSync(dir, { recursive: true });
+                    }
+                    fs.writeFileSync(licensePath, licenseKey, 'utf8');
+                    logger(`[LicenseManager] License saved to: ${licensePath}`);
+                } catch (writeError) {
+                    logger(`[LicenseManager Warning] Failed to write license file: ${writeError.message}`);
+                    // Since getLicensePath already returns UserData, this failure is likely catastrophic 
+                    // but we've already cached the validation in the store anyway.
                 }
-                
-                fs.writeFileSync(licensePath, licenseKey, 'utf8');
                 
                 // Cache validation
                 store.set('validation', {
@@ -313,9 +338,13 @@ class LicenseManager {
     }
 
     getLicensePath() {
+        // ALWAYS prioritize UserData for writing to ensure we have permissions
+        const USER_LICENSE_PATH = require('path').join(app.getPath('userData'), 'license.dat');
         const PROD_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
-        const DEV_LICENSE_PATH = require('path').join(app.getPath('userData'), 'license.dat');
-        return app.isPackaged ? PROD_LICENSE_PATH : DEV_LICENSE_PATH;
+        
+        // If we're packaged and running as admin, we could use ProgramData, 
+        // but UserData is safer and guaranteed writable.
+        return USER_LICENSE_PATH;
     }
 }
 

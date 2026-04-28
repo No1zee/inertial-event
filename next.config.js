@@ -2,7 +2,7 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',  // Enabled for Electron static build
+  output: process.env.NEXT_PUBLIC_ELECTRON === 'true' ? 'export' : undefined, // Enabled for Electron static build
   reactStrictMode: false,
   compress: true,
   productionBrowserSourceMaps: false, // Re-enable only for deep production debugging

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Film, Loader2, Calendar, MapPin } from 'lucide-react';
 import { useUIStore } from '@/lib/stores/uiStore';
-import { getPersonDetailsServer, getPersonCreditsServer } from '@/lib/actions/content';
+import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
@@ -24,7 +24,7 @@ export const CastCrewModal: React.FC = () => {
   useEffect(() => {
     if (castModal.isOpen && castModal.personId) {
       setIsLoading(true);
-      Promise.all([getPersonDetailsServer(castModal.personId), getPersonCreditsServer(castModal.personId)]).then(
+      Promise.all([contentApi.getPersonDetails(castModal.personId), contentApi.getPersonCredits(castModal.personId)]).then(
         ([detailsData, creditsData]) => {
           setDetails(detailsData);
           setCredits(creditsData);
