@@ -271,7 +271,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           {
             id: 'primary',
             name: 'Director',
-            avatar: '/avatars/default.png',
+            avatar: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Director&backgroundColor=b6e3f4,c0aede,d1d4f9',
             isKids: false,
             isLocked: false,
             createdAt: Date.now(),

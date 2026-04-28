@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { useLocalDataStore, useLibraryActions } from '@/lib/stores/localDataStore';
 import { contentApi } from '@/lib/api/content';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { getTmdbImageUrl } from '@/lib/utils';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
 import { useUISounds } from '@/hooks/useUISounds';
 import { usePreferencesStore } from '@/lib/stores/preferencesStore';
@@ -201,9 +202,12 @@ const ContentCard = memo(function ContentCard({
             aspectRatio === '16:9' ||
             aspectRatio === '21:9' ||
             aspectRatio === 'ultrawide';
-          const sourceUrl = isLandscape 
+            
+          const rawSource = isLandscape 
             ? item.backdrop || item.poster || item.backdrop_path || item.poster_path
             : item.poster || item.poster_path || item.backdrop || item.backdrop_path;
+            
+          const sourceUrl = getTmdbImageUrl(rawSource, isLandscape ? 'w780' : 'w500');
 
           return (
             <OptimizedImage

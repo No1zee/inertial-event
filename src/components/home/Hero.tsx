@@ -8,7 +8,7 @@ import { OptimizedImage } from '../ui/OptimizedImage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useExperiment } from '@/components/providers/ExperimentProvider';
 import { logExperimentEvent } from '@/lib/experiment';
-import { cn } from '@/lib/utils';
+import { cn, getTmdbImageUrl } from '@/lib/utils';
 import { type ExperimentGroup } from '@/lib/experiment';
 
 interface HeroProps {
@@ -94,7 +94,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                 className="absolute inset-0"
               >
                 <OptimizedImage
-                  src={content?.backdropUrl || content?.posterUrl}
+                  src={getTmdbImageUrl(content?.backdrop_path || content?.poster_path || content?.backdropUrl || content?.posterUrl, 'original')}
                   alt={content?.title}
                   fill
                   className="object-cover will-change-transform"

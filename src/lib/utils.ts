@@ -25,3 +25,10 @@ export function hexToRgb(hex: string): string {
   const b = parseInt(hex.slice(5, 7), 16);
   return `${r}, ${g}, ${b}`;
 }
+
+export function getTmdbImageUrl(path: string | null | undefined, size: 'w500' | 'w780' | 'w1280' | 'original' = 'w500') {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `https://image.tmdb.org/t/p/${size}${cleanPath}`;
+}
