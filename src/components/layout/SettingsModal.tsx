@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings, User, Monitor, Database, Play, SkipForward, Volume2, Search, Info, Shield } from 'lucide-react';
 import { useLayoutState, useLayoutActions } from '@/lib/stores/uiStore';
 import { useUserPreferences, usePreferenceActions } from '@/lib/stores/localDataStore';
+import { useThemeStore, type Theme } from '@/store/themeStore';
+import { useNotificationActions, useUIStore } from '@/lib/stores/uiStore';
+import { Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ProfileSwitcher } from '@/components/profile/ProfileSwitcher';
 import { useHydrated } from '@/lib/hooks/useHydrated';
@@ -12,10 +15,19 @@ import { useHydrated } from '@/lib/hooks/useHydrated';
 export const SettingsModal: React.FC = () => {
   const { isSettingsOpen } = useLayoutState();
   const { setSettingsOpen } = useLayoutActions();
-  const preferences = useUserPreferences();
-  const { updatePreferences } = usePreferenceActions();
-
+  const { theme, setTheme } = useThemeStore();
+  const { addNotification } = useNotificationActions();
   const [activeSection, setActiveSection] = React.useState<'profile' | 'playback' | 'visual' | 'network' | 'search'>('playback');
+
+  const handleUpdatePreference = (updates: any) => {
+    updatePreferences(updates);
+    addNotification({
+      type: 'success',
+      title: 'Preferences Updated',
+      message: 'Your cinematic environment has been optimized.',
+      duration: 3000,
+    });
+  };
 
   const sections = [
     { id: 'profile', label: 'Vault Profile', icon: User },
@@ -135,7 +147,7 @@ export const SettingsModal: React.FC = () => {
                       label="Skip Intros & Recaps"
                       description="Automatically bypass repetitive sequences"
                       checked={preferences.skipIntros}
-                      onChange={(val: boolean) => updatePreferences({ skipIntros: val, skipRecaps: val })}
+                      onChange={(val: boolean) => handleUpdatePreference({ skipIntros: val, skipRecaps: val })}
                       icon={SkipForward}
                     />
                   </div>
@@ -154,16 +166,60 @@ export const SettingsModal: React.FC = () => {
                       label="Adaptive Color Space"
                       description="Dynamically adjust gamut for cinematic accuracy"
                       checked={preferences.adaptiveColorSpace}
-                      onChange={(val: boolean) => updatePreferences({ adaptiveColorSpace: val })}
+                      onChange={(val: boolean) => handleUpdatePreference({ adaptiveColorSpace: val })}
                       icon={Monitor}
                     />
                     <PreferenceToggle
                       label="Interface Soundscapes"
                       description="Enable tactile procedural audio feedback"
                       checked={preferences.interfaceSounds}
-                      onChange={(val: boolean) => updatePreferences({ interfaceSounds: val })}
+                      onChange={(val: boolean) => handleUpdatePreference({ interfaceSounds: val })}
                       icon={Volume2}
                     />
+
+                    <div className="pt-4 space-y-4">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                        <Palette size={12} className="text-red-500" />
+                        App Theme
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          { id: 'Mai', name: 'Mai Default', color: '#dc2626' },
+                          { id: 'ocean', name: 'Oceanic', color: '#0ea5e9' },
+                          { id: 'cyberpunk', name: 'Cyberpunk', color: '#facc15' },
+                          { id: 'oled', name: 'True Black', color: '#ffffff' },
+                          { id: 'heritage', name: 'Heritage', color: '#8b5cf6' },
+                        ].map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => {
+                              setTheme(t.id as Theme);
+                              handleUpdatePreference({ theme: t.id });
+                            }}
+                            className={cn(
+                              'flex flex-col gap-3 p-4 rounded-[1.5rem] border transition-all text-left group/theme',
+                              theme === t.id
+                                ? 'bg-white/5 border-white/20'
+                                : 'bg-transparent border-white/5 hover:bg-white/5 hover:border-white/10'
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div
+                                className="w-4 h-4 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+                                style={{ backgroundColor: t.color }}
+                              />
+                              {theme === t.id && <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />}
+                            </div>
+                            <span className={cn(
+                              'text-[10px] font-bold uppercase tracking-widest transition-colors',
+                              theme === t.id ? 'text-white' : 'text-zinc-500 group-hover/theme:text-zinc-300'
+                            )}>
+                              {t.name}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -173,7 +229,7 @@ export const SettingsModal: React.FC = () => {
                       label="Data-Saver Engine"
                       description="Prioritize AV1/HEVC compression and reduce dashboard motion"
                       checked={preferences.dataSaver}
-                      onChange={(val: boolean) => updatePreferences({ dataSaver: val })}
+                      onChange={(val: boolean) => handleUpdatePreference({ dataSaver: val })}
                       icon={Database}
                     />
                     <div className="p-6 rounded-2xl bg-zinc-900/40 border border-white/5 flex flex-col gap-4">
@@ -195,7 +251,7 @@ export const SettingsModal: React.FC = () => {
                       label="High-Fidelity Search"
                       description="Enable deep semantic indexing and neural result matching"
                       checked={preferences.highFidelitySearch}
-                      onChange={(val: boolean) => updatePreferences({ highFidelitySearch: val })}
+                      onChange={(val: boolean) => handleUpdatePreference({ highFidelitySearch: val })}
                       icon={Search}
                     />
                   </div>

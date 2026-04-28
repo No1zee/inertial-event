@@ -157,11 +157,16 @@ export default function TVPage() {
           <div className="absolute inset-0">
             {/* Fake "Live" Stream using Helper Image */}
             <Image
-              src={activeStatus.currentProgram.content.backdrop || activeStatus.currentProgram.content.poster}
+              src={activeStatus.currentProgram.content.backdrop || activeStatus.currentProgram.content.poster || '/images/placeholder-backdrop.png'}
               alt={`Live preview: ${activeStatus.currentProgram.content.title}`}
               fill
               priority
               className="w-full h-full object-cover opacity-80"
+              onError={(e) => {
+                // Fallback to placeholder if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = '/images/placeholder-backdrop.png';
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
           </div>
@@ -258,9 +263,9 @@ export default function TVPage() {
                 {/* Channel Info */}
                 <div className="w-56 shrink-0 flex items-center gap-4">
                   <ChannelAvatar ch={ch} className="w-14 h-14" />
-                  <div className="space-y-0.5">
-                    <div className="font-black text-lg text-white tracking-tight uppercase">{ch.name}</div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{ch.genre}</div>
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="font-black text-lg text-white tracking-tight uppercase truncate">{ch.name}</div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest truncate">{ch.genre}</div>
                   </div>
                 </div>
 

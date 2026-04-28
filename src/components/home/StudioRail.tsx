@@ -59,7 +59,7 @@ export function StudioRail() {
                   src={studio.logo}
                   alt={studio.name}
                   fill
-                  className="object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:scale-110"
+                  className="object-contain filter brightness-110 contrast-125 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:scale-110"
                   sizes="(max-width: 768px) 50vw, 20vw"
                 />
               </div>

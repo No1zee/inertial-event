@@ -4,12 +4,21 @@ import { useEffect } from 'react';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
+import { initializeTheme, useThemeStore } from '@/store/themeStore';
 
 export function DashboardClientInit() {
   const migrate = useLocalDataStore(state => state.migrateLegacyData);
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // 1. Initialize Theme from localDataStore (Institutional Source of Truth)
+    const storedTheme = useLocalDataStore.getState().globalPreferences.theme;
+    if (storedTheme) {
+      useThemeStore.getState().setTheme(storedTheme as any);
+    } else {
+      initializeTheme();
+    }
+    
     migrate();
 
     // Pre-warm the cache with critical rails
@@ -19,6 +28,7 @@ export function DashboardClientInit() {
         { id: 'african_cinema', fetcher: contentApi.getAfricanMovies },
         { id: 'trending', fetcher: () => contentApi.getTrending(1) },
       ];
+
 
       // Use sequential prefetching to avoid network congestion during LCP
       // Trending is highest priority, followed by others with a delay

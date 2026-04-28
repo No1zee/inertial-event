@@ -139,7 +139,7 @@ export function CriticsChoice() {
                 <div className="relative">
                   {/* We use Pretext for the actual description to give it that "printed" feel */}
                   <PretextHeadline
-                    text={topReview?.content || masterpiece.heritage?.curatorNote || masterpiece.description?.slice(0, 350) + '...'}
+                    text={topReview?.content || (masterpiece.description && masterpiece.description.length > 50 ? masterpiece.description.slice(0, 350) + '...' : masterpiece.heritage?.curatorNote)}
                     fontSize={15}
                     fontWeight={500}
                     lineHeight={1.6}

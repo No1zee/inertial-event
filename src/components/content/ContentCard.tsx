@@ -97,19 +97,27 @@ const ContentCard = memo(function ContentCard({
   };
 
   const getBadge = () => {
+    if (item.customBadge) return item.customBadge;
     if (!isHydrated) return null;
     const now = new Date();
 
     const matchScore = Math.min(Math.round((item.rating || 0) * 10), 100);
+    if (matchScore >= 98) {
+      return { label: 'Award Winning', color: 'bg-amber-500 text-black font-black border-none ring-4 ring-amber-500/10' };
+    }
     if (matchScore >= 95) {
       return { label: 'Top Pick', color: 'bg-white text-black font-black border-none ring-4 ring-white/10' };
+    }
+
+    if (item.popularity && item.popularity > 2000) {
+      return { label: 'Trending', color: 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.6)] animate-pulse' };
     }
 
     if (item.lastAirDate) {
       const lastAir = new Date(item.lastAirDate);
       const diffDaysAir = (now.getTime() - lastAir.getTime()) / (1000 * 3600 * 24);
       if (diffDaysAir >= 0 && diffDaysAir < 7) {
-        return { label: 'New Episode', color: 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.6)]' };
+        return { label: 'New Episode', color: 'bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)]' };
       }
     }
 
@@ -123,6 +131,12 @@ const ContentCard = memo(function ContentCard({
         color: 'bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)] border border-white/20',
       };
     if (diffDays >= 0 && diffDays < 30) return { label: 'New Arrival', color: 'bg-zinc-100 text-black font-black' };
+    
+    // Leaving Soon heuristic (randomly or via metadata if exists)
+    if (item.leavingDate) {
+       return { label: 'Leaving Soon', color: 'bg-zinc-800 text-white border border-white/10' };
+    }
+    
     return null;
   };
 

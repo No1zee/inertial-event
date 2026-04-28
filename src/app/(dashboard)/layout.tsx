@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { DashboardClientInit } from '@/components/layout/DashboardClientInit';
 import { CinematicReveal } from '@/components/layout/CinematicReveal';
 import { GlobalPlayerBar } from '@/components/player/GlobalPlayerBar';
+import { DashboardChassis } from '@/components/layout/DashboardChassis';
 
 const CommandCenter = lazy(() =>
   import('@/components/layout/CommandCenter').then(mod => ({ default: mod.CommandCenter }))
@@ -14,6 +15,9 @@ const SettingsModal = lazy(() =>
 );
 const CastCrewModal = lazy(() =>
   import('@/components/content/CastCrewModal').then(mod => ({ default: mod.CastCrewModal }))
+);
+const DirectorialControls = lazy(() =>
+  import('@/components/layout/DirectorialControls').then(mod => ({ default: mod.DirectorialControls }))
 );
 
 export default function DashboardLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
@@ -26,14 +30,10 @@ export default function DashboardLayout({ children, modal }: { children: React.R
           <CommandCenter />
           <SettingsModal />
           <CastCrewModal />
+          <DirectorialControls />
         </Suspense>
 
-        <div
-          className={cn(
-            'flex flex-col min-h-screen transition-all duration-700 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] overflow-x-hidden',
-            'pl-[72px]' // Base padding for the rail
-          )}
-        >
+        <DashboardChassis>
           <Navbar />
           <main className="flex-1 w-full transition-all duration-500 pb-20">
             <Suspense
@@ -51,7 +51,7 @@ export default function DashboardLayout({ children, modal }: { children: React.R
               {children}
             </Suspense>
           </main>
-        </div>
+        </DashboardChassis>
         <GlobalPlayerBar />
         {modal}
       </div>

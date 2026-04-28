@@ -154,6 +154,7 @@ export interface UserPreferences {
   oledOptimization: boolean;
   adaptiveColorSpace: boolean;
   interfaceSounds: boolean;
+  theme: string;
 }
 
 export interface UserProfile {
@@ -296,6 +297,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           oledOptimization: true,
           adaptiveColorSpace: true,
           interfaceSounds: true,
+          theme: 'default',
         },
         watchHistory: [],
         contentState: {},

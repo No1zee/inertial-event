@@ -112,9 +112,14 @@ export function ProximityBento() {
               className="text-white uppercase"
             />
 
-            <p className="text-xl text-zinc-400 font-medium leading-relaxed italic max-w-2xl">
-              "{suggestion}"
-            </p>
+            <div className="space-y-4">
+              <p className="text-xl text-zinc-400 font-medium leading-relaxed italic max-w-2xl">
+                "{suggestion}"
+              </p>
+              <p className="text-sm text-zinc-500 font-medium leading-relaxed max-w-xl line-clamp-2">
+                {spotlight.description || spotlight.overview}
+              </p>
+            </div>
 
             <div className="flex items-center gap-6 pt-4">
               <button 

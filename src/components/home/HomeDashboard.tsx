@@ -11,6 +11,9 @@ import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { cn } from '@/lib/utils';
+import { EditorialSpotlight } from './EditorialSpotlight';
+import { CriticsChoice } from './CriticsChoice';
+import { StudioRail } from './StudioRail';
 
 export const HomeDashboard: React.FC = () => {
   const activeProfile = useActiveProfile();
@@ -149,6 +152,20 @@ export const HomeDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 3. Editorial Spotlight (Dynamic Curation) */}
+      {trending?.[5] && (
+        <EditorialSpotlight 
+          item={trending[5]} 
+          curationReason="Personalized Pick / Matches Your Vibe" 
+        />
+      )}
+
+      {/* 4. Studio & Provider Rail */}
+      <StudioRail />
+
+      {/* 5. Critics Choice (Aesthetic Break) */}
+      <CriticsChoice />
     </section>
   );
 };

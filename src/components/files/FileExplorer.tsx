@@ -64,13 +64,16 @@ export function FileExplorer() {
   };
 
   const handleUp = () => {
-    // Simple parent resolution
-    // Windows path handling might be tricky with simple string manipulation but trying standard separators
+    if (currentPath === '/' || currentPath === '' || currentPath.match(/^[a-zA-Z]:\\?$/)) return;
+    
     const separator = currentPath.includes('\\') ? '\\' : '/';
-    const parts = currentPath.split(separator);
-    parts.pop(); // Remove current
-    const parent = parts.join(separator) || separator; // Fallback to root if empty
-    loadDirectory(parent);
+    const parts = currentPath.split(separator).filter(Boolean);
+    
+    if (parts.length > 0) {
+      parts.pop();
+      const parent = parts.join(separator) || (separator === '\\' ? currentPath.split(separator)[0] + '\\' : '/');
+      loadDirectory(parent);
+    }
   };
 
   const handlePlay = (item: FileItem) => {
