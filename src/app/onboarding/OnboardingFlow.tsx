@@ -64,28 +64,44 @@ export function OnboardingFlow() {
   const handleNext = () => setStep(s => s + 1);
 
   const handleComplete = (isGuest = false) => {
-    // 1. Create or update profile
-    const profileId = Math.random().toString(36).substring(2, 11);
-    createProfile({
-      name: isGuest ? 'Guest' : (profileName || 'User'),
-      avatar: '/avatars/default.png',
-      isKids: false,
-      isLocked: false,
-      isGuest,
-      preferences: {
-        genres: isGuest ? [] : selectedGenres,
-        vibes: isGuest ? [] : selectedVibes
+    // 1. If it's a guest, create a new profile and set it as active
+    if (isGuest) {
+      createProfile({
+        name: 'Guest',
+        avatar: '/avatars/default.png',
+        isKids: false,
+        isLocked: false,
+        isGuest: true,
+        preferences: {
+          genres: [],
+          vibes: []
+        }
+      });
+      
+      // Get the newly created profile (it's the last one)
+      const allProfiles = useLocalDataStore.getState().profiles;
+      const guestProfile = allProfiles[allProfiles.length - 1];
+      if (guestProfile) {
+        setActiveProfile(guestProfile.id);
       }
-    });
+    } else {
+      // 2. If it's a real user, update the 'primary' profile with their choices
+      updateProfile('primary', {
+        name: profileName || 'User',
+        preferences: {
+          genres: selectedGenres,
+          vibes: selectedVibes
+        }
+      });
+      setActiveProfile('primary');
+    }
     
-    // 2. Set as active
-    setActiveProfile(isGuest ? profileId : 'primary'); 
-    
-    // 3. Save global preferences
+    // 3. Save global preferences for fallback
     setPreferredGenres(isGuest ? [] : selectedGenres);
     setPreferredVibes(isGuest ? [] : selectedVibes);
     setHasCompletedOnboarding(true);
     
+    // 4. Navigate home
     router.push('/');
   };
 

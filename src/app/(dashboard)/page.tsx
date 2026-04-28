@@ -12,6 +12,7 @@ import { StudioRail } from '@/components/home/StudioRail';
 import { HomeDashboard } from '@/components/home/HomeDashboard';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
+import { useActiveProfile } from '@/lib/stores/localDataStore';
 import { cn } from '@/lib/utils';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
@@ -106,9 +107,17 @@ export default function DashboardPage() {
     }
   }, [isInView, visibleCount]);
 
+  const activeProfile = useActiveProfile();
+
   const { data: trending } = useQuery<Content[]>({
-    queryKey: ['trending'],
-    queryFn: () => contentApi.getTrending(1),
+    queryKey: ['trending', activeProfile?.preferences],
+    queryFn: async () => {
+      const baseTrending = await contentApi.getTrending(1);
+      if (activeProfile?.preferences?.genres?.length || activeProfile?.preferences?.vibes?.length) {
+        return contentApi.getPersonalizedMix(baseTrending, activeProfile.preferences);
+      }
+      return baseTrending;
+    },
     staleTime: 1000 * 60 * 60, // 1 hour
     refetchOnWindowFocus: false,
   });
