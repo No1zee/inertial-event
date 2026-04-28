@@ -118,7 +118,7 @@ export function Hero({ items = [] }: HeroProps) {
                 <span>{currentItem.releaseDate?.substring(0, 4)}</span>
                 <span>•</span>
                 <span className="uppercase tracking-widest text-xs border border-zinc-600 px-2 py-0.5 rounded text-zinc-400 bg-zinc-900/40">
-                  {currentItem.type === 'tv' ? 'Series' : 'Movie'}
+                  {currentItem?.type === 'tv' ? 'Series' : 'Movie'}
                 </span>
               </div>
 

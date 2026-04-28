@@ -32,6 +32,8 @@ const ContentCard = memo(function ContentCard({
   priority = false,
   providerId,
 }: ContentCardProps) {
+  if (!item || (!item.id && !item._id)) return null;
+
   const router = useRouter();
   const { addToLibrary, removeFromLibrary, isInLibrary } = useLibraryActions();
   const openContentModal = useUIStore(state => state.openContentModal);

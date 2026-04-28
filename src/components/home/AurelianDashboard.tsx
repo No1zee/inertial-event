@@ -177,7 +177,7 @@ const PipelineCard = ({ item, index, onClick }: { item: ContinueWatchingItem; in
             className="text-white uppercase truncate mb-1"
           />
           <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">
-            {item.type === 'tv' ? `S${item.season} E${item.episode}` : 'Feature Film'}
+            {item?.type === 'tv' ? `S${item.season} E${item.episode}` : 'Feature Film'}
           </span>
         </div>
         <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 group-hover/card:bg-amber-500 group-hover/card:text-black transition-all">

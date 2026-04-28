@@ -131,8 +131,9 @@ export default function ContentModal() {
 
   // Episodes fetch
   useEffect(() => {
+    if (!isOpen || !content) return;
     const actualType = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
-    if (isOpen && content && (actualType === 'tv' || actualType === 'anime')) {
+    if (actualType === 'tv' || actualType === 'anime') {
       setIsLoadingEpisodes(true);
       contentApi.getSeasonDetails(content.id, selectedSeason).then(data => {
         const seasonData = data as TMDBSeasonResponse;
