@@ -93,7 +93,7 @@ export const CinematicRail: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="ml-4 text-[13px] font-medium tracking-tight text-zinc-500 group-hover:text-white"
             >
-              Tactical Search...
+              Search...
             </motion.span>
           )}
         </button>

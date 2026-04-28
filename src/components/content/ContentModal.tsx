@@ -16,6 +16,10 @@ import { useLocalDataStore, useLibraryActions } from '@/lib/stores/localDataStor
 import { useUIStore } from '@/lib/stores/uiStore';
 import { shallow } from 'zustand/shallow';
 import { useHydrated } from '@/hooks/useHydrated';
+import { AtmosphericPreview } from './AtmosphericPreview';
+import { PretextHeadline } from '../Common/PretextHeadline';
+import { streamingOptimizer } from '@/services/streamingOptimizer';
+import { usePlayerPreferences } from '@/lib/stores/preferencesStore';
 
 interface TMDBEpisode {
   id: number;
@@ -67,11 +71,26 @@ export default function ContentModal() {
   const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
   const [recommendations, setRecommendations] = useState<Content[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'documentation' | 'episodes'>('overview');
+  const [showPreview, setShowPreview] = useState(false);
 
   const isHydrated = useHydrated();
   const states = useLocalDataStore(state => state.contentState);
   const getResumeData = useLocalDataStore(state => state.getResumeData);
   const watchHistory = useLocalDataStore(state => state.watchHistory);
+  const { audioLanguage } = usePlayerPreferences();
+
+  const handlePrewarm = useCallback(() => {
+    if (!content) return;
+    const type = (content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie')) as 'movie' | 'tv' | 'anime';
+    streamingOptimizer.preloadSources(
+      content.id,
+      type,
+      1,
+      1,
+      content.title,
+      audioLanguage
+    );
+  }, [content, audioLanguage]);
 
   const inLibrary = content ? isInLibrary(String(content.id)) : false;
 
@@ -98,8 +117,18 @@ export default function ContentModal() {
       });
 
       getRecommendationsServer(content.id, apiType as 'movie' | 'tv').then(setRecommendations);
+
+      // Trigger trailer preview after a 1.5s delay
+      const previewTimer = setTimeout(() => {
+        setShowPreview(true);
+      }, 1500);
+
+      return () => {
+        clearTimeout(previewTimer);
+        setShowPreview(false);
+      };
     }
-  }, [isOpen, content, isHydrated, states]);
+  }, [isHydrated, isOpen, content, states]);
 
   // Episodes fetch
   useEffect(() => {
@@ -181,7 +210,7 @@ export default function ContentModal() {
             leaveFrom="opacity-100 translate-y-0 scale-100"
             leaveTo="opacity-0 translate-y-24 scale-[0.9]"
           >
-            <Dialog.Panel className="w-full max-w-6xl bg-[#0a0a0a] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 relative">
+            <Dialog.Panel data-testid="content-modal" className="w-full max-w-6xl bg-[#0a0a0a] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 relative">
               {/* Close Button */}
               <button
                 onClick={closeModal}
@@ -201,17 +230,63 @@ export default function ContentModal() {
                   className="object-cover brightness-[0.85]"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent" />
+                <AtmosphericPreview 
+                  id={content.id} 
+                  type={(content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie')) as 'movie' | 'tv' | 'anime'} 
+                  show={showPreview} 
+                />
+                
+                {/* Trailer Hover Scrim */}
+                <div 
+                  className="absolute inset-0 z-40 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center cursor-pointer"
+                  onClick={handlePlay}
+                  onMouseEnter={handlePrewarm}
+                >
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-2xl transition-colors duration-300"
+                  >
+                    <Play size={40} fill="currentColor" className="ml-2" />
+                  </motion.div>
+                </div>
 
-                <div className="absolute bottom-0 left-0 p-8 sm:p-14 w-full">
-                  <h2 className="text-4xl sm:text-6xl font-black text-white mb-6 drop-shadow-2xl tracking-tight max-w-3xl uppercase italic font-display">
-                    {content.title}
-                  </h2>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent pointer-events-none" />
+
+                <div className="absolute bottom-0 left-0 p-8 sm:p-14 w-full z-30">
+                  <div className="flex items-end gap-6 mb-6">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                      whileInView={showPreview ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0 }}
+                      className="w-20 h-20 rounded-2xl bg-white text-black flex items-center justify-center shadow-cinematic cursor-pointer hover:bg-amber-500 hover:scale-110 transition-all duration-500"
+                      onClick={handlePlay}
+                      onMouseEnter={handlePrewarm}
+                    >
+                      <Play size={32} fill="currentColor" className="ml-1" />
+                    </motion.div>
+
+                    <PretextHeadline 
+                      text={content.title}
+                      fontSize={64}
+                      fontWeight={900}
+                      maxWidth={800}
+                      shadow={{
+                        color: 'rgba(0,0,0,0.6)',
+                        blur: 40,
+                        offsetX: 0,
+                        offsetY: 15
+                      }}
+                      className="italic font-display uppercase leading-none"
+                    />
+                  </div>
 
                   <div className="flex items-center gap-6">
                     <Button
                       size="lg"
                       onClick={handlePlay}
+                      onMouseEnter={handlePrewarm}
                       className="bg-white text-black hover:bg-zinc-200 font-bold px-10 h-14 text-xl rounded-xl shadow-2xl transition-all"
                     >
                       <Play size={24} fill="currentColor" className="mr-3" />
@@ -303,19 +378,37 @@ export default function ContentModal() {
                 {activeTab === 'overview' && (
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="lg:col-span-3 space-y-10">
-                      <div className="flex flex-wrap items-center gap-6 text-zinc-400 font-medium">
+                      <div className="flex flex-wrap items-center gap-4 text-zinc-400 font-medium">
                         <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-500 font-black text-xs tracking-widest uppercase">
                           <Star size={14} fill="currentColor" className="mr-0.5" />
                           <span>MaiWatch Score // {content.rating?.toFixed(1) || '0.0'}</span>
                         </div>
-                        <span className="text-zinc-300 font-bold">{content.releaseDate?.substring(0, 4)}</span>
+                        
+                        {(detailedContent?.ratings?.imdb || content.ratings?.imdb) && (
+                          <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-white/10 rounded text-white font-black text-[10px] tracking-widest uppercase">
+                            <span className="text-zinc-500">IMDb</span>
+                            <span className="text-amber-500">{detailedContent?.ratings?.imdb?.score || content.ratings?.imdb?.score}</span>
+                          </div>
+                        )}
+
+                        {(detailedContent?.ratings?.rottenTomatoes || content.ratings?.rottenTomatoes) && (
+                          <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900/50 border border-white/10 rounded text-white font-black text-[10px] tracking-widest uppercase">
+                            <span className="text-zinc-500">Rotten</span>
+                            <span className="text-red-500">{detailedContent?.ratings?.rottenTomatoes?.score || content.ratings?.rottenTomatoes?.score}%</span>
+                          </div>
+                        )}
+
+                        <span className="text-zinc-300 font-bold ml-2">{content.releaseDate?.substring(0, 4)}</span>
                         <span className="border border-white/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest text-zinc-300">
                           {content.type === 'tv' ? 'Series' : 'Movie'}
                         </span>
                       </div>
 
-                      <p className="text-xl text-zinc-300 leading-relaxed font-light max-w-4xl">
-                        {detailedContent?.description || content.description || 'No description available.'}
+                      <p 
+                        data-testid="modal-overview"
+                        className="text-xl text-zinc-300 leading-relaxed font-light max-w-4xl"
+                      >
+                        {detailedContent?.description || content.description || detailedContent?.overview || content.overview || 'No description available.'}
                       </p>
 
                       {detailedContent?.cast && detailedContent.cast.length > 0 && (

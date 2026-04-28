@@ -6,6 +6,7 @@ import { AppProviders } from '../components/providers/AppProviders';
 import { StatsOverlay } from '../components/debug/StatsOverlay';
 import { LivingBackground } from '../components/layout/LivingBackground';
 import { SeriesTracker } from '../components/Common/SeriesTracker';
+import { RouteInterceptor } from '../components/Common/RouteInterceptor';
 import { Toaster } from 'sonner';
 
 const outfit = Outfit({
@@ -129,6 +130,7 @@ export default function RootLayout({
       </head>
       <body className="font-outfit selection:bg-primary selection:text-white antialiased bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
         <AppProviders>
+          <RouteInterceptor />
           <Toaster position="top-right" richColors theme="light" />
           <SeriesTracker />
           <LivingBackground />

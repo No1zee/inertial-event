@@ -5,12 +5,15 @@ import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import PostPlayOverlay from '@/components/player/overlay/PostPlayOverlay';
-import { useWatchHistoryActions } from '@/lib/stores/localDataStore';
+
 import { VidlinkPlayer } from '@/components/player/VidlinkPlayer';
 import { DirectorBar } from '@/components/player/DirectorBar';
 import { Button } from '@/components/ui/button';
 import { useContentDetails, useSeasonDetails } from '@/hooks/queries/useContent';
+import { EpisodeNavigator } from '@/components/content/EpisodeNavigator';
+import { LoungeOverlay } from '@/components/social/LoungeOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUserPreferencesStore } from '@/lib/stores/preferencesStore';
 
 function WatchContent() {
   const router = useRouter();
@@ -26,6 +29,9 @@ function WatchContent() {
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
   const [showPostPlay, setShowPostPlay] = useState(false);
   const [showUI, setShowUI] = useState(true);
+  const [showEpisodeNavigator, setShowEpisodeNavigator] = useState(false);
+  const [showLounge, setShowLounge] = useState(false);
+  const { activeSourceId } = useUserPreferencesStore();
 
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -37,7 +43,7 @@ function WatchContent() {
     if (e && e !== currentEpisode) setCurrentEpisode(e);
   }, [searchParams, currentSeason, currentEpisode]);
 
-  const { addToWatchHistory } = useWatchHistoryActions();
+
 
   // Redirect if no ID
   useEffect(() => {
@@ -93,24 +99,7 @@ function WatchContent() {
   // 1. Fetch Content Details
   const { data: content, isLoading: contentLoading, error: contentError } = useContentDetails(id || '', type);
 
-  // Save to history when content loads (Initialize watch session)
-  useEffect(() => {
-    if (content) {
-      addToWatchHistory({
-        contentId: content.id.toString(),
-        type: type,
-        title: content.title,
-        poster: content.poster || '',
-        backdrop: content.backdrop || '',
-        poster_path: content.poster_path,
-        backdrop_path: content.backdrop_path,
-        season: type !== 'movie' ? currentSeason : undefined,
-        episode: type !== 'movie' ? currentEpisode : undefined,
-        currentTime: 0,
-        duration: 0,
-      });
-    }
-  }, [content, addToWatchHistory, type, currentSeason, currentEpisode]);
+  // Watch history is now initialized natively in the player components to prevent race conditions
 
   // 2. Fetch Season Details
   const { data: seasonDetails } = useSeasonDetails(id || '', currentSeason, type !== 'movie');
@@ -122,7 +111,7 @@ function WatchContent() {
           <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
           <div className="flex flex-col items-center gap-2">
             <span className="text-primary font-bold tracking-[0.4em] text-[10px] uppercase animate-pulse">
-              Syncing Sanctuary
+              Preparing Sanctuary
             </span>
             <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest opacity-60">
               Retrieving Secure Stream Keys
@@ -221,10 +210,12 @@ function WatchContent() {
         onPrev={type !== 'movie' ? handlePrev : undefined}
         hasNext={hasNext}
         hasPrev={hasPrev}
+        onLogClick={() => setShowEpisodeNavigator(true)}
+        onLoungeClick={() => setShowLounge(true)}
       />
 
       {/* Main Player Component */}
-      <main className="flex-1 w-full h-full relative z-[100]">
+      <main className="flex-1 w-full relative z-[100] overflow-hidden min-h-0">
         <VidlinkPlayer
           tmdbId={cleanTmdbId}
           type={type}
@@ -258,6 +249,24 @@ function WatchContent() {
           />
         )}
       </AnimatePresence>
+
+      {(type === 'tv' || type === 'anime') && content?.seasonsList && (
+        <EpisodeNavigator 
+          show={showEpisodeNavigator}
+          onClose={() => setShowEpisodeNavigator(false)}
+          tmdbId={cleanTmdbId}
+          type={type}
+          currentSeason={currentSeason}
+          currentEpisode={currentEpisode}
+          onSelect={(s, e) => {
+            setShowEpisodeNavigator(false);
+            router.push(`/watch?id=${id}&type=${type}&season=${s}&episode=${e}${activeSourceId ? `&provider=${activeSourceId}` : ''}`);
+          }}
+          seasons={content.seasonsList}
+        />
+      )}
+
+      <LoungeOverlay show={showLounge} onClose={() => setShowLounge(false)} roomUrl={typeof window !== 'undefined' ? window.location.href : ''} />
 
       {/* Custom Cursor Overlay (Directorial Touch) */}
       <motion.div

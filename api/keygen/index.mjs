@@ -104,7 +104,8 @@ export default async function handler(req, res) {
                     originalPath: originalPath,
                     normalizedPath: path,
                     method: req.method,
-                    host: host
+                    host: host,
+                    mongoURI: process.env.MONGODB_URI || 'not set'
                 }
             });
         }

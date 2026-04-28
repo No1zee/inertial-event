@@ -54,6 +54,7 @@ export interface UIPreferences {
   };
   oledOptimization: boolean;
   adaptiveColorSpace: boolean;
+  hasCompletedOnboarding: boolean;
 }
 
 export interface ContentPreferences {
@@ -127,6 +128,7 @@ interface UserPreferencesStore
   setPlayerSettings: (settings: Partial<UIPreferences['playerSettings']>) => void;
   setOledOptimization: (enabled: boolean) => void;
   setAdaptiveColorSpace: (enabled: boolean) => void;
+  setHasCompletedOnboarding: (enabled: boolean) => void;
 
   // Actions - Content Preferences
   setPreferredGenres: (genres: string[]) => void;
@@ -212,6 +214,7 @@ const defaultUIPreferences: UIPreferences = {
   },
   oledOptimization: true,
   adaptiveColorSpace: true,
+  hasCompletedOnboarding: false,
 };
 
 const defaultContentPreferences: ContentPreferences = {
@@ -317,6 +320,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           }
         },
         setAdaptiveColorSpace: adaptiveColorSpace => set({ adaptiveColorSpace }),
+        setHasCompletedOnboarding: hasCompletedOnboarding => set({ hasCompletedOnboarding }),
 
         cycleToNextSource: () => {
           const currentId = get().activeSourceId;
@@ -558,6 +562,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           playerSettings: state.playerSettings,
           oledOptimization: state.oledOptimization,
           adaptiveColorSpace: state.adaptiveColorSpace,
+          hasCompletedOnboarding: state.hasCompletedOnboarding,
 
           preferredGenres: state.preferredGenres,
           blockedGenres: state.blockedGenres,
@@ -657,6 +662,7 @@ export const usePreferencesActions = () =>
       cycleToNextSource: state.cycleToNextSource,
       setOledOptimization: state.setOledOptimization,
       setAdaptiveColorSpace: state.setAdaptiveColorSpace,
+      setHasCompletedOnboarding: state.setHasCompletedOnboarding,
     }),
     shallow
   );
@@ -694,6 +700,7 @@ export const useUIPreferences = () =>
       playerSettings: state.playerSettings,
       oledOptimization: state.oledOptimization,
       adaptiveColorSpace: state.adaptiveColorSpace,
+      hasCompletedOnboarding: state.hasCompletedOnboarding,
     }),
     shallow
   );

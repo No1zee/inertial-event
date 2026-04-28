@@ -8,6 +8,7 @@ import { OptimizedImage } from '../ui/OptimizedImage';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { cn } from '@/lib/utils';
+import { PretextHeadline } from '../Common/PretextHeadline';
 
 interface EpisodeNavigatorProps {
   show: boolean;
@@ -67,7 +68,13 @@ export function EpisodeNavigator({
           {/* Header */}
           <div className="flex items-center justify-between p-8 border-b border-white/5">
             <div className="flex items-center gap-12">
-              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Mission Log</h2>
+              <PretextHeadline
+                text="Reel Index"
+                fontSize={32}
+                fontWeight={900}
+                letterSpacing="-0.04em"
+                className="text-white uppercase italic"
+              />
               
               <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-2xl border border-white/10">
                 <Search size={18} className="text-white/40" />
@@ -104,7 +111,7 @@ export function EpisodeNavigator({
               <button 
                 onClick={onClose}
                 title="Close"
-                aria-label="Close Mission Log"
+                aria-label="Close Reel Index"
                 className="p-3 bg-white/5 border border-white/10 rounded-full text-white hover:bg-white/10 transition-all"
               >
                 <X size={24} />
@@ -115,7 +122,13 @@ export function EpisodeNavigator({
           <div className="flex-1 flex overflow-hidden">
             {/* Season Sidebar */}
             <div className="w-64 border-r border-white/5 p-6 overflow-y-auto no-scrollbar">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-6 block">Command Seasons</span>
+              <PretextHeadline
+                text="Production Arcs"
+                fontSize={10}
+                fontWeight={900}
+                letterSpacing="0.4em"
+                className="text-zinc-500 uppercase mb-6 block"
+              />
               <div className="flex flex-col gap-2">
                 {seasons.map((s) => (
                   <button
@@ -144,9 +157,9 @@ export function EpisodeNavigator({
                   <motion.div 
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full"
+                    className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"
                   />
-                  <span className="text-zinc-500 font-bold uppercase tracking-widest text-sm animate-pulse">Syncing Mission Data...</span>
+                  <span className="text-zinc-500 font-bold uppercase tracking-widest text-sm animate-pulse">Syncing Playback Data...</span>
                 </div>
               ) : (
                 <div className={cn(
@@ -221,7 +234,7 @@ export function EpisodeNavigator({
                             {ep.name}
                           </h4>
                           <p className="text-zinc-500 text-xs line-clamp-2 mt-2 leading-relaxed font-medium">
-                            {ep.overview || 'Mission intelligence unavailable.'}
+                            {ep.overview || 'Synopsis unavailable for this sequence.'}
                           </p>
                         </div>
                       </motion.div>

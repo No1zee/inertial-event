@@ -9,6 +9,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 
+interface RecentlyWatchedCardProps {
+  item: WatchHistoryItem;
+  onClick: () => void;
+  onRemove: () => void;
+}
+
 const RecentlyWatchedCard = React.forwardRef<HTMLDivElement, RecentlyWatchedCardProps>(
   ({ item, onClick, onRemove }, ref) => {
     const timeSince = (date: number) => {
@@ -178,7 +184,13 @@ export default function RecentlyWatched() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-[1px] w-6 bg-red-600/50" />
-            <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.4em]">System / Activity Log</h2>
+            <PretextHeadline
+              text="System / Activity Log"
+              fontSize={10}
+              fontWeight={700}
+              letterSpacing="0.4em"
+              className="text-zinc-500 uppercase"
+            />
           </div>
           <PretextHeadline
             text="Recently Watched"

@@ -117,7 +117,14 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
                     fontSize={typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 104}
                     fontWeight={900}
                     lineHeight={0.8}
-                    className="text-white drop-shadow-[0_15px_40px_rgba(0,0,0,0.6)] tracking-[-0.05em]"
+                    letterSpacing="-0.05em"
+                    shadow={{
+                      color: 'rgba(0,0,0,0.6)',
+                      blur: 40,
+                      offsetX: 0,
+                      offsetY: 15
+                    }}
+                    className="text-white"
                   />
                 </div>
 

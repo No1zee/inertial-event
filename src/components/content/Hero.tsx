@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Play, Info, Star } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Content } from '@/lib/types/content';
 import { contentApi } from '@/lib/api/content';
@@ -11,15 +12,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { ParallaxBackground } from './CinemaMarquee';
+import { PretextHeadline } from '../Common/PretextHeadline';
 
 interface HeroProps {
   items?: Content[];
 }
 
 export function Hero({ items = [] }: HeroProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [index, setIndex] = useState(0);
   const [uiVisible, setUiVisible] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const currentItem = items && items.length > 0 ? items[index % items.length] : null;
 
@@ -84,14 +88,27 @@ export function Hero({ items = [] }: HeroProps) {
                 <span className="text-red-500 font-bold tracking-[0.3em] text-xs uppercase">Trending Now</span>
               </div>
 
-              <motion.h1
-                className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter leading-[0.9] drop-shadow-2xl max-w-5xl"
+              <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
+                className="max-w-5xl"
               >
-                {currentItem.title}
-              </motion.h1>
+                <PretextHeadline 
+                  text={currentItem.title}
+                  fontSize={80}
+                  fontWeight={900}
+                  maxWidth={1200}
+                  fontFamily="Outfit, sans-serif"
+                  shadow={{
+                    color: 'rgba(0,0,0,0.6)',
+                    blur: 40,
+                    offsetX: 0,
+                    offsetY: 15
+                  }}
+                  className="tracking-tighter leading-[0.9] uppercase"
+                />
+              </motion.div>
 
               <div className="flex items-center gap-3 text-sm md:text-base font-medium text-zinc-300">
                 <span className="flex items-center gap-1 text-green-400 font-bold">
@@ -121,8 +138,15 @@ export function Hero({ items = [] }: HeroProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.8 }}
               >
-                <Link
-                  href={`/watch?id=${String(currentItem.id).replace('tmdb_', '')}&type=${currentItem.type}`}
+                <motion.div
+                  className="cursor-pointer"
+                  animate={isNavigating ? { scale: [1, 0.95, 1], opacity: [1, 0.7, 1] } : {}}
+                  transition={isNavigating ? { repeat: Infinity, duration: 0.6, ease: "easeInOut" } : {}}
+                  onClick={async () => {
+                    if (isNavigating) return;
+                    setIsNavigating(true);
+                    router.push(`/watch?id=${String(currentItem.id).replace('tmdb_', '')}&type=${currentItem.type}`);
+                  }}
                   onMouseEnter={() => {
                     queryClient.prefetchQuery({
                       queryKey: ['content', 'details', String(currentItem.id), currentItem.type],
@@ -138,7 +162,7 @@ export function Hero({ items = [] }: HeroProps) {
                     <Play size={20} fill="currentColor" className="sm:mr-3" />
                     Watch Now
                   </Button>
-                </Link>
+                </motion.div>
 
                 <Button
                   variant="outline"

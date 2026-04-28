@@ -1,9 +1,9 @@
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
-import * as contentController from '../controllers/contentController.js';
-import * as sourceController from '../controllers/sourceController.js';
-import * as episodeController from '../controllers/episodeController.js';
-import * as userController from '../controllers/userController.js';
+import { verifyToken } from '../middleware/auth';
+import * as contentController from '../controllers/contentController';
+import * as sourceController from '../controllers/sourceController';
+import * as episodeController from '../controllers/episodeController';
+import * as userController from '../controllers/userController';
 
 const router = express.Router();
 

@@ -37,6 +37,7 @@ export function SidebarItem({
       href={href}
       onClick={onClick}
       aria-label={label}
+      data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
       className={cn(
         'relative flex items-center group/item transition-all duration-300 outline-none',
         isOpen ? 'px-6 py-3' : 'justify-center py-4 px-0',

@@ -3,6 +3,7 @@
 import { useContinueWatching, useWatchHistoryActions, type ContinueWatchingItem } from '@/lib/stores/localDataStore';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { PretextHeadline } from '../Common/PretextHeadline';
 import { X } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';
 
@@ -122,7 +123,13 @@ export default function ContinueWatching() {
     <section className="mb-16 px-10 lg:px-24">
       <div className="flex items-center gap-3 mb-6">
         <div className="h-[1px] w-6 bg-red-600/50" />
-        <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.4em]">System / Queue Priority</h2>
+        <PretextHeadline
+          text="System / Queue Priority"
+          fontSize={10}
+          fontWeight={700}
+          letterSpacing="0.4em"
+          className="text-zinc-500 uppercase"
+        />
       </div>
 
       <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">

@@ -24,6 +24,7 @@ export function Navbar() {
             onClick={() => setCommandCenterOpen(true)}
             className="p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-all"
             aria-label="Open Command Center"
+            data-testid="search-button"
           >
             <Search size={22} className="stroke-[1.5px]" />
           </button>

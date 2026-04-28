@@ -361,18 +361,25 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
             if (existingIndex >= 0) {
               // Update existing item and MOVE TO TOP
               const existingItem = updatedHistory[existingIndex];
+              const finalCurrentTime = (item.currentTime && item.currentTime > 0) ? item.currentTime : existingItem.currentTime;
+              const finalDuration = (item.duration && item.duration > 0) ? item.duration : existingItem.duration;
+              const finalProgress = finalDuration > 0 ? (finalCurrentTime / finalDuration) * 100 : 0;
+              const finalCompleted = finalProgress > 90;
+
               const updatedItem = {
                 ...existingItem,
                 ...item,
+                currentTime: finalCurrentTime,
+                duration: finalDuration,
                 id,
                 title: item.title || existingItem.title,
                 poster: item.poster || existingItem.poster,
                 backdrop: item.backdrop || existingItem.backdrop,
                 lastWatched,
-                progress,
-                completed,
+                progress: finalProgress,
+                completed: finalCompleted,
                 watchCount:
-                  completed && !existingItem.completed ? existingItem.watchCount + 1 : existingItem.watchCount,
+                  finalCompleted && !existingItem.completed ? existingItem.watchCount + 1 : existingItem.watchCount,
               };
 
               // Remove from old position and prepend to top
@@ -814,7 +821,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           });
 
           return Array.from(contentMap.values())
-            .filter(item => !item.completed && item.progress > 5)
+            .filter(item => !item.completed && item.progress > 2)
             .sort((a, b) => b.lastWatched - a.lastWatched)
             .slice(0, 20)
             .map(item => ({

@@ -4,6 +4,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { ContentCard } from './ContentCard';
+import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { cn } from '@/lib/utils';
 import { Content } from '@/lib/types/content';
 
@@ -62,18 +63,26 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
   };
 
   return (
-    <div ref={containerRef} className="space-y-4 group/rail py-4 min-h-[200px]">
-      <h2 className="text-xl md:text-2xl font-semibold text-zinc-100 tracking-wide flex items-center gap-3 group cursor-pointer w-fit px-4 sm:px-8 md:px-12 lg:px-16 hover:text-white">
-        {title}
-        {railId && (
-          <Link
-            href={`/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}`}
-            className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 bg-zinc-900/50 px-3 py-1 rounded hover:bg-zinc-800 border border-white/5 opacity-0 group-hover:opacity-100 flex items-center hover:text-white"
-          >
-            Explore <ChevronRight size={10} className="ml-1" />
-          </Link>
-        )}
-      </h2>
+    <div className="space-y-4">
+      <div className="px-4 sm:px-8 md:px-12 lg:px-16 flex items-center justify-between group/header">
+        <div className="flex items-center gap-3">
+          <PretextHeadline
+            text={title}
+            fontSize={24}
+            fontWeight={800}
+            letterSpacing="-0.02em"
+            className="text-zinc-100 hover:text-white transition-colors cursor-pointer"
+          />
+          {railId && (
+            <Link
+              href={`/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}`}
+              className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-primary transition-all opacity-0 group-hover/header:opacity-100 flex items-center"
+            >
+              Archive Index <ChevronRight size={10} className="ml-1" />
+            </Link>
+          )}
+        </div>
+      </div>
 
       <div className="relative group/scroll">
         {/* Left Arrow */}

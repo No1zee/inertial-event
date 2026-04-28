@@ -40,7 +40,11 @@ class TorrentService {
             const url = `${this.YTS_API_URL}?query_term=${imdbId}&limit=1`;
             console.log(`[TorrentService] Querying YTS: ${url}`);
             
-            const res = await axios.get(url);
+            const res = await axios.get(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                }
+            });
             if (!res.data || !res.data.data || !res.data.data.movies) return [];
 
             const movie = res.data.data.movies[0];
@@ -171,8 +175,9 @@ class TorrentService {
                  this.log(`Torrentio Error: ${err.message}`);
             }
 
-            // 4. Strict Filtering (Tier 1 Only - MP4/YTS)
-            // User requested to ONLY keep native formats to ensure perfect seeking.
+            // 4. Heuristic Tier Classification (for sorting, NOT dropping)
+            // Torrentio titles often lack file extensions/codecs, so we keep everything
+            // and sort by preference tier instead of filtering.
             const getTier = (source: any) => {
                 const title = (source.title || '').toLowerCase();
                 const url = (source.url || '').toLowerCase();
@@ -182,52 +187,58 @@ class TorrentService {
                 if (isYts) return 1;
                 if (title.includes('.mp4') || url.includes('.mp4')) return 1;
 
-                // Tier 2: Transmux (MKV h264 - Fast, no seek)
-                if ((title.includes('.mkv') || url.includes('.mkv')) && (title.includes('x264') || title.includes('h264'))) return 2;
+                // Tier 2: Standard compatible (MKV h264, or any HD)
+                const isHD = title.includes('1080p') || title.includes('720p') || title.includes('480p') || title.includes('hd') || title.includes('high.definition');
+                const isH264 = title.includes('x264') || title.includes('h264') || title.includes('avc');
+                const isWeb = title.includes('web-dl') || title.includes('webrip') || title.includes('web.dl');
+                const isBluray = title.includes('bluray') || title.includes('brrip') || title.includes('bdrip');
+
+                if ((title.includes('.mkv') || url.includes('.mkv')) && isH264) return 2;
                 if (!title.includes('hevc') && !title.includes('x265') && !title.includes('hdr') && (title.includes('.mkv') || url.includes('.mkv'))) return 2;
+                if (isHD || isWeb || isBluray) return 2;
 
-                // Tier 3: Heavy Transcode (HEVC/HDR)
-                if (title.includes('x265') || title.includes('hevc') || title.includes('hdr')) return 3;
+                // Tier 3: Heavy Transcode (HEVC/HDR/4K)
+                if (title.includes('x265') || title.includes('hevc') || title.includes('hdr') || title.includes('2160p') || title.includes('4k') || title.includes('uhd')) return 3;
 
-                return 4; // Unknown/Other
+                // Tier 4: Unknown — still keep them, just sort them last
+                return 4;
             };
 
             // VISUALIZATION LOGIC
-            const tiers = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            const tiers: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
             sources.forEach(s => {
                 const t = getTier(s);
-                if (tiers[t] !== undefined) tiers[t]++;
+                tiers[t] = (tiers[t] || 0) + 1;
             });
 
             this.log(`\n=== SOURCE ANALYSIS FOR "${tmdbId}" ===`);
             this.log(`Total Raw Sources: ${sources.length}`);
-            this.log(`Tier 1 (Native MP4/YTS): ${tiers[1]} (Permitted)`);
-            this.log(`Tier 2 (MKV x264):       ${tiers[2]} (DROPPED - No Seek)`);
-            this.log(`Tier 3 (HEVC/HDR):       ${tiers[3]} (DROPPED - Transcode)`);
-            this.log(`Tier 4 (Other):          ${tiers[4]} (DROPPED)`);
+            this.log(`Tier 1 (Native MP4/YTS): ${tiers[1]}`);
+            this.log(`Tier 2 (MKV x264/HD):    ${tiers[2]}`);
+            this.log(`Tier 3 (HEVC/HDR/4K):    ${tiers[3]}`);
+            this.log(`Tier 4 (Unknown):        ${tiers[4]}`);
             
-            // If we have 0 Tier 1s, we should PROBABLY fallback or at least warn loudly
-            let tier1Sources = sources.filter(s => getTier(s) === 1);
-
-            if (tier1Sources.length === 0 && tiers[2] > 0) {
-                 this.log(`⚠️ WARNING: No Tier 1 sources found! Strict Mode is effectively blocking playback.`);
-                 this.log(`   (YTS might be blocked or down, check earlier logs)`);
+            if (tiers[4] > 0) {
+                this.log('--- Tier 4 Details (Heuristic Fallback) ---');
+                sources.filter(s => getTier(s) === 4).forEach((s, i) => {
+                    this.log(`[${i+1}] Title: ${s.title || 'No Title'} | Provider: ${s.provider}`);
+                });
             }
-
-            this.log(`Filtered Count (Tier 1 Only): ${tier1Sources.length}`);
-            this.log(`==========================================\n`);
-
-            // 5. Final Sort (Just Seeders, since all are Tier 1)
-            tier1Sources.sort((a, b) => {
+            
+            // Sort by tier (best first), then by seeders within each tier
+            sources.sort((a, b) => {
+                const tierDiff = getTier(a) - getTier(b);
+                if (tierDiff !== 0) return tierDiff;
                 const seedsA = parseInt(a.seeders) || 0;
                 const seedsB = parseInt(b.seeders) || 0;
                 return seedsB - seedsA;
             });
             
-            this.log(`FINAL Return Count: ${tier1Sources.length}`);
+            this.log(`FINAL Return Count: ${sources.length}`);
+            this.log(`==========================================\n`);
 
             return {
-                sources: tier1Sources,
+                sources: sources,
                 subtitles: []
             };
 

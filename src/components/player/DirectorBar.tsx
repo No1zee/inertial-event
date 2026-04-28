@@ -22,6 +22,8 @@ interface DirectorBarProps {
   onPrev?: () => void;
   hasNext?: boolean;
   hasPrev?: boolean;
+  onLogClick?: () => void;
+  onLoungeClick?: () => void;
 }
 
 /**
@@ -42,6 +44,8 @@ export function DirectorBar({
   onPrev,
   hasNext,
   hasPrev,
+  onLogClick,
+  onLoungeClick,
 }: DirectorBarProps) {
   const router = useRouter();
   const { activeSourceId } = useUserPreferencesStore();
@@ -136,14 +140,13 @@ export function DirectorBar({
                 className="space-y-1"
               >
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary">
-                    {type === 'movie' ? 'Cinematic Presentation' : `Series Broadcast • S${season} E${episode}`}
-                  </span>
-                  {isElectron && (
-                    <span className="text-[8px] uppercase tracking-widest font-black text-emerald-500/60 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      Aegis Native
-                    </span>
-                  )}
+                  <PretextHeadline
+                    text={type === 'movie' ? 'Cinematic Presentation' : `Series Broadcast • S${season} E${episode}`}
+                    fontSize={10}
+                    fontWeight={700}
+                    letterSpacing="0.4em"
+                    className="text-primary uppercase"
+                  />
                   <span className="h-[1px] w-8 bg-white/10" />
                 </div>
                 <PretextHeadline text={title} fontSize={32} fontWeight={800} className="text-white drop-shadow-2xl" />
@@ -199,9 +202,21 @@ export function DirectorBar({
               className="flex items-center gap-4 pointer-events-auto"
             >
               <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-zinc-900/40 backdrop-blur-3xl border border-white/5 text-zinc-400 font-bold text-[10px] uppercase tracking-widest">
-                <Zap size={14} className="text-primary animate-pulse" />
-                <span>Ultrafast Tunneling • {SOURCES.find(s => s.id === activeSourceId)?.codename || 'Aegis'}</span>
+                <Zap size={14} className="text-primary" />
+                <span>Primary Link • {SOURCES.find(s => s.id === activeSourceId)?.codename || 'Native'}</span>
               </div>
+
+              {(type === 'tv' || type === 'anime') && onLogClick && (
+                <button onClick={onLogClick} className="p-3 rounded-2xl bg-zinc-900/40 backdrop-blur-3xl border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all font-black uppercase italic tracking-tighter text-sm">
+                  Log
+                </button>
+              )}
+
+              {(type === 'tv' || type === 'anime') && onLoungeClick && (
+                <button onClick={onLoungeClick} className="p-3 rounded-2xl bg-zinc-900/40 backdrop-blur-3xl border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all font-black uppercase italic tracking-tighter text-sm">
+                  Lounge
+                </button>
+              )}
 
               <button
                 className="p-3 rounded-2xl bg-zinc-900/40 backdrop-blur-3xl border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all"

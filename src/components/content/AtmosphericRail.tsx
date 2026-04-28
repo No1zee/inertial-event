@@ -133,7 +133,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
                   style={{ '--brand-color': provider.color } as React.CSSProperties}
                 />
                 <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">
-                  {provider.name} Featured
+                  {provider.name} Features
                 </span>
               </div>
             ) : (
@@ -151,8 +151,9 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
             fontWeight={900}
             fontFamily={provider?.font || 'var(--font-outfit)'}
             lineHeight={0.85}
+            letterSpacing="-0.05em"
             className={cn(
-              'opacity-90 group-hover/rail:opacity-100 transition-opacity tracking-tighter',
+              'opacity-90 group-hover/rail:opacity-100 transition-opacity',
               provider?.slug === 'netflix' && 'text-red-50',
               provider?.slug === 'hulu' && 'text-[#1ce783]/90'
             )}

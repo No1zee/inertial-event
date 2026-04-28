@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Play, Clock, X, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PretextHeadline } from '../Common/PretextHeadline';
 interface DialogueSearchProps {
   show: boolean;
   onClose: () => void;
@@ -27,9 +28,9 @@ export const DialogueSearch: React.FC<DialogueSearchProps> = ({
   ].filter(r => r.text.toLowerCase().includes(query.toLowerCase()) && query.length > 2);
 
   const semanticResults = [
-    { text: "Emotional Act II Turning Point", time: 2400, context: "Cinematic Intensity: High", type: "Neural Concept" },
-    { text: "Strategic Narrative Pivot", time: 1500, context: "Cinematic Intensity: Medium", type: "Neural Concept" },
-    { text: "Establishing High-Contrast Sequence", time: 100, context: "Cinematic Intensity: Low", type: "Neural Concept" },
+    { text: "Emotional Act II Turning Point", time: 2400, context: "Cinematic Intensity: High", type: "Cinematic Concept" },
+    { text: "Strategic Narrative Pivot", time: 1500, context: "Cinematic Intensity: Medium", type: "Cinematic Concept" },
+    { text: "Establishing High-Contrast Sequence", time: 100, context: "Cinematic Intensity: Low", type: "Cinematic Concept" },
   ].filter(r => r.text.toLowerCase().includes(query.toLowerCase()) && query.length > 2);
 
   const results = searchMode === 'dialogue' ? dialogueResults : semanticResults;
@@ -44,13 +45,25 @@ export const DialogueSearch: React.FC<DialogueSearchProps> = ({
           className="absolute top-0 right-0 w-[450px] h-full z-[110] bg-[#050505]/95 backdrop-blur-3xl border-l border-white/10 flex flex-col p-12 shadow-[-50px_0_100px_rgba(0,0,0,0.8)]"
         >
            <div className="flex items-center justify-between mb-12">
-              <div className="flex flex-col">
-                 <div className="flex items-center gap-3 text-primary mb-2">
-                    <Terminal size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Neural Indexing Active</span>
-                 </div>
-                 <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Content Discovery</h2>
-              </div>
+               <div className="flex flex-col">
+                  <div className="flex items-center gap-3 text-zinc-500 mb-2">
+                     <Terminal size={14} />
+                     <PretextHeadline
+                        text="Active Script Analysis"
+                        fontSize={10}
+                        fontWeight={700}
+                        letterSpacing="0.3em"
+                        className="text-zinc-500 uppercase"
+                     />
+                  </div>
+                  <PretextHeadline
+                    text="Dialogue Archive"
+                    fontSize={32}
+                    fontWeight={900}
+                    letterSpacing="-0.04em"
+                    className="text-white uppercase italic"
+                  />
+               </div>
               <button 
                 title="Close"
                 onClick={onClose}
@@ -78,7 +91,7 @@ export const DialogueSearch: React.FC<DialogueSearchProps> = ({
                   searchMode === 'semantic' ? "bg-primary text-white shadow-lg" : "text-white/40 hover:text-white"
                 )}
               >
-                Semantic Discovery
+                Atmospheric Search
               </button>
            </div>
 
@@ -126,17 +139,17 @@ export const DialogueSearch: React.FC<DialogueSearchProps> = ({
                 <div className="flex flex-col items-center justify-center py-20 text-center gap-4 text-zinc-700">
                    {searchMode === 'dialogue' ? <Play size={40} className="opacity-20" /> : <Terminal size={40} className="opacity-20" />}
                    <p className="text-[10px] font-bold uppercase tracking-[0.3em]">
-                      {searchMode === 'dialogue' ? "Type to search through script history" : "Semantic discovery powered by Neural-X"}
+                      {searchMode === 'dialogue' ? "Type to search through script history" : "Atmospheric discovery powered by Directorial-X"}
                    </p>
                 </div>
               )}
            </div>
 
-           {/* AI Disclaimer */}
+           {/* Analysis Badge */}
            <div className="mt-auto pt-8 border-t border-white/5">
-              <div className="flex items-center gap-3 px-4 py-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
-                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-                 <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">Neural Indexing Active</span>
+              <div className="flex items-center gap-3 px-4 py-3 bg-zinc-500/5 rounded-xl border border-zinc-500/10">
+                 <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-pulse" />
+                 <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Script Frame Synchronized</span>
               </div>
            </div>
         </motion.div>

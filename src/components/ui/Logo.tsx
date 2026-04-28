@@ -45,11 +45,8 @@ export function Logo({ className, size = 'md', showText = true, animated = true 
       {showText && (
         <div className={cn('flex flex-col leading-none font-playfair', textSizes[size])}>
           <span className="font-black text-[hsl(var(--brand-primary))] uppercase tracking-tight">
-            Life<span className="text-[hsl(var(--brand-wood))]">Line</span>
+            Mai<span className="text-white">Watch</span>
           </span>
-          <div className="bg-[hsl(var(--brand-primary))] px-1.5 py-0.5 rounded-[2px] mt-0.5">
-            <span className="text-[10px] font-bold text-white uppercase tracking-[0.2em] block">Scenery</span>
-          </div>
         </div>
       )}
     </div>

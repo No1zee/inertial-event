@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePlayerStore, usePlaybackState } from '@/store/playerStore';
+import { usePlayerStore } from '@/lib/stores/playerStore';
 import { streamingOptimizer } from '@/services/streamingOptimizer';
 import { X, Play, Plus } from 'lucide-react';
 import { usePreferencesStore } from '@/lib/stores/preferencesStore';
 import { useSimilar } from '@/hooks/queries/useContent';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import Link from 'next/link';
 import { type Content } from '@/lib/types/content';
 
@@ -30,9 +31,10 @@ export function CinematicEndCredits({
   onNext,
   onCancel,
 }: CinematicEndCreditsProps) {
-  const { currentTime, duration: storeDuration } = usePlaybackState();
+  const currentTime = usePlayerStore(state => state.currentTime);
+  const storeDuration = usePlayerStore(state => state.duration);
   const audioLanguage = usePreferencesStore(state => state.audioLanguage);
-  const { preloadedNextEpisode, completePreloadNextEpisode } = usePlayerStore();
+  const [hasPreloaded, setHasPreloaded] = useState(false);
   
   // Use the countdown from playerStore or local default
   const countdownSeconds = 15; 
@@ -86,17 +88,17 @@ export function CinematicEndCredits({
 
   // Preload next episode
   useEffect(() => {
-    if (!hasNext || storeDuration <= 30 || preloadedNextEpisode || isPreloading) return;
+    if (!hasNext || storeDuration <= 30 || hasPreloaded || isPreloading) return;
 
     const timeRemaining = storeDuration - currentTime;
     if (timeRemaining <= 45) {
       setIsPreloading(true);
       streamingOptimizer.preloadSources(contentId, type, season, nextEpisode, '', audioLanguage).then(() => {
-        completePreloadNextEpisode();
+        setHasPreloaded(true);
         setIsPreloading(false);
       });
     }
-  }, [currentTime, storeDuration, hasNext, preloadedNextEpisode, isPreloading, contentId, type, season, nextEpisode, audioLanguage, completePreloadNextEpisode]);
+  }, [currentTime, storeDuration, hasNext, hasPreloaded, isPreloading, contentId, type, season, nextEpisode, audioLanguage]);
 
   if (!showOverlay) return null;
 
@@ -113,7 +115,7 @@ export function CinematicEndCredits({
           <div className="flex items-end justify-between gap-12">
             {/* Left: Next Episode Preview */}
             <div className="flex-1 max-w-2xl">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-4 block">Continuing Mission</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-500/70 mb-4 block">Current Reel Ending</span>
               <div className="flex gap-8 items-center">
                 <div className="relative w-72 aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl group cursor-pointer" onClick={onNext}>
                   <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
@@ -135,8 +137,14 @@ export function CinematicEndCredits({
                 </div>
                 
                 <div className="flex flex-col gap-2">
-                  <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">Episode {nextEpisode}</h2>
-                  <p className="text-zinc-500 font-bold text-xs uppercase tracking-widest">Neural Link Pre-hydrated</p>
+                  <PretextHeadline
+                    text={`Episode ${nextEpisode}`}
+                    fontSize={48}
+                    fontWeight={900}
+                    letterSpacing="-0.04em"
+                    className="text-white uppercase italic"
+                  />
+                  <p className="text-zinc-500 font-bold text-xs uppercase tracking-widest">Master Source Synchronized</p>
                   <div className="flex gap-3 mt-4">
                     <button 
                       onClick={onNext}
@@ -159,7 +167,7 @@ export function CinematicEndCredits({
             {/* Right: Recommendations */}
             {similarContent && similarContent.length > 0 && (
               <div className="w-[400px]">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-6 block">Suggested Analysis</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-6 block">Editorial Selection</span>
                 <div className="flex flex-col gap-4">
                   {similarContent.slice(0, 3).map((item: Content) => (
                     <Link 

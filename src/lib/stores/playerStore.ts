@@ -315,6 +315,7 @@ export const usePlayerActions = () =>
   usePlayerStore(state => ({
     setPlaying: state.setPlaying,
     setCurrentTime: state.setCurrentTime,
+    setDuration: state.setDuration,
     setVolume: state.setVolume,
     setMuted: state.setMuted,
     toggleMute: state.toggleMute,

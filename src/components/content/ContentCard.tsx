@@ -14,7 +14,6 @@ import { contentApi } from '@/lib/api/content';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
 import { useUISounds } from '@/hooks/useUISounds';
-import { AtmosphericPreview } from './AtmosphericPreview';
 import { usePreferencesStore } from '@/lib/stores/preferencesStore';
 
 interface ContentCardProps {
@@ -43,7 +42,6 @@ const ContentCard = memo(function ContentCard({
   const autoPlayPreviews = usePreferencesStore(state => state.autoPlay);
 
   const [showPreview, setShowPreview] = useState(false);
-  const previewTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const inLibrary = isInLibrary(String(item.id));
   const contentType = item.type || (item.seasonsList && item.seasonsList.length > 0 ? 'tv' : 'movie');
@@ -87,16 +85,11 @@ const ContentCard = memo(function ContentCard({
       router.prefetch(`/watch?id=${item.id}&type=${contentType}`);
     }, 200);
 
-    if (autoPlayPreviews) {
-      previewTimeout.current = setTimeout(() => {
-        setShowPreview(true);
-      }, 800);
-    }
+
   };
 
   const runOnMouseLeave = () => {
     if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
     setShowPreview(false);
   };
 
@@ -133,8 +126,14 @@ const ContentCard = memo(function ContentCard({
   const badge = getBadge();
   const matchScore = Math.min(Math.round((item.rating || 0) * 10), 100);
 
+  const [isNavigating, setIsNavigating] = useState(false);
+  const provider = providerId ? getProviderById(providerId) || getProviderBySlug(providerId) : null;
+
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isNavigating) return;
+    setIsNavigating(true);
+
     const resumeData = getResumeData(String(item.id));
     const providerQuery = providerId ? `&provider=${providerId}` : '';
 
@@ -152,13 +151,13 @@ const ContentCard = memo(function ContentCard({
     }
   };
 
-  const provider = providerId ? getProviderById(providerId) || getProviderBySlug(providerId) : null;
-
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
-      transition={{ duration: 0.2 }}
+      animate={isNavigating ? { scale: [1, 1.02, 1], opacity: [1, 0.8, 1] } : {}}
+      transition={isNavigating ? { repeat: Infinity, duration: 0.8, ease: "easeInOut" } : { duration: 0.2 }}
       tabIndex={0}
+      data-testid="content-card"
       className={cn(
         'relative rounded-sm overflow-hidden bg-zinc-900/50 cursor-pointer group shrink-0 border border-white/5 outline-none transition-all duration-300',
         'hover:z-30',
@@ -216,12 +215,6 @@ const ContentCard = memo(function ContentCard({
           );
         })()}
 
-        <AtmosphericPreview 
-          id={item.id} 
-          type={contentType as 'movie' | 'tv' | 'anime'} 
-          show={showPreview} 
-        />
-
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
 
         {badge && !providerId && (
@@ -238,14 +231,27 @@ const ContentCard = memo(function ContentCard({
         {providerId && (
           <div
             className={cn(
-              'absolute top-3 right-3 z-30 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-[0.2em] backdrop-blur-md flex items-center gap-2 border',
+              'absolute top-3 right-3 z-30 px-2.5 py-1.5 rounded-md backdrop-blur-md flex items-center justify-center border transition-all duration-300',
               providerId === 'acu'
-                ? 'bg-amber-600/20 border-amber-500/50 text-amber-500'
-                : `bg-black/60 border-white/10 text-white/70`
+                ? 'bg-amber-600/20 border-amber-500/50 shadow-[0_0_15px_rgba(251,191,36,0.2)]'
+                : `bg-black/60 border-white/10 group-hover:bg-black/80 group-hover:border-white/20`
             )}
           >
-            {providerId === 'acu' && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-            {provider?.name || providerId}
+            {provider?.logo ? (
+              <img 
+                src={provider.logo} 
+                alt={provider.name} 
+                className={cn(
+                  "h-3 w-auto object-contain",
+                  provider.slug === 'netflix' && "h-3.5",
+                  provider.slug === 'apple' && "invert brightness-0"
+                )} 
+              />
+            ) : (
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/90">
+                {provider?.name || providerId}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -282,7 +288,7 @@ const ContentCard = memo(function ContentCard({
         );
       })()}
 
-      <div className="absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+      <div data-testid="content-overlay" className="absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
         <div className="flex gap-2">
           <button
             className={cn(
@@ -296,6 +302,7 @@ const ContentCard = memo(function ContentCard({
             aria-label="Play"
             title="Play"
             onClick={handlePlay}
+            data-testid="play-button"
           >
             <Play size={16} fill="currentColor" />
           </button>
@@ -307,6 +314,7 @@ const ContentCard = memo(function ContentCard({
             aria-label={inLibrary ? 'Remove from library' : 'Add to library'}
             title={inLibrary ? 'Remove from library' : 'Add to library'}
             onClick={toggleWatchlist}
+            data-testid="watchlist-button"
           >
             {inLibrary ? <Check size={16} /> : <Plus size={16} />}
           </button>

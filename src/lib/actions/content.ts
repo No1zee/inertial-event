@@ -51,14 +51,45 @@ function transformToContent(item: TMDBItem, type?: string): Content {
 
 export async function searchContentServer(query: string, page: number = 1): Promise<Content[]> {
   if (!query) return [];
+  
+  const normalizedQuery = query.toLowerCase().trim();
+  
+  // Vibe Mapping Logic - The "Oracle" Cinematic Library
+  const vibeMappings: Record<string, string> = {
+    'cinematic poetry': 'discover/movie?with_genres=18,10749&sort_by=vote_average.desc&vote_count.gte=1000',
+    'noir shadow': 'discover/movie?with_genres=80,9648&sort_by=revenue.desc&vote_count.gte=500',
+    'high-octane': 'discover/movie?with_genres=28,12&sort_by=popularity.desc',
+    'golden hour': 'discover/movie?with_genres=37,18&sort_by=vote_average.desc&vote_count.gte=1000',
+    'oracle picks': 'movie/top_rated?',
+    'cyberpunk decay': 'discover/movie?with_keywords=210332,179431&sort_by=popularity.desc',
+    'cerebral thriller': 'discover/movie?with_genres=53,9648&vote_average.gte=7.5&vote_count.gte=1000',
+    'aurelian classic': 'discover/movie?primary_release_date.lte=1980-01-01&sort_by=vote_average.desc&vote_count.gte=2000',
+    'vanguard anime': 'discover/tv?with_genres=16&with_original_language=ja&sort_by=popularity.desc',
+    'afrofuturism': 'discover/movie?with_keywords=1701,232930&sort_by=popularity.desc',
+  };
+
   try {
-    const res = await axios.get(
-      getTmdbUrl('/search/multi', `query=${encodeURIComponent(query)}&page=${page}&language=en-US&include_adult=false`)
-    );
+    let url: string;
+    
+    if (vibeMappings[normalizedQuery]) {
+      const endpoint = vibeMappings[normalizedQuery];
+      url = getTmdbUrl(`/${endpoint}`, `page=${page}&language=en-US`);
+    } else {
+      url = getTmdbUrl('/search/multi', `query=${encodeURIComponent(query)}&page=${page}&language=en-US&include_adult=false`);
+    }
+
+    const res = await axios.get(url);
     const results = (res.data.results || []).filter(
-      (item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv'
+      (item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv' || !item.media_type // Discover results don't always have media_type
     );
-    return results.map((item: TMDBItem) => transformToContent(item));
+    
+    // Ensure media_type is set for discover results which might be missing it
+    const transformed = results.map((item: TMDBItem) => {
+      const type = vibeMappings[normalizedQuery] ? (vibeMappings[normalizedQuery].includes('tv') ? 'tv' : 'movie') : undefined;
+      return transformToContent(item, type);
+    });
+
+    return transformed;
   } catch (e) {
     console.error('Server search failed:', e);
     return [];

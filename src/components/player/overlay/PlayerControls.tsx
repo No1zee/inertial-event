@@ -379,6 +379,7 @@ const PlayerControls = memo(function PlayerControls({
                       onClick={onToggleMute} 
                       className="text-white/60 hover:text-white transition-colors"
                       aria-label={isMuted ? 'Unmute' : 'Mute'}
+                      data-testid="volume-button"
                     >
                       {isMuted || volume === 0 ? <VolumeX size={24} /> : <Volume2 size={24} />}
                     </button>
@@ -457,6 +458,7 @@ const PlayerControls = memo(function PlayerControls({
                     onClick={onToggleFullscreen}
                     className="p-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
                     aria-label="Toggle Fullscreen"
+                    data-testid="fullscreen-button"
                   >
                     <Maximize size={22} />
                   </button>

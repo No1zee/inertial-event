@@ -33,6 +33,8 @@ interface StreamOptimizerState {
     lastBuffer: number;
   };
   currentPreloading: Set<string>;
+  blacklist: Set<string>;
+  failureCounts: Record<string, number>;
 }
 
 class StreamingOptimizer {
@@ -46,6 +48,8 @@ class StreamingOptimizer {
       lastBuffer: 0,
     },
     currentPreloading: new Set(),
+    blacklist: new Set(),
+    failureCounts: {},
   };
 
   private healthCheckTimeout = 60000;
@@ -113,8 +117,21 @@ class StreamingOptimizer {
     return this.state.sourceHealth[source.id];
   }
 
+  reportFailure(sourceId: string) {
+    this.state.failureCounts[sourceId] = (this.state.failureCounts[sourceId] || 0) + 1;
+    if (this.state.failureCounts[sourceId] >= 2) {
+      console.warn(`[StreamingOptimizer] Blacklisting source ${sourceId} due to repeated failures.`);
+      this.state.blacklist.add(sourceId);
+    }
+  }
+
+  clearFailure(sourceId: string) {
+    this.state.failureCounts[sourceId] = 0;
+    this.state.blacklist.delete(sourceId);
+  }
+
   getRankedSources(): StreamingSource[] {
-    return SOURCES.sort((a, b) => {
+    return SOURCES.filter(s => !this.state.blacklist.has(s.id)).sort((a, b) => {
       const healthA = this.state.sourceHealth[a.id];
       const healthB = this.state.sourceHealth[b.id];
 
@@ -131,6 +148,7 @@ class StreamingOptimizer {
       return 0;
     });
   }
+
 
   getPreloadKey(contentId: string, type: string, season?: number, episode?: number): string {
     return `${contentId}-${type}-${season || 0}-${episode || 0}`;

@@ -88,6 +88,7 @@ export function SearchBar({
             onChange?.(e.target.value);
           }}
           placeholder={isAi ? 'Describe a vibe, mood, or complex concept...' : placeholder}
+          data-testid="search-input"
           className="flex-1 bg-transparent border-none outline-none text-xl font-bold text-white placeholder:text-zinc-600 placeholder:font-medium tracking-tight h-full"
         />
 
@@ -101,7 +102,7 @@ export function SearchBar({
               className="flex items-center gap-2"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-              <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Syncing</span>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Processing</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -131,29 +132,32 @@ export function SearchBar({
         </button>
       </motion.form>
 
-      {/* AI Augmentation Toggle */}
-      <div className="flex items-center justify-center gap-6">
-        <button
-          onClick={() => setIsAi(false)}
-          className={cn(
-            'text-[10px] font-bold tracking-[0.3em] uppercase transition-all duration-500',
-            !isAi ? 'text-primary px-4 py-1.5 bg-primary/10 rounded-full' : 'text-zinc-600 hover:text-zinc-400'
-          )}
-        >
-          Standard Link
-        </button>
-        <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-        <button
-          onClick={() => setIsAi(true)}
-          className={cn(
-            'flex items-center gap-2 text-[10px] font-bold tracking-[0.3em] uppercase transition-all duration-500',
-            isAi ? 'text-purple-400 px-4 py-1.5 bg-purple-500/10 rounded-full' : 'text-zinc-600 hover:text-zinc-400'
-          )}
-        >
-          <Sparkles size={12} className={isAi ? 'animate-pulse' : ''} />
-          AI Augmented
-        </button>
-      </div>
+      {/* Oracle Discovery Suggestions */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="flex flex-wrap justify-center gap-3 pt-6"
+      >
+        {[
+          { label: 'High-Octane', vibe: 'high-octane' },
+          { label: 'Cinematic Poetry', vibe: 'cinematic poetry' },
+          { label: 'Cerebral Thriller', vibe: 'cerebral thriller' },
+          { label: 'Aurelian Classic', vibe: 'aurelian classic' },
+          { label: 'Cyberpunk Decay', vibe: 'cyberpunk decay' }
+        ].map((suggestion) => (
+          <button
+            key={suggestion.label}
+            onClick={() => {
+              setQuery(suggestion.vibe);
+              onSearch(suggestion.vibe, true);
+            }}
+            className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:border-amber-500/30 hover:bg-amber-500/5 text-[10px] font-black text-zinc-500 hover:text-amber-500 uppercase tracking-widest transition-all duration-300"
+          >
+            {suggestion.label}
+          </button>
+        ))}
+      </motion.div>
     </div>
   );
 }

@@ -27,6 +27,13 @@ interface PretextHeadlineProps {
   maxWidth?: number;
   className?: string;
   stagger?: number;
+  letterSpacing?: string;
+  shadow?: {
+    color: string;
+    blur: number;
+    offsetX: number;
+    offsetY: number;
+  };
 }
 
 /**
@@ -44,6 +51,8 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
   maxWidth = 800,
   className = '',
   stagger: _stagger = 0,
+  letterSpacing,
+  shadow,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const text = useMemo(() => {
@@ -115,6 +124,18 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
 
     // Clear and draw
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (shadow) {
+      ctx.shadowColor = shadow.color;
+      ctx.shadowBlur = shadow.blur;
+      ctx.shadowOffsetX = shadow.offsetX;
+      ctx.shadowOffsetY = shadow.offsetY;
+    }
+
+    if (letterSpacing) {
+      (ctx as any).letterSpacing = letterSpacing;
+    }
+
     ctx.fillStyle = color;
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
     ctx.textBaseline = 'top';
@@ -127,7 +148,7 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
         }
       });
     }
-  }, [layoutResult, color, fontSize, fontFamily, fontWeight]);
+  }, [layoutResult, color, fontSize, fontFamily, fontWeight, shadow, letterSpacing]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -139,8 +160,11 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
   }, [layoutResult]);
 
   return (
-    <div ref={containerRef} className={`pretext-container overflow-hidden ${className}`}>
-      <canvas ref={canvasRef} className="block pointer-events-none" />
+    <div ref={containerRef} className={`pretext-container relative overflow-hidden ${className}`}>
+      {/* Screen Reader Mirror */}
+      <span className="sr-only" aria-hidden="false">{text}</span>
+      
+      <canvas ref={canvasRef} className="block pointer-events-none" aria-hidden="true" />
     </div>
   );
 };

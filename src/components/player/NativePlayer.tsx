@@ -6,11 +6,10 @@ import { Poster } from '@vidstack/react';
 import { SanctumAmbiance } from './SanctumAmbiance';
 import PlayerControls from './overlay/PlayerControls';
 import SettingsOverlay from './overlay/SettingsOverlay';
-import PostPlayOverlay from './overlay/PostPlayOverlay';
 import CastModal, { CastDevice } from './overlay/CastModal';
 import { Season } from '@/lib/types/content';
 import { useContentStore } from '@/store/contentStore';
-import { usePlayerStore } from '@/store/playerStore';
+import { usePlayerActions } from '@/lib/stores/playerStore';
 import { aegisShield, type ShieldStatus } from '@/services/AegisShield';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -28,11 +27,10 @@ interface NavigatorWithConnection extends Navigator {
 }
 
 import { SkipOverlay } from './SkipOverlay';
-import { EndCreditsOverlay } from './EndCreditsOverlay';
 import { DialogueSearch } from './DialogueSearch';
 import { XRayOverlay } from './XRayOverlay';
 import { AmbientSync } from './AmbientSync';
-import { LoungeOverlay } from '../social/LoungeOverlay';
+
 
 interface NativePlayerProps {
   src: string;
@@ -49,7 +47,7 @@ interface NativePlayerProps {
   onEnded?: () => void;
   onFatalError?: (error: unknown) => void;
   onProgress?: (progress: { currentTime: number; duration: number }) => void;
-  onToggleSource?: () => void;
+  onToggleSource?: (recommendedSourceId?: string) => void;
   initialTime?: number;
   tmdbId?: string;
   cast?: { id: number; name: string; character: string; profile_path: string | null }[];
@@ -109,7 +107,7 @@ export default function NativePlayer({
 
   // Global Store Actions
   const { addToLibrary, removeFromLibrary, isInLibrary } = useContentStore();
-  const { setPlayerState } = usePlayerStore();
+  const { setCurrentTime, setDuration, loadMedia, unloadMedia } = usePlayerActions();
   const isSaved = isInLibrary(title); // Simple check for now, can be improved to use complex ID
 
   const {
@@ -119,6 +117,23 @@ export default function NativePlayer({
     subtitleOpacity,
   } = useUserPreferencesStore();
 
+  // Media Lifecycle Synchronization
+  useEffect(() => {
+    loadMedia({
+      id: _tmdbId || '',
+      type,
+      title,
+      poster,
+      season: Number(season),
+      episode: Number(episode),
+      source: src,
+    });
+
+    return () => {
+      unloadMedia();
+    };
+  }, [loadMedia, unloadMedia, _tmdbId, type, title, poster, season, episode, src]);
+
   // Progress Synchronization
   useEffect(() => {
     if (currentTime > 0) {
@@ -127,11 +142,8 @@ export default function NativePlayer({
       const currentInt = Math.floor(currentTime);
       
       if (currentInt !== lastInt.current) {
-        setPlayerState({
-          currentContentId: title,
-          currentTime,
-          duration,
-        });
+        setCurrentTime(currentTime);
+        setDuration(duration);
         lastInt.current = currentInt;
       }
 
@@ -145,7 +157,7 @@ export default function NativePlayer({
       const bufferedDuration = Math.max(0, bufferedEnd - currentTime);
       aegisShield.updateMetrics(bufferedDuration, 0); // Bandwidth estimation can be added later
     }
-  }, [currentTime, duration, buffered, title, setPlayerState, onProgress]);
+  }, [currentTime, duration, buffered, setCurrentTime, setDuration, onProgress]);
 
   // Shield Initialization
   useEffect(() => {
@@ -160,7 +172,7 @@ export default function NativePlayer({
     if (shieldStatus?.health === 'critical' && onToggleSource && !hasFatalError) {
       console.log(`[NativePlayer] Aegis Shield triggered auto-source optimization: ${shieldStatus.recommendation || 'Failover initiated'}`);
       // Auto-failover to next available source (Feature 25)
-      onToggleSource();
+      onToggleSource(shieldStatus.recommendation);
     }
   }, [shieldStatus?.health, shieldStatus?.recommendation, onToggleSource, hasFatalError]);
 
@@ -209,11 +221,12 @@ export default function NativePlayer({
 
   return (
     <div
-      className="w-full h-full bg-black relative overflow-hidden flex items-center justify-center group"
+      className="w-full h-full bg-black relative overflow-hidden flex items-center justify-center group max-h-screen min-h-0"
       onMouseMove={handleInteraction}
       onClick={handleInteraction}
       onPointerMove={handleInteraction}
       aria-label="Media player container"
+      data-testid="video-player"
     >
       {/* Ambient Background */}
       <SanctumAmbiance src={poster || null} />
@@ -221,8 +234,7 @@ export default function NativePlayer({
       <MediaPlayer
         ref={playerRef}
         src={src}
-        className="w-full h-full bg-black overflow-hidden shadow-2xl"
-        aspectRatio="16/9"
+        className="w-full h-full bg-black overflow-hidden [&_video]:max-h-full [&_video]:max-w-full [&_video]:object-contain"
         crossOrigin="anonymous"
         autoPlay
         muted={false}
@@ -236,9 +248,11 @@ export default function NativePlayer({
             remote.seek(initialTime);
           }
           remote.play();
+          window.dispatchEvent(new CustomEvent('AG_LOADED', { detail: { provider, tmdbId: _tmdbId } }));
         }}
         onError={(event: unknown) => {
           setHasFatalError(true);
+          aegisShield.triggerCriticalFailover();
           if (_onFatalError) _onFatalError(event);
         }}
         onProviderSetup={(adapter) => {
@@ -342,27 +356,6 @@ export default function NativePlayer({
           onSkip={(seconds) => remote.seek(currentTime + seconds)}
         />
 
-        {/* End Credits (Feature 30) */}
-        <EndCreditsOverlay
-          show={showEndCredits}
-          onNext={() => {
-            setShowEndCredits(false);
-            onNext?.();
-          }}
-          onReplay={() => {
-            setShowEndCredits(false);
-            remote.seek(0);
-            remote.play();
-          }}
-          onClose={() => setShowEndCredits(false)}
-          nextContent={type !== 'movie' ? {
-            title: `Episode ${Number(episode) + 1}`,
-            poster: poster || '',
-            season: Number(season),
-            episode: Number(episode) + 1,
-          } : undefined}
-        />
-
         {/* X-Ray Context (Feature 5) */}
         <XRayOverlay 
           show={showXRay}
@@ -380,13 +373,6 @@ export default function NativePlayer({
             setShowDialogueSearch(false);
           }}
           subtitles={[]}
-        />
-
-        {/* Lounge Watch Party (Feature 21) */}
-        <LoungeOverlay 
-          show={showLounge}
-          onClose={() => setShowLounge(false)}
-          roomUrl={typeof window !== 'undefined' ? window.location.href : ''}
         />
 
         {/* Settings Overlay */}
@@ -430,24 +416,7 @@ export default function NativePlayer({
           isScanning={false}
         />
 
-        {/* End Overlay */}
-        {isEnded && (
-          <PostPlayOverlay
-            show={isEnded}
-            onClose={() => remote.seek(0)}
-            currentId={src || ''}
-            type={type}
-            onPlay={id => {
-              // If it's the next episode of the same show
-              if (id === src) {
-                // Logic for next episode navigation would go here
-                // For now, we rely on the parent's onNext
-                if (onNext) onNext();
-              }
-            }}
-            nextEpisode={null} // Can be populated if logic is available
-          />
-        )}
+
       </MediaPlayer>
     </div>
   );

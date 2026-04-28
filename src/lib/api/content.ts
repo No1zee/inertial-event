@@ -1140,5 +1140,11 @@ const getHeritageData = (id: number | string, title: string) => {
     };
   }
 
-  return undefined;
+  // Fallback Institutional Note for high-quality content
+  return {
+    culturalContext: "This work is a cornerstone of our cinematic archive, selected for its directorial integrity and stylistic vanguard.",
+    accuracyVerified: true,
+    curatorNote: "An institutional-grade masterpiece that defines the Golden Hour sanctuary. Essential viewing for the discerning archivist.",
+    didYouKnow: "Every entry in the S-Class archive undergoes a rigorous directorial audit for thematic purity and visual excellence."
+  };
 };

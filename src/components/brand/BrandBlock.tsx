@@ -9,9 +9,10 @@ interface BrandBlockProps {
   gradient?: string;
   icon?: React.ReactNode;
   bgImage?: string;
+  onClick?: () => void;
 }
 
-export function BrandBlock({ text, subtext, bgImage }: BrandBlockProps) {
+export function BrandBlock({ text, subtext, bgImage, onClick }: BrandBlockProps) {
   const tickerItems = [
     'CODEC: AV1-MASTER',
     'BITRATE: 45MBPS',
@@ -104,6 +105,7 @@ export function BrandBlock({ text, subtext, bgImage }: BrandBlockProps) {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
+            onClick={onClick}
             aria-label={`Explore Archive: ${text}`}
             className="group relative px-10 py-5 rounded-full bg-red-600 text-white font-bold uppercase tracking-widest text-xs flex items-center gap-3 overflow-hidden shadow-lg shadow-red-600/20"
           >

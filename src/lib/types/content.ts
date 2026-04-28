@@ -2,6 +2,7 @@ export interface Content {
   id: string;
   title: string;
   description?: string;
+  overview?: string;
   poster: string;
   backdrop?: string;
   poster_path?: string;
@@ -58,6 +59,7 @@ export interface Content {
 export interface MinifiedContent extends Partial<Content> {
   id: string;
   title: string;
+  overview?: string;
   type: 'movie' | 'tv' | 'anime';
   poster: string;
   // Optional extras we might want to keep

@@ -6,11 +6,10 @@ import { useInView } from 'framer-motion';
 import { CinemaMarquee } from '@/components/content/CinemaMarquee';
 import { AtmosphericRail } from '@/components/content/AtmosphericRail';
 import { ProximityBento } from '@/components/content/ProximityBento';
-import ContinueWatching from '@/components/home/ContinueWatching';
-import RecentlyWatched from '@/components/home/RecentlyWatched';
-import { StudioRail } from '@/components/home/StudioRail';
 import { SmartCollections } from '@/components/home/SmartCollections';
-import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { CriticsVault } from '@/components/home/CriticsVault';
+import { StudioRail } from '@/components/home/StudioRail';
+import { AurelianDashboard } from '@/components/home/AurelianDashboard';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { cn } from '@/lib/utils';
@@ -39,21 +38,21 @@ const RAIL_CONFIGS: RailConfig[] = [
   },
   {
     id: 'netflix_originals',
-    title: 'Netflix Originals',
+    title: 'Features',
     fetcher: () => contentApi.discover({ with_networks: '213' }, 'tv'),
     aspectRatio: 'poster' as const,
     providerId: 'netflix',
   },
   {
     id: 'adult_swim',
-    title: 'Adult Swim Bumps',
+    title: 'Features',
     fetcher: () => contentApi.discover({ with_networks: '80' }, 'tv'),
     aspectRatio: '16:9' as const,
     providerId: 'adult-swim',
   },
   {
     id: 'hulu_picks',
-    title: 'Hulu Exclusive',
+    title: 'Features',
     fetcher: () => contentApi.discover({ with_networks: '453' }, 'tv'),
     aspectRatio: 'poster' as const,
     providerId: 'hulu',
@@ -120,18 +119,16 @@ export default function DashboardPage() {
       <CinemaMarquee items={trending} />
 
       <div className="relative z-10 -mt-32 pb-32">
-        <DashboardHeader />
+        {/* 1. Aurelian Command Center (Greeting + Pipeline + Pulse) */}
+        <AurelianDashboard />
 
         {/* 2. Studio / Brand Shortcuts */}
         <StudioRail />
 
-        {/* 3. Continue Watching */}
-        <ContinueWatching />
+        {/* 2.5 The Critic's Vault (S-Class Serendipity) */}
+        <CriticsVault />
 
-        {/* 4. Recently Watched */}
-        <RecentlyWatched />
-
-        {/* 4.5 AI Curated Vaults */}
+        {/* 3. AI Curated Vaults */}
         <SmartCollections />
 
         {/* Interstitial: Proximity Bento */}
@@ -144,6 +141,7 @@ export default function DashboardPage() {
           <Suspense fallback={<div className="h-[600px] animate-pulse bg-zinc-900 mx-10 lg:mx-24 rounded-[4rem]" />}>
             <BrandBlock
               text="Mai Foundry"
+              onClick={() => document.getElementById('the-archives')?.scrollIntoView({ behavior: 'smooth' })}
               bgImage={getOptimizedImageUrl(
                 'https://images.unsplash.com/photo-1574267432553-4b4628081c31',
                 'landscape'

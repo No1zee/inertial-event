@@ -121,6 +121,11 @@ class SourceService {
             });
 
             console.log(`[SourceService] Final unique sources count: ${uniqueSources.length}`);
+            
+            // Background Warm-up (Fire and Forget)
+            this.warmupTopSources(uniqueSources).catch(err => 
+                console.warn("[SourceService] Warmup error (non-critical):", err.message)
+            );
 
             // If no sources found, return empty result to trigger frontend iframe fallback
             if (uniqueSources.length === 0) {
@@ -161,6 +166,24 @@ class SourceService {
         } catch {
             return false;
         }
+    }
+
+    async warmupTopSources(sources: IStreamSource[]) {
+        // Fire and forget top 3 direct sources to prime CDN/Backend
+        const directSources = sources.filter(s => s.type === 'hls' || s.type === 'mp4').slice(0, 3);
+        if (directSources.length === 0) return;
+
+        console.log(`[SourceService] Cinematic Warm-up: Priming ${directSources.length} direct streams...`);
+        
+        // We use Promise.allSettled to ensure we don't block, but also don't crash the server loop
+        Promise.allSettled(
+            directSources.map(s => this.verifySourceHealth(s.url))
+        ).then(results => {
+            const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+            if (successCount > 0) {
+                console.log(`[SourceService] Warm-up Complete: ${successCount}/${directSources.length} streams primed.`);
+            }
+        }).catch(() => {});
     }
 }
 

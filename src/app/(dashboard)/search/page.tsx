@@ -51,14 +51,43 @@ function SearchContent() {
       {/* Search Hub Header */}
       <div className="flex flex-col items-center mb-24 space-y-12">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4">
-          <PretextHeadline text="Search Sanctuary" className="text-5xl md:text-7xl font-bold tracking-tighter" />
-          <p className="text-zinc-500 font-bold uppercase tracking-[0.5em] text-[10px]">
-            Directorial Content Extraction
-          </p>
+          <PretextHeadline 
+            text="Search Sanctuary" 
+            fontSize={typeof window !== 'undefined' && window.innerWidth < 768 ? 48 : 80}
+            fontWeight={900}
+            letterSpacing="-0.05em"
+            className="text-white" 
+          />
+          <PretextHeadline 
+            text="The Discovery Engine" 
+            fontSize={10}
+            fontWeight={700}
+            letterSpacing="0.5em"
+            className="text-zinc-500 uppercase" 
+          />
         </motion.div>
 
         <SearchBar onSearch={handleSearch} initialQuery={query} initialAi={aiModeParam} loading={loading} />
       </div>
+
+      {/* Atmospheric Backdrop (Dynamic) */}
+      <AnimatePresence>
+        {results[0] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.15 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 pointer-events-none z-0"
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
+            <img 
+              src={`https://image.tmdb.org/t/p/original${results[0].backdrop || results[0].backdrop_path}`}
+              className="w-full h-full object-cover blur-[100px] scale-110"
+              alt=""
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Results Canvas */}
       <main className="flex-1">
@@ -99,10 +128,23 @@ function SearchContent() {
             >
               <div className="flex items-end justify-between border-b border-white/[0.03] pb-10">
                 <div className="space-y-2">
-                  <h2 className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em]">Query Response</h2>
-                  <h1 className="text-3xl font-bold tracking-tight">
-                    <span className="text-zinc-500">Record found for</span> &quot;{query}&quot;
-                  </h1>
+                  <PretextHeadline
+                    text="Query Response"
+                    fontSize={10}
+                    fontWeight={700}
+                    letterSpacing="0.3em"
+                    className="text-zinc-600 uppercase"
+                  />
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-zinc-500 font-medium italic">Record found for</span>
+                    <PretextHeadline
+                      text={`"${query}"`}
+                      fontSize={32}
+                      fontWeight={900}
+                      letterSpacing="-0.02em"
+                      className="text-white"
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="px-5 py-2 rounded-xl bg-white/[0.03] border border-white/5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">

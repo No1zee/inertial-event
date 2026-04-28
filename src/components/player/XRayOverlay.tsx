@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Info, Map, Music, ChevronRight } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { PretextHeadline } from '@/components/Common/PretextHeadline';
 
 
 interface XRayOverlayProps {
@@ -67,9 +68,14 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                   </div>
                 )}
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold text-white truncate">{person.name}</span>
-                <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest truncate">{person.character}</span>
+              <div className="flex flex-col min-w-0 overflow-hidden">
+                <PretextHeadline 
+                  text={person.name} 
+                  fontSize={14} 
+                  fontWeight={700} 
+                  className="text-white"
+                />
+                <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest truncate mt-1">{person.character}</span>
               </div>
               <ChevronRight size={14} className="ml-auto text-zinc-600 group-hover:text-primary transition-colors" />
             </motion.div>
@@ -189,9 +195,15 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                       </div>
                     )}
                  </div>
-                 <div className="flex flex-col">
-                    <h4 className="text-xl font-bold text-white tracking-tight">{person.name}</h4>
-                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-widest">{person.character}</span>
+                 <div className="flex flex-col min-w-0 overflow-hidden">
+                    <PretextHeadline 
+                      text={person.name} 
+                      fontSize={20} 
+                      fontWeight={700} 
+                      letterSpacing="-0.02em" 
+                      className="text-white" 
+                    />
+                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-widest mt-1">{person.character}</span>
                  </div>
                  <div className="ml-auto flex items-center gap-3">
                     <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Screen Time:</span>
@@ -315,7 +327,14 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
            <div className="flex items-center justify-between mb-12">
               <div className="flex items-center gap-6">
                  <div className="w-1.5 h-8 bg-primary rounded-full" />
-                 <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Director&apos;s Cut Context</h2>
+                 <PretextHeadline
+                    text="Director's Cut Context"
+                    fontSize={36}
+                    fontWeight={900}
+                    letterSpacing="-0.05em"
+                    fontStyle="italic"
+                    className="text-white uppercase"
+                 />
               </div>
               <button 
                 onClick={onClose}
@@ -346,8 +365,14 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                           </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                        <div className="absolute bottom-8 left-8">
-                           <h4 className="text-4xl font-black text-white uppercase tracking-tighter italic">{selectedPerson.name}</h4>
+                        <div className="absolute bottom-8 left-8 right-8">
+                           <PretextHeadline 
+                             text={selectedPerson.name} 
+                             fontSize={36} 
+                             fontWeight={900} 
+                             fontStyle="italic" 
+                             className="text-white uppercase" 
+                           />
                            <p className="text-primary font-bold uppercase tracking-widest text-xs mt-2">{selectedPerson.character}</p>
                         </div>
                      </div>

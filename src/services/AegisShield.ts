@@ -12,6 +12,7 @@ export interface ShieldStatus {
   bandwidth: number;
   lastFailover?: number;
   recommendation?: string;
+  currentSourceId?: string;
 }
 
 class AegisShield {
@@ -59,6 +60,10 @@ class AegisShield {
     streamingOptimizer.updateBufferHealth(bufferedDuration, bandwidth, 'auto');
   }
 
+  updateCurrentSource(sourceId: string) {
+    this.state.currentSourceId = sourceId;
+  }
+
   private async audit() {
     if (!this.state.active) return;
 
@@ -84,12 +89,22 @@ class AegisShield {
     }
   }
 
+  public async triggerCriticalFailover() {
+    this.state.health = 'critical';
+    await this.handleCriticalHealth();
+    this.notify();
+  }
+
   private async handleCriticalHealth() {
     const now = Date.now();
     if (now - this.lastFailover < this.thresholds.failoverDelay) return;
 
     console.warn('[AegisShield] Critical buffer starvation detected. Initiating automated failover protocol.');
     
+    if (this.state.currentSourceId) {
+      streamingOptimizer.reportFailure(this.state.currentSourceId);
+    }
+
     // Ranked sources check
     const ranked = streamingOptimizer.getRankedSources();
     if (ranked.length > 0) {

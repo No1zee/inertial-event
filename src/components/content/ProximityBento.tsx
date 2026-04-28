@@ -1,102 +1,147 @@
 'use client';
 
-import React from 'react';
-import { Sparkles } from 'lucide-react';
-import { useLocalDataStore } from '@/lib/stores/localDataStore';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Sparkles, Play, Info } from 'lucide-react';
 import { useHydrated } from '@/hooks/useHydrated';
-import { ContentCard } from './ContentCard';
+import { OptimizedImage } from '../ui/OptimizedImage';
+import { PretextHeadline } from '../Common/PretextHeadline';
+import { useQuery } from '@tanstack/react-query';
+import { contentApi } from '@/lib/api/content';
+import { useRouter } from 'next/navigation';
 import { Content } from '@/lib/types/content';
 
+const DIRECTORIAL_SUGGESTIONS = [
+  "A masterclass in non-linear storytelling and rhythmic pacing.",
+  "Visual purity at its highest form, pushing the boundaries of frame composition.",
+  "Directorial restraint creates immense tension in this institutional-grade masterpiece.",
+  "A chromatic odyssey that redefines modern genre boundaries.",
+  "S-Class cinematography meeting directorially-driven motion framework.",
+  "An exploration of the human condition through an S-Tier visual lens.",
+  "Architectural-grade set design paired with perfect cinematic flow."
+];
+
 export function ProximityBento() {
-  const watchHistory = useLocalDataStore(state => state.watchHistory);
   const isHydrated = useHydrated();
+  const router = useRouter();
+  const [rotationIndex, setRotationIndex] = useState(0);
 
-  if (!isHydrated) return null;
+  const { data: bangers } = useQuery<Content[]>({
+    queryKey: ['spotlight_bangers'],
+    queryFn: () => contentApi.getBangers(1),
+    staleTime: 1000 * 60 * 60,
+  });
 
-  // Simulated data for Sanctuary demonstration if history is empty
-  const MOCK_PROXIMITY: Content[] = [
-    {
-      id: '533535',
-      title: 'Deadpool & Wolverine',
-      backdrop: '/yDHYT7mUMvYVE77EPJuWp8oqkYV.jpg',
-      poster: '/8cdWjvZQUmOZaba7SEWGBhno9mE.jpg',
-      type: 'movie',
-      description:
-        'A weary Wolverine finds himself recovering from his injuries when he comes across a loudmouth Deadpool.',
-      genres: ['Action', 'Comedy'],
-      status: 'completed',
-      isAdult: false,
-      rating: 8.2,
-      releaseDate: '2024-07-24',
-    },
-    {
-      id: '93405',
-      title: 'Squid Game',
-      backdrop: '/zzWp2vI77KscNnNis96YAnpAsY0.jpg',
-      poster: '/d86O78988DAr56S79rWv36N2p9H.jpg',
-      type: 'tv',
-      description: "Hundreds of cash-strapped players accept a strange invitation to compete in children's games.",
-      genres: ['Drama', 'Thriller'],
-      status: 'ongoing',
-      isAdult: true,
-      rating: 7.8,
-      releaseDate: '2021-09-17',
-    },
-  ];
+  useEffect(() => {
+    // Determine the current 20-minute block since epoch
+    const updateIndex = () => {
+      const now = Date.now();
+      const twentyMinutes = 20 * 60 * 1000;
+      const index = Math.floor(now / twentyMinutes);
+      setRotationIndex(index);
+    };
 
-  const continueWatching = watchHistory
-    .filter(item => !item.completed && (item.poster || item.backdrop || item.poster_path || item.backdrop_path))
-    .slice(0, 2)
-    .map(
-      item =>
-        ({
-          id: item.contentId,
-          title: item.title,
-          poster: item.poster || item.poster_path || '',
-          backdrop: item.backdrop || item.backdrop_path || '',
-          type: item.type,
-          description: '', // Will be hydrated by modal if needed
-          genres: [],
-          status: 'completed',
-          isAdult: false,
-          rating: 0,
-          releaseDate: '',
-        }) as Content
-    );
+    updateIndex();
+    const interval = setInterval(updateIndex, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
-  const inProgress = continueWatching.length > 0 ? continueWatching : MOCK_PROXIMITY;
+  const spotlight = useMemo(() => {
+    if (!bangers || bangers.length === 0) return null;
+    return bangers[rotationIndex % bangers.length];
+  }, [bangers, rotationIndex]);
+
+  const suggestion = useMemo(() => {
+    return DIRECTORIAL_SUGGESTIONS[rotationIndex % DIRECTORIAL_SUGGESTIONS.length];
+  }, [rotationIndex]);
+
+  if (!isHydrated || !spotlight) return null;
+
 
   return (
     <section className="px-10 lg:px-24 mb-24">
       <header className="flex items-center gap-4 mb-10">
         <div className="h-[1px] flex-1 bg-white/[0.05]" />
         <h2 className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.5em] flex items-center gap-3">
-          <Sparkles size={14} className="text-red-600 animate-pulse" />
-          Proximity Intelligence
+          <Sparkles size={14} className="text-amber-500 animate-pulse" />
+          Spotlight
         </h2>
         <div className="h-[1px] flex-1 bg-white/[0.05]" />
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[800px] lg:h-[450px]">
-        {/* Primary Intelligence Node (Resume Playback) */}
-        <div className="lg:col-span-8 h-[450px] lg:h-full">
-          <ContentCard item={inProgress[0]} aspectRatio="fill" className="rounded-[2.5rem] border-white/10" />
+      <div className="relative h-[600px] w-full rounded-[3rem] overflow-hidden group/spotlight bg-zinc-900/50 border border-white/10">
+        {/* Background Scan Effect */}
+        <div className="absolute inset-0 z-0">
+          <OptimizedImage 
+            src={`https://image.tmdb.org/t/p/original${spotlight.backdrop || spotlight.backdrop_path}`}
+            alt={spotlight.title}
+            fill
+            className="object-cover opacity-40 group-hover/spotlight:scale-105 transition-transform duration-[2s] ease-out"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+          
+          {/* Neural Scan Line */}
+          <motion.div 
+            className="absolute inset-y-0 w-[1px] bg-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.5)] z-10"
+            animate={{ left: ['0%', '100%', '0%'] }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          />
         </div>
 
-        {/* Secondary Intelligence Node */}
-        <div className="lg:col-span-4 h-[350px] lg:h-full">
-          {inProgress[1] ? (
-            <ContentCard item={inProgress[1]} aspectRatio="fill" className="rounded-[2.5rem] border-white/10" />
-          ) : (
-            <div className="h-full rounded-[2.5rem] bg-white/[0.01] flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/5">
-              <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-zinc-600 mb-4">
-                <Sparkles size={20} />
+        {/* Content Overlay */}
+        <div className="relative inset-0 z-20 h-full p-16 flex flex-col justify-end max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-6"
+          >
+            <div className="flex items-center gap-3">
+              <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-black text-amber-500 uppercase tracking-widest">
+                Director's Spotlight / 9.8 Rating
               </div>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] max-w-[140px]">
-                Advanced insights pending more activity
-              </p>
+              <div className="h-[1px] w-12 bg-white/10" />
             </div>
-          )}
+
+            <PretextHeadline
+              text={spotlight.title}
+              fontSize={72}
+              fontWeight={900}
+              letterSpacing="-0.05em"
+              className="text-white uppercase"
+            />
+
+            <p className="text-xl text-zinc-400 font-medium leading-relaxed italic max-w-2xl">
+              "{suggestion}"
+            </p>
+
+            <div className="flex items-center gap-6 pt-4">
+              <button 
+                onClick={() => router.push(`/watch?id=${spotlight.id}&type=${spotlight.type}`)}
+                className="h-16 px-10 rounded-2xl bg-white text-black font-black text-sm uppercase tracking-widest flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-white/10"
+              >
+                <Play size={20} fill="currentColor" />
+                Watch
+              </button>
+              <button 
+                onClick={() => document.getElementById('the-archives')?.scrollIntoView({ behavior: 'smooth' })}
+                className="h-16 px-10 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-sm uppercase tracking-widest flex items-center gap-3 hover:bg-white/10 transition-all"
+              >
+                <Info size={20} />
+                Open Archives
+              </button>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Floating Rating Badge */}
+        <div className="absolute top-16 right-16 z-30 hidden lg:block">
+           <div className="w-32 h-32 rounded-full border border-amber-500/20 bg-black/40 backdrop-blur-3xl flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] mb-1">Critique</span>
+              <span className="text-4xl font-black text-white">S+</span>
+              <div className="h-[1px] w-8 bg-amber-500/50 mt-1" />
+           </div>
         </div>
       </div>
     </section>

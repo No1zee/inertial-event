@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { PROVIDERS } from '@/lib/constants/providers';
+import { PretextHeadline } from '../Common/PretextHeadline';
 
 export function StudioRail() {
   const router = useRouter();
@@ -14,7 +15,15 @@ export function StudioRail() {
 
   return (
     <div className="px-4 md:px-12 mb-16">
-      <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-[0.3em] mb-6 px-2">Featured Studios</h2>
+      <div className="mb-6 px-2">
+        <PretextHeadline
+          text="Mai Archive Features"
+          fontSize={12}
+          fontWeight={700}
+          letterSpacing="0.4em"
+          className="text-zinc-500 uppercase"
+        />
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {studios.map(studio => (
           <button

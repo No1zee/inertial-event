@@ -12,11 +12,16 @@
   
   /* Brand Constants (MaiWatch Identity) */
   --brand-primary: 346 84% 50%;  /* Cinematic Crimson */
+  --brand-primary-rgb: 235, 20, 71;
   --brand-accent: 217 91% 60%;   /* Royal Blue Accent */
+  --brand-accent-rgb: 60, 130, 246;
+  --brand-gold: 43 100% 50%;
+  --brand-gold-rgb: 255, 191, 0;
   
   /* Functional Palette (Institutional Purity) */
   --foreground: 0 0% 98%;      /* High-contrast white */
   --primary: var(--brand-primary);
+  --primary-rgb: var(--brand-primary-rgb);
   --primary-foreground: 0 0% 100%;
   
   --secondary: 240 4.8% 15.9%;
@@ -56,6 +61,22 @@
   /* Typography Guards */
   h1, h2, h3, .display {
     @apply font-display tracking-tight text-balance;
+  }
+
+  /* Video Containment Guards (Prevents player overflow on any screen) */
+  video,
+  media-player,
+  media-player video {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain;
+  }
+
+  media-provider,
+  [data-media-provider] {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden;
   }
 }
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, SkipForward, Info, X, Activity } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
+import { PretextHeadline } from '@/components/Common/PretextHeadline';
 
 interface EndCreditsOverlayProps {
   show: boolean;
@@ -70,7 +71,14 @@ export const EndCreditsOverlay: React.FC<EndCreditsOverlayProps> = ({
                className="flex flex-col items-center gap-4"
              >
                 <span className="text-primary font-black uppercase tracking-[0.5em] text-xs">Mission Complete</span>
-                <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter">Director&apos;s Sequence</h2>
+                <PretextHeadline 
+                  text="Director's Sequence" 
+                  fontSize={48} 
+                  fontWeight={900} 
+                  fontStyle="italic" 
+                  letterSpacing="-0.02em" 
+                  className="text-white uppercase" 
+                />
              </motion.div>
 
              {nextContent ? (
@@ -88,9 +96,15 @@ export const EndCreditsOverlay: React.FC<EndCreditsOverlayProps> = ({
                   </div>
 
                   <div className="flex flex-col items-start text-left gap-6">
-                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Up Next In {countdown}s</span>
-                        <h3 className="text-3xl font-black text-white leading-tight uppercase italic">{nextContent.title}</h3>
+                     <div className="flex flex-col overflow-hidden">
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 mb-2">Up Next In {countdown}s</span>
+                        <PretextHeadline 
+                          text={nextContent.title} 
+                          fontSize={30} 
+                          fontWeight={900} 
+                          fontStyle="italic" 
+                          className="text-white uppercase" 
+                        />
                         {nextContent.season && (
                           <span className="text-primary font-bold text-sm tracking-widest mt-2">
                              SEASON {nextContent.season} {'//'} EPISODE {nextContent.episode}
