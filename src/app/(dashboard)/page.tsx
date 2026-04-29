@@ -128,26 +128,6 @@ export default function DashboardPage() {
   const [visibleCount, setVisibleCount] = useState(4);
   const sentinelRef = useRef<HTMLDivElement>(null);
   
-  // Use a more robust intersection observer approach for infinite scroll
-  const [isSentinelInView, setIsSentinelInView] = useState(false);
-
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsSentinelInView(entry.isIntersecting);
-      },
-      { 
-        rootMargin: '400px 0px', // Trigger much earlier to ensure smooth loading
-        threshold: 0.01 
-      }
-    );
-
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [visibleCount, sortedRails.length]); // Re-observe when count changes as sentinel moves
-
   const sortedRails = useMemo(() => {
     if (!hydrated || !activeProfile?.preferences) return RAIL_CONFIGS;
     
@@ -198,6 +178,26 @@ export default function DashboardPage() {
       return scoreB - scoreA;
     });
   }, [hydrated, activeProfile?.preferences]);
+
+  // Use a more robust intersection observer approach for infinite scroll
+  const [isSentinelInView, setIsSentinelInView] = useState(false);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSentinelInView(entry.isIntersecting);
+      },
+      { 
+        rootMargin: '400px 0px', // Trigger much earlier to ensure smooth loading
+        threshold: 0.01 
+      }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount, sortedRails.length]); // Re-observe when count changes as sentinel moves
 
   // Only increment if we're in view AND not already at the end
   // Added a check to prevent rapid-fire loading if skeletons have no height
