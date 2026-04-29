@@ -218,7 +218,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
                 fill="transparent"
                 strokeDasharray="125.6"
                 strokeDashoffset={125.6 - (125.6 * scrollingProgress) / 100}
-                className="text-red-600 transition-all duration-[12000ms] ease-linear"
+                className="text-red-600 transition-all duration-[12s] ease-linear"
               />
             </svg>
             <span className="absolute text-[9px] font-bold text-zinc-500 tracking-tighter">

@@ -4,7 +4,7 @@
     "description": "An AI-powered video streaming platform leveraging next-gen semantic discovery.",
     "private": true,
     "engines": {
-        "node": "22.x"
+        "node": "24.x"
     },
     "main": "electron/main.js",
     "build": {

@@ -76,7 +76,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           setError(true);
         }}
         className={cn(
-          'transition-all duration-[0.8s] cubic-bezier(0.4, 0, 0.2, 1)',
+          'transition-all duration-[2000ms] ease-[cubic-bezier(0.4, 0, 0.2, 1)]',
           isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-md',
           error ? 'opacity-0' : '',
           className

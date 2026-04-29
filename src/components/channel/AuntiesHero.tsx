@@ -33,7 +33,7 @@ export function AuntiesHero({ item }: AuntiesHeroProps) {
             src={item.backdrop}
             alt={item.title}
             fill
-            className="object-cover transition-transform duration-&lsqb;2s&rsqb; scale-105 group-hover:scale-100"
+            className="object-cover transition-transform duration-[2000ms] scale-105 group-hover:scale-100"
             priority
             sizes="100vw"
           />

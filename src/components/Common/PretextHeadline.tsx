@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
-import * as PretextModule from '@chenglou/pretext';
-
-// Handle both standard and default-wrapped exports which can occur in minified bundles
-const Pretext = (PretextModule as any).default || PretextModule;
-
-const prepareWithSegments = typeof Pretext?.prepareWithSegments === 'function' ? Pretext.prepareWithSegments : null;
-const layoutWithLines = typeof Pretext?.layoutWithLines === 'function' ? Pretext.layoutWithLines : null;
+import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext';
 
 interface PretextLine {
   text: string;
