@@ -29,10 +29,11 @@ export function FileExplorer() {
                     (window.location.hostname.includes('vercel.app') || 
                      window.location.hostname.includes('maiwatches.com'));
 
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')
-          ? process.env.NEXT_PUBLIC_API_URL
-          : 'http://localhost:5000'; // Fallback to standard bridge port
+      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      
+      const apiUrl = isHttps 
+        ? '/api/proxy' 
+        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
 
       const encodedPath = encodeURIComponent(path);
       
@@ -41,11 +42,7 @@ export function FileExplorer() {
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       try {
-        const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-        
-        if (isHttps && apiUrl.startsWith('http://')) {
-          throw new Error('Security Block: Your browser blocks connecting to a local "http" bridge from a secure "https" site. Please access MaiWatch via a local address (e.g. http://localhost:3000) or use a secure tunnel for the bridge.');
-        }
+        // Logic moved to apiUrl selection above
 
         const res = await fetch(`${apiUrl}/tunnel/list?path=${encodedPath}`, {
           signal: controller.signal

@@ -73,8 +73,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           onLoad?.(e);
         }}
         onError={(e) => {
-          console.error(`Institutional Asset Error: Failed to load image at ${finalSrc}`, { alt });
-          setError(true);
+          if (!error) {
+            console.error(`[OptimizedImage] Failed to load: ${finalSrc} (Alt: ${alt})`);
+            setError(true);
+          }
         }}
         className={cn(
           'transition-all duration-[700ms] ease-[cubic-bezier(0.4, 0, 0.2, 1)]',

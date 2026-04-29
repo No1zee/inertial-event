@@ -1,16 +1,19 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Clapperboard, Popcorn } from 'lucide-react';
 import { Hero } from '@/components/content/Hero';
-import { ContentRail } from '@/components/content/ContentRail';
+import { AtmosphericAsyncRail } from '@/components/content/AtmosphericAsyncRail';
 import { BrandBlock } from '@/components/brand/BrandBlock';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 
-import { useLastWatched } from '@/lib/stores/localDataStore';
+import { useLastWatched, useActiveProfile } from '@/lib/stores/localDataStore';
 import { useHydrated } from '@/lib/hooks/useHydrated';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PretextHeadline } from '@/components/Common/PretextHeadline';
 
 const MOVIE_RAILS = [
   // Fresh & New
@@ -85,6 +88,7 @@ export default function MoviesPage() {
 
   const [rails, setRails] = useState(MOVIE_RAILS);
   const lastWatched = useLastWatched();
+  const activeProfile = useActiveProfile();
   const hydrated = useHydrated();
 
   useEffect(() => {
@@ -96,110 +100,140 @@ export default function MoviesPage() {
   }, []);
 
   const [visibleCount, setVisibleCount] = useState(5);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [isSentinelInView, setIsSentinelInView] = useState(false);
+  const { ref: sentinelRef, inView: isSentinelInView } = useInView({
+    rootMargin: '600px 0px',
+    threshold: 0.1,
+  });
 
   useEffect(() => {
-    if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsSentinelInView(entry.isIntersecting),
-      { rootMargin: '400px 0px', threshold: 0.01 }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [visibleCount]);
-
-  useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (isSentinelInView && visibleCount < rails.length) {
-      const timer = setTimeout(() => {
+      // Directorial Pacing: stagger the loading of new rails
+      timer = setTimeout(() => {
         setVisibleCount(prev => Math.min(prev + 3, rails.length));
-      }, 300);
-      return () => clearTimeout(timer);
+      }, 400);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isSentinelInView, visibleCount, rails.length]);
 
   const heroItems = heavyHitters?.slice(0, 5) || [];
 
   return (
-    <div className="min-h-screen bg-[#141414] pb-20 relative">
+    <div className="min-h-screen bg-[#0a0a0a] pb-40 relative overflow-x-hidden">
       {/* Cinematic Texture Overlay */}
-      <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/dynamic-style.png')] mix-blend-overlay" />
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/dynamic-style.png')] mix-blend-overlay" />
+
+      {/* Vault Status Header (Aurelian Glass) */}
+      <div className="relative z-20 pt-32 px-10 lg:px-24 mb-12 pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col gap-6"
+        >
+          <div className="flex items-center gap-4">
+            <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-2">
+              <Clapperboard size={12} className="text-zinc-500" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
+                Cinematic Archive / {activeProfile?.name || 'Guest'}
+              </span>
+            </div>
+            <div className="h-[1px] w-20 bg-zinc-800/50" />
+          </div>
+          <PretextHeadline
+            text="Feature Films"
+            fontSize={72}
+            fontWeight={900}
+            letterSpacing="-0.04em"
+            className="text-white opacity-90"
+          />
+        </motion.div>
+      </div>
 
       <Hero items={heroItems} />
-      <div className="relative z-10 -mt-20 space-y-12 pl-4 lg:pl-12 opacity-95">
+
+      <div className="relative z-10 -mt-32 space-y-20 opacity-95">
         {/* Recommendations Rail */}
-        {hydrated && lastWatched && (
-          <AsyncRail
-            config={{
-              id: 'recs',
-              title: `Because You Watched ${lastWatched.title}`,
-              fetcher: () => contentApi.getSimilar(lastWatched.id, lastWatched.type),
-            }}
-          />
-        )}
+        <AnimatePresence>
+          {hydrated && lastWatched && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <AtmosphericAsyncRail
+                config={{
+                  id: 'recs',
+                  title: `Because You Watched ${lastWatched.title}`,
+                  fetcher: () => contentApi.getSimilar(lastWatched.id, lastWatched.type),
+                }}
+                type="movie-recs"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Dynamic Rails with Interleaved Brand Blocks */}
-        {rails.slice(0, visibleCount).map((config, index) => (
-          <div key={config.id}>
-            <AsyncRail config={config} />
-            
-            {/* Inject Brand Blocks at specific intervals */}
-            {index === 4 && (
-              <div className="py-12 pr-4 lg:pr-12">
-                <BrandBlock
-                  text="The Big Screen Experience"
-                  subtext="Cinema-quality entertainment, delivered to your screen"
-                  gradient="bg-gradient-to-r from-yellow-950/40 via-red-950/40 to-orange-950/40"
-                  icon={<Clapperboard className="w-16 h-16 text-yellow-500" />}
-                  bgImage="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200"
-                />
-              </div>
-            )}
-            {index === 14 && (
-              <div className="py-12 pr-4 lg:pr-12">
-                <BrandBlock
-                  text="Movie Night, Every Night"
-                  subtext="From blockbusters to indie gems, your perfect movie awaits"
-                  gradient="bg-gradient-to-r from-purple-950/40 via-pink-950/40 to-red-950/40"
-                  icon={<Popcorn className="w-16 h-16 text-purple-500" />}
-                  bgImage="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=60&w=1200"
-                />
-              </div>
-            )}
-          </div>
-        ))}
+        <div className="space-y-24">
+          {rails.slice(0, visibleCount).map((config, index) => (
+            <motion.div 
+              key={config.id}
+              initial={{ opacity: 0, y: 60 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: index % 3 * 0.1 }}
+            >
+              <AtmosphericAsyncRail config={config} type="movie" />
+              
+              {/* Inject Brand Blocks at specific intervals */}
+              {index === 4 && (
+                <div className="py-20 px-10 lg:px-24">
+                  <BrandBlock
+                    text="The Big Screen Experience"
+                    subtext="Cinema-quality entertainment, delivered to your screen"
+                    gradient="bg-gradient-to-r from-yellow-950/40 via-red-950/40 to-orange-950/40"
+                    icon={<Clapperboard className="w-16 h-16 text-yellow-500" />}
+                    bgImage="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200"
+                  />
+                </div>
+              )}
+              {index === 14 && (
+                <div className="py-20 px-10 lg:px-24">
+                  <BrandBlock
+                    text="Movie Night, Every Night"
+                    subtext="From blockbusters to indie gems, your perfect movie awaits"
+                    gradient="bg-gradient-to-r from-purple-950/40 via-pink-950/40 to-red-950/40"
+                    icon={<Popcorn className="w-16 h-16 text-purple-500" />}
+                    bgImage="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=60&w=1200"
+                  />
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
 
         {/* Sentinel */}
         {visibleCount < rails.length && (
-          <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
-                Archival Recovery Active...
-              </span>
+          <div ref={sentinelRef} className="h-64 w-full flex items-center justify-center border-t border-white/5 bg-gradient-to-b from-transparent to-zinc-900/10">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className="w-12 h-12 border-2 border-primary/10 border-t-primary rounded-full animate-spin" />
+                <div className="absolute inset-0 w-12 h-12 border border-white/5 rounded-full scale-125 animate-pulse" />
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-500 animate-pulse">
+                  Synchronizing Archives
+                </span>
+                <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">
+                  Loading {visibleCount} / {rails.length} Sections
+                </span>
+              </div>
             </div>
           </div>
         )}
       </div>
     </div>
   );
-}
-
-interface RailConfig {
-  id: string;
-  title: string;
-  fetcher: () => Promise<Content[]>;
-}
-
-function AsyncRail({ config }: { config: RailConfig }) {
-  const { data, isLoading } = useQuery<Content[]>({
-    queryKey: ['rail', 'movie', config.id],
-    queryFn: () => config.fetcher(),
-    staleTime: 1000 * 60 * 30,
-  });
-
-  if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-  if (!data || !Array.isArray(data) || data.length === 0) return null;
-
-  return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

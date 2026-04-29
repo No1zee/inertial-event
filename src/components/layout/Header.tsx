@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { Search, User, Bell, ChevronRight, LayoutGrid } from 'lucide-react';
 import { useLayoutActions, useNavigationActions } from '@/lib/stores/uiStore';
+import { useAuthStore } from '@/lib/stores/authStore';
 import { cn } from '@/lib/utils';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { motion } from 'framer-motion';
@@ -12,21 +13,22 @@ import { useScrollInfo } from '@/hooks/useScrollInfo';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { setCommandCenterOpen } = useLayoutActions();
   const { setSidebarOpen } = useNavigationActions();
   const { isScrolled } = useScrollInfo(20);
+  const { user, _hasHydrated } = useAuthStore();
   
-  // Institutional Breadcrumbs Logic
-  const breadcrumbs = useMemo(() => {
-    const paths = pathname.split('/').filter(p => p !== '');
-    return [
-      { label: 'Sanctum', href: '/' },
-      ...paths.map((p, i) => ({
-        label: p.charAt(0).toUpperCase() + p.slice(1).replace(/-/g, ' '),
-        href: '/' + paths.slice(0, i + 1).join('/'),
-      })),
-    ];
-  }, [pathname]);
+  const displayUser = _hasHydrated && user ? user.username : 'Operator';
+  
+  // High-level navigation items
+  const NAV_ITEMS = [
+    { name: 'Home', path: '/' },
+    { name: 'Movies', path: '/browse/movies' },
+    { name: 'TV Shows', path: '/browse/tv-shows' },
+    { name: 'Anime', path: '/browse/anime' },
+    { name: 'Live TV', path: '/browse/live' },
+  ];
 
   return (
     <motion.header 
@@ -46,7 +48,7 @@ export const Header: React.FC = () => {
         isScrolled && "shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
       )}
     >
-      {/* Contextual Navigation (Breadcrumbs) */}
+      {/* Primary Navigation Hub */}
       <div className="flex items-center gap-8 pointer-events-auto">
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -61,31 +63,40 @@ export const Header: React.FC = () => {
           <LayoutGrid size={isScrolled ? 18 : 22} />
         </motion.button>
 
-        <div className={cn(
+        <nav className={cn(
           "flex items-center bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-3xl shadow-2xl overflow-hidden transition-all",
           isScrolled ? "px-4 h-10" : "px-8 h-14"
         )}>
-          {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={crumb.href}>
-              {idx > 0 && <ChevronRight className="mx-4 h-3 w-3 text-zinc-600 shrink-0" />}
-              <Link
-                href={crumb.href}
-                className={cn(
-                  'transition-all duration-300 hover:scale-105 active:scale-95',
-                  idx === breadcrumbs.length - 1 ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-                )}
-              >
-                <PretextHeadline
-                  text={crumb.label}
+          <div className="flex items-center gap-6 lg:gap-8">
+            {NAV_ITEMS.map((item) => {
+              const isActive = pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
                   className={cn(
-                    'text-[10px] font-bold tracking-[0.3em] uppercase',
-                    idx === breadcrumbs.length - 1 && 'filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]'
+                    'transition-all duration-300 hover:scale-105 active:scale-95 group relative',
+                    isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                   )}
-                />
-              </Link>
-            </React.Fragment>
-          ))}
-        </div>
+                >
+                  <PretextHeadline
+                    text={item.name}
+                    className={cn(
+                      'text-[10px] font-bold tracking-[0.3em] uppercase',
+                      isActive && 'filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]'
+                    )}
+                  />
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeNav"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </div>
 
       {/* Directorial Actions */}
@@ -141,7 +152,7 @@ export const Header: React.FC = () => {
             </div>
             {!isScrolled && (
               <span className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase hidden lg:block">
-                Operator
+                {displayUser}
               </span>
             )}
           </button>

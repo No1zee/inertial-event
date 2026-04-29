@@ -24,7 +24,7 @@ function SearchContent() {
     if (!q) return;
     setLoading(true);
     try {
-      const data = aiMode ? await contentApi.semanticSearch(q) : await contentApi.search(q);
+      const data = await contentApi.searchContent(q);
       setResults(data);
     } catch {
       setResults([]);

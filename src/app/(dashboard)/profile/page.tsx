@@ -14,10 +14,11 @@ import { Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const isHydrated = useHydrated();
-  const { user, logout } = useAuthStore();
+  const { user, logout, _hasHydrated: authHydrated } = useAuthStore();
   const profiles = useProfiles();
   const activeProfile = useActiveProfile();
   const { setActiveProfile, deleteProfile } = useProfileActions();
+  const localHydrated = useLocalDataStore(state => state._hasHydrated);
   
   const historyCount = useLocalDataStore(state => state.watchHistory.length);
   const libraryCount = useLocalDataStore(state => state.library.length);
@@ -27,10 +28,15 @@ export default function ProfilePage() {
     setActiveProfile('');
   };
 
-  if (!isHydrated) {
+  if (!isHydrated || !authHydrated || !localHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-        <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-12 h-12 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-500 animate-pulse">
+            Synchronizing Neural Profile...
+          </span>
+        </div>
       </div>
     );
   }

@@ -3,9 +3,10 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useInView } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 import { CinemaMarquee } from '@/components/content/CinemaMarquee';
 import { AtmosphericRail } from '@/components/content/AtmosphericRail';
+import { AtmosphericAsyncRail } from '@/components/content/AtmosphericAsyncRail';
 import { ProximityBento } from '@/components/content/ProximityBento';
 import { SmartCollections } from '@/components/home/SmartCollections';
 import { CriticsChoice } from '@/components/home/CriticsChoice';
@@ -120,7 +121,7 @@ export default function DashboardPage() {
   const hydrated = useHydrated();
   const activeProfile = useActiveProfile();
   const [visibleCount, setVisibleCount] = useState(4);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  // sentinelRef is now handled by useInView hook below
   
   const sortedRails = useMemo(() => {
     if (!hydrated || !activeProfile?.preferences) return RAIL_CONFIGS;
@@ -135,18 +136,21 @@ export default function DashboardPage() {
       'action': 'action',
       'horror': 'horror',
       'comedy': 'comedy',
-      'drama': 'popular_tv', // Drama boosts the TV rail
+      'drama': 'popular_tv', 
       'documentary': 'documentary',
-      'anime': 'anime'
+      'anime': 'anime',
+      'k-drama': 'korean_dramas',
+      'fantasy': 'scifi', // Map fantasy to scifi for now
     };
 
     // Vibe to Rail boosts
     const VIBE_BOOSTS: Record<string, string[]> = {
-      'high-energy': ['action', 'scifi', 'thriller'],
-      'chilled': ['comedy', 'family'],
-      'dark-gritty': ['horror', 'action'],
-      'epic': ['scifi', 'african_cinema'],
-      'thought-provoking': ['documentary', 'popular_tv']
+      'high-energy': ['action', 'scifi', 'day_one_movies'],
+      'chilled': ['comedy', 'family', 'anime'],
+      'dark-gritty': ['horror', 'action', 'korean_dramas'],
+      'epic': ['scifi', 'african_cinema', 'netflix_originals'],
+      'thought-provoking': ['documentary', 'popular_tv', 'hulu_picks'],
+      'lighthearted': ['comedy', 'anime', 'family'],
     };
 
     return [...RAIL_CONFIGS].sort((a, b) => {
@@ -173,35 +177,39 @@ export default function DashboardPage() {
     });
   }, [hydrated, activeProfile?.preferences]);
 
-  // Use a more robust intersection observer approach for infinite scroll
-  const [isSentinelInView, setIsSentinelInView] = useState(false);
+  const { ref: sentinelRef, inView: isSentinelInView } = useInView({
+    rootMargin: '600px 0px',
+    threshold: 0.1,
+  });
 
   useEffect(() => {
-    if (!sentinelRef.current) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsSentinelInView(entry.isIntersecting);
-      },
-      { 
-        rootMargin: '400px 0px', // Trigger much earlier to ensure smooth loading
-        threshold: 0.01 
-      }
-    );
-
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [visibleCount, sortedRails.length]); // Re-observe when count changes as sentinel moves
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[InfiniteScroll] Update:', { 
+        isSentinelInView, 
+        visibleCount, 
+        total: sortedRails.length,
+        canLoadMore: visibleCount < sortedRails.length 
+      });
+    }
+  }, [isSentinelInView, visibleCount, sortedRails.length]);
 
   // Only increment if we're in view AND not already at the end
-  // Added a check to prevent rapid-fire loading if skeletons have no height
   useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
     if (isSentinelInView && visibleCount < sortedRails.length) {
-      const timer = setTimeout(() => {
-        setVisibleCount(prev => Math.min(prev + 2, sortedRails.length));
-      }, 300); // Faster increment for smoother experience
-      return () => clearTimeout(timer);
+      // Small delay to prevent rapid-fire state updates
+      timer = setTimeout(() => {
+        setVisibleCount(prev => {
+          const next = Math.min(prev + 2, sortedRails.length);
+          return next;
+        });
+      }, 200);
     }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isSentinelInView, visibleCount, sortedRails.length]);
 
   const { data: trending } = useQuery<Content[]>({
@@ -281,77 +289,5 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
-  const { data, isLoading, isError } = useQuery<Content[]>({
-    queryKey: ['rail', config.id],
-    queryFn: () => config.fetcher(),
-    staleTime: 1000 * 60 * 60, // 1 hour
-    gcTime: 1000 * 60 * 60 * 2, // 2 hours
-    refetchOnWindowFocus: false,
-    retry: 1,
-    placeholderData: (previousData) => previousData,
-  });
-
-  const provider = config.providerId
-    ? getProviderById(config.providerId) || getProviderBySlug(config.providerId)
-    : null;
-
-  if (isLoading) {
-    return (
-      <div className="px-10 lg:px-24 space-y-8 animate-pulse relative overflow-hidden min-h-[400px]">
-        {provider && (
-<div
-                    className="absolute top-0 right-0 w-[400px] h-[400px] opacity-5 blur-[100px] pointer-events-none"
-                    style={{ backgroundColor: provider.color } as React.CSSProperties}
-                  />
-        )}
-        <div className="flex items-center gap-3">
-          <div className="h-[1px] w-6 bg-zinc-800" />
-          <div className="h-4 w-48 bg-zinc-900/50 rounded-full" />
-        </div>
-        <div className="flex gap-6 overflow-hidden pt-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div
-              key={i}
-              className={cn(
-                'glass-card border-white/5 rounded-2xl relative overflow-hidden shrink-0',
-                config.aspectRatio === '21:9' || config.aspectRatio === 'ultrawide'
-                  ? 'w-[350px] md:w-[420px] aspect-[21/9]'
-                  : config.aspectRatio === '16:9' || config.aspectRatio === 'landscape'
-                    ? 'w-[280px] md:w-[350px] aspect-video'
-                    : 'w-[160px] md:w-[200px] aspect-[2/3]'
-              )}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (isError || !data) {
-    return (
-      <div className="px-10 lg:px-24 py-12 text-center border border-white/5 rounded-[3rem] mx-10 lg:mx-24 bg-zinc-900/20">
-        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-          Failed to load {config.title} archive
-        </p>
-      </div>
-    );
-  }
-
-  if (data.length === 0) return null;
-
-  return (
-    <AtmosphericRail
-      title={config.title}
-      items={data}
-      railId={config.id}
-      aspectRatio={config.aspectRatio}
-      providerId={config.providerId}
-    />
   );
 }

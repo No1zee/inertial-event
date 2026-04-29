@@ -39,7 +39,10 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
   const openContentModal = useUIStore(state => state.openContentModal);
   const getResumeData = useLocalDataStore(state => state.getResumeData);
 
-  const displayItems = (items || []).filter(item => item && item.id).slice(0, 5);
+  const displayItems = (items || [])
+    .filter(item => item && item.id && (item.backdrop || item.poster))
+    .slice(0, 5);
+  
   // Ensure index is always valid for the current displayItems
   const safeIndex = displayItems.length > 0 ? index % displayItems.length : 0;
   const currentItem = displayItems.length > 0 ? displayItems[safeIndex] : null;
@@ -133,8 +136,8 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <span className="px-3 py-1 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-red-600/20">
-                Institutional Choice
+              <span className="px-3 py-1 bg-primary text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20">
+                Prime Selection
               </span>
               <div className="flex items-center gap-1.5 text-zinc-300 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                 <Star size={12} className="text-yellow-500 fill-yellow-500" />
@@ -208,8 +211,8 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
                 className="text-red-600"
               />
             </svg>
-            <span className="absolute text-[9px] font-bold text-zinc-500 tracking-tighter">
-              {safeIndex + 1} / {displayItems.length}
+            <span className="absolute text-[8px] font-black text-white tracking-widest">
+              {(safeIndex + 1).toString().padStart(2, '0')}
             </span>
           </div>
 

@@ -53,7 +53,7 @@ export function CriticsChoice() {
             <Trophy size={14} />
           </div>
           <PretextHeadline
-            text="Critics Choice"
+            text="Feature of the Week"
             fontSize={12}
             fontWeight={900}
             letterSpacing="0.4em"

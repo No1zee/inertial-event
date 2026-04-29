@@ -18,6 +18,8 @@ export interface AuthState {
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export type AuthSession = {
@@ -28,10 +30,11 @@ export type AuthSession = {
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
-    set => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
+      _hasHydrated: false,
 
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
@@ -39,9 +42,15 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         set(state => ({
           user: state.user ? { ...state.user, ...updates } : null,
         })),
+      setHasHydrated: (state: boolean) => {
+        set({ _hasHydrated: state });
+      },
     }),
     {
       name: 'MaiWatch-auth-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
@@ -59,6 +68,7 @@ export const useSession = () =>
   useAuthStore(state => ({
     user: state.user,
     token: state.token,
+    isHydrated: state._hasHydrated,
   }));
 
 export const useAuthActions = () =>

@@ -44,6 +44,7 @@ const ContentCard = memo(function ContentCard({
 
   const [showPreview, setShowPreview] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const prefetchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   if (!item || !item.id) return null;
 
@@ -72,8 +73,6 @@ const ContentCard = memo(function ContentCard({
     openContentModal(item, providerId);
   };
 
-  const prefetchTimeout = useRef<NodeJS.Timeout | null>(null);
-
   const handleMouseEnter = () => {
     playSound('hover');
     if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
@@ -88,8 +87,6 @@ const ContentCard = memo(function ContentCard({
       });
       router.prefetch(`/watch?id=${item.id}&type=${contentType}`);
     }, 200);
-
-
   };
 
   const runOnMouseLeave = () => {
@@ -232,14 +229,15 @@ const ContentCard = memo(function ContentCard({
             aspectRatio === '21:9' ||
             aspectRatio === 'ultrawide';
             
+          // Triple-waterfall fallback strategy
           const rawSource = isLandscape 
-            ? item.backdrop || item.poster || item.backdrop_path || item.poster_path
-            : item.poster || item.poster_path || item.backdrop || item.backdrop_path;
+            ? (item.backdrop || item.backdrop_path || item.poster || item.poster_path)
+            : (item.poster || item.poster_path || item.backdrop || item.backdrop_path);
 
           const sourceUrl = getOptimizedImageUrl(rawSource, isLandscape ? 'w780' : 'w500');
 
-          if (!rawSource) {
-            console.warn(`[ContentCard] Missing image source for ${item.title} (${item.id}). Falling back to placeholder.`);
+          if (!rawSource && isHydrated) {
+            console.warn(`[ContentCard] No asset found for "${item.title}" (ID: ${item.id}). Displaying fallback.`);
           }
 
           return (
@@ -254,7 +252,12 @@ const ContentCard = memo(function ContentCard({
           );
         })()}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 group-hover:via-black/60 transition-all duration-700" />
+        
+        {/* Cinematic Reflection */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none">
+          <div className="absolute top-0 left-[-100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-25deg] group-hover:animate-reflection" />
+        </div>
 
         {badge && !providerId && (
           <div
@@ -327,8 +330,12 @@ const ContentCard = memo(function ContentCard({
         );
       })()}
 
-      <div data-testid="content-overlay" className="absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-        <div className="flex gap-2">
+      <div data-testid="content-overlay" className="absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-3 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-[0.16,1,0.3,1] transform translate-y-4 group-hover:translate-y-0">
+        <motion.div 
+          initial={false}
+          animate={showPreview ? { y: 0, opacity: 1 } : {}}
+          className="flex gap-2"
+        >
           <button
             className={cn(
               'w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-2xl active:scale-95',
@@ -357,19 +364,29 @@ const ContentCard = memo(function ContentCard({
           >
             {inLibrary ? <Check size={16} /> : <Plus size={16} />}
           </button>
-        </div>
+        </motion.div>
 
         <div className="space-y-1">
-          <h3 className="font-bold text-white text-sm md:text-base tracking-tight leading-tight drop-shadow-2xl truncate">
+          <motion.h3 
+            initial={{ opacity: 0, x: -10 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="font-black text-white text-sm md:text-base tracking-tight leading-tight drop-shadow-2xl truncate uppercase"
+          >
             {item.title}
-          </h3>
-          <div className="flex items-center gap-2 text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+          </motion.h3>
+          <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]"
+          >
             {matchScore >= 55 && (
-              <span className={cn(matchScore >= 95 ? 'text-white' : 'text-red-500/80')}>{matchScore}% Match</span>
+              <span className={cn(matchScore >= 95 ? 'text-amber-500' : 'text-red-500/80')}>{matchScore}% Match</span>
             )}
             {matchScore >= 55 && <span className="opacity-30">•</span>}
             <span>{item.releaseDate?.substring(0, 4) || 'Archived'}</span>
-          </div>
+          </motion.div>
         </div>
       </div>
 

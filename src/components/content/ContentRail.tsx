@@ -63,7 +63,7 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
   };
 
   return (
-    <div className="space-y-4">
+    <div ref={containerRef} className="space-y-4">
       <div className="px-4 sm:px-8 md:px-12 lg:px-16 flex items-center justify-between group/header">
         <div className="flex items-center gap-3">
           <PretextHeadline

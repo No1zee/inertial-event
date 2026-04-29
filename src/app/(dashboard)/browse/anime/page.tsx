@@ -1,10 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Bird, Star } from 'lucide-react';
 import { Hero } from '@/components/content/Hero';
-import { ContentRail } from '@/components/content/ContentRail';
+import { AtmosphericAsyncRail } from '@/components/content/AtmosphericAsyncRail';
 import { BrandBlock } from '@/components/brand/BrandBlock';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
@@ -74,26 +75,21 @@ export default function AnimePage() {
   }, []);
 
   const [visibleCount, setVisibleCount] = useState(5);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [isSentinelInView, setIsSentinelInView] = useState(false);
+  const { ref: sentinelRef, inView: isSentinelInView } = useInView({
+    rootMargin: '600px 0px',
+    threshold: 0.1,
+  });
 
   useEffect(() => {
-    if (!sentinelRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsSentinelInView(entry.isIntersecting),
-      { rootMargin: '400px 0px', threshold: 0.01 }
-    );
-    observer.observe(sentinelRef.current);
-    return () => observer.disconnect();
-  }, [visibleCount]);
-
-  useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (isSentinelInView && visibleCount < rails.length) {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setVisibleCount(prev => Math.min(prev + 3, rails.length));
-      }, 300);
-      return () => clearTimeout(timer);
+      }, 200);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isSentinelInView, visibleCount, rails.length]);
 
   const heroItems = anime?.slice(0, 5) || [];
@@ -107,19 +103,20 @@ export default function AnimePage() {
       <div className="relative z-10 -mt-12 sm:-mt-20 space-y-8 md:space-y-12 pl-4 lg:pl-12 opacity-95">
         {/* Recommendations Rail */}
         {hydrated && lastWatched && (
-          <AsyncRail
+          <AtmosphericAsyncRail
             config={{
               id: 'recs',
               title: `Because You Watched ${lastWatched.title}`,
               fetcher: () => contentApi.getSimilar(lastWatched.id, lastWatched.type),
             }}
+            type="anime-recs"
           />
         )}
 
         {/* Dynamic Rails with Interleaved Brand Blocks */}
         {rails.slice(0, visibleCount).map((config, index) => (
           <div key={config.id}>
-            <AsyncRail config={config} />
+            <AtmosphericAsyncRail config={config} type="anime" />
             
             {/* Inject Brand Blocks */}
             {index === 2 && (
@@ -153,7 +150,7 @@ export default function AnimePage() {
             <div className="flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
               <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
-                Catalyzing Neural Uplink...
+                Synchronizing Archives...
               </span>
             </div>
           </div>
@@ -161,23 +158,4 @@ export default function AnimePage() {
       </div>
     </div>
   );
-}
-
-interface RailConfig {
-  id: string;
-  title: string;
-  fetcher: () => Promise<Content[]>;
-}
-
-function AsyncRail({ config }: { config: RailConfig }) {
-  const { data, isLoading } = useQuery<Content[]>({
-    queryKey: ['rail', 'anime', config.id],
-    queryFn: () => config.fetcher(),
-    staleTime: 1000 * 60 * 30,
-  });
-
-  if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-  if (!data || !Array.isArray(data) || data.length === 0) return null;
-
-  return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

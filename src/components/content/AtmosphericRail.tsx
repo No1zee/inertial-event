@@ -140,7 +140,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
               <>
                 <div className="h-[1px] w-6 bg-red-600/50" />
                 <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.4em]">
-                  Mai Archive / {title.split(' ')[0]}
+                  Cinematic Collection / {title.split(' ')[0]}
                 </h2>
               </>
             )}

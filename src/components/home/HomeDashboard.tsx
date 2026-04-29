@@ -49,32 +49,58 @@ export const HomeDashboard: React.FC = () => {
 
   return (
     <section className="relative px-10 lg:px-24 pt-32 pb-12">
-      {/* 1. S-Class Greeting */}
+      {/* 1. Vault Status & Greeting */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        className="mb-12"
+        className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8"
       >
-        <div className="flex items-center gap-4 mb-2">
-          <div className="h-[1px] w-8 bg-amber-500/50" />
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-500/70">
-            Welcome Back / {greeting}
-          </span>
+        <div className="flex-1">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
+              <Sparkles size={12} className="text-amber-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
+                Vault Status: {activeProfile.preferences?.vibes?.join(' / ') || 'Neutral'}
+              </span>
+            </div>
+            <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
+              {greeting}
+            </span>
+          </div>
+          <PretextHeadline
+            text={activeProfile.name}
+            fontSize={64}
+            fontWeight={900}
+            letterSpacing="-0.04em"
+            className="text-white"
+            shadow={{
+              color: 'rgba(255, 191, 0, 0.2)',
+              blur: 40,
+              offsetX: 0,
+              offsetY: 10
+            }}
+          />
         </div>
-        <PretextHeadline
-          text={activeProfile.name}
-          fontSize={64}
-          fontWeight={900}
-          letterSpacing="-0.04em"
-          className="text-white"
-          shadow={{
-            color: 'rgba(255, 191, 0, 0.2)',
-            blur: 40,
-            offsetX: 0,
-            offsetY: 10
-          }}
-        />
+
+        <div className="flex items-center gap-6 pb-4">
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-1">Taste Profile</span>
+            <div className="flex gap-1">
+              {(activeProfile.preferences?.genres || []).slice(0, 3).map(genre => (
+                <span key={genre} className="text-[10px] font-bold text-white px-2 py-0.5 rounded bg-white/5 border border-white/10 uppercase">
+                  {genre}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button 
+            onClick={() => router.push('/profile')}
+            className="h-12 px-6 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform active:scale-95"
+          >
+            Refine Profile
+          </button>
+        </div>
       </motion.div>
 
       {/* 2. The Command Panel (Aurelian Glass) */}
@@ -152,14 +178,6 @@ export const HomeDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* 3. Editorial Spotlight (Dynamic Curation) */}
-      {trending?.[5] && (
-        <EditorialSpotlight 
-          item={trending[5]} 
-          curationReason="Personalized Pick / Matches Your Vibe" 
-        />
-      )}
 
     </section>
   );

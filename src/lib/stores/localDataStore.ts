@@ -261,6 +261,8 @@ interface LocalDataStore {
   getFavorites: () => LibraryItem[];
   getRecentAdditions: (limit?: number) => LibraryItem[];
 
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
@@ -328,7 +330,9 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
         ],
         downloads: [],
         continueWatching: [],
+        _hasHydrated: false,
 
+        setHasHydrated: state => set({ _hasHydrated: state }),
         // Profile Actions
         createProfile: profile => {
           const id = Math.random().toString(36).substring(2, 11);
@@ -893,6 +897,9 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
         name: 'MaiWatch-local-data',
         storage: createJSONStorage(() => localStorage),
         // No partialize - store all local data
+        onRehydrateStorage: () => (state) => {
+          state?.setHasHydrated(true);
+        }
       }
     )
   )
@@ -910,6 +917,7 @@ export const useProfiles = () => useLocalDataStore(state => state.profiles, shal
 export const useActiveProfile = () =>
   useLocalDataStore(state => Array.isArray(state.profiles) ? state.profiles.find(p => p.id === state.activeProfileId) : undefined, shallow);
 export const useUserPreferences = () => useLocalDataStore(state => state.globalPreferences, shallow);
+export const useHasHydrated = () => useLocalDataStore(state => state._hasHydrated);
 
 // Action selectors for cleaner imports
 export const useProfileActions = () =>
