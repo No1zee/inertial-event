@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
-import { initializeTheme, useThemeStore } from '@/store/themeStore';
+import { initializeTheme, useThemeStore } from '@/lib/stores/themeStore';
 
 export function DashboardClientInit() {
   const migrate = useLocalDataStore(state => state.migrateLegacyData);

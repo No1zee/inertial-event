@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { usePreferencesActions } from '@/lib/stores/preferencesStore';
 import { useLocalDataStore, useProfileActions, useProfiles } from '@/lib/stores/localDataStore';
+import { useThemeStore, Theme } from '@/lib/stores/themeStore';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -76,6 +77,14 @@ const VIBES = [
   { id: 'epic', name: 'Epic & Grand', desc: 'Massive scale, legendary tales, and big visuals.' },
 ];
 
+const THEMES: { id: Theme; name: string; desc: string; colors: string[] }[] = [
+  { id: 'Mai', name: 'Obsidian', desc: 'The classic cinematic experience. Deep blacks and crimson accents.', colors: ['#000000', '#E50914'] },
+  { id: 'ocean', name: 'Oceanic', desc: 'Cool and deep. Midnight blues with teal highlights.', colors: ['#0A192F', '#00CFCC'] },
+  { id: 'cyberpunk', name: 'Cyberpunk', desc: 'Vibrant and intense. Neon purples and electric cyan.', colors: ['#0D0221', '#FF00FF'] },
+  { id: 'oled', name: 'OLED Pure', desc: 'Minimum distraction. Absolute black and pristine white.', colors: ['#000000', '#FFFFFF'] },
+  { id: 'heritage', name: 'Heritage', desc: 'Warm and earthy. Gold accents on deep umber.', colors: ['#1A140F', '#FFD700'] },
+];
+
 export function OnboardingFlow() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -84,6 +93,7 @@ export function OnboardingFlow() {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
+  const [selectedTheme, setSelectedTheme] = useState<Theme>('Mai');
   
   const { 
     setHasCompletedOnboarding, 
@@ -92,6 +102,7 @@ export function OnboardingFlow() {
     setPreferredVibes 
   } = usePreferencesActions();
   const { createProfile, setActiveProfile, updateProfile } = useProfileActions();
+  const { setTheme } = useThemeStore();
   const profiles = useProfiles();
 
   const handleNext = () => setStep(s => s + 1);
@@ -99,8 +110,13 @@ export function OnboardingFlow() {
   const handleComplete = (isGuest = false) => {
     console.log('🏁 [AG] Completing onboarding...', { isGuest, profileName });
     
+    // Set theme immediately
+    if (!isGuest) {
+      setTheme(selectedTheme);
+    }
+
     // Set to completion splash first
-    setStep(4);
+    setStep(5);
     
     setTimeout(() => {
       try {
@@ -124,7 +140,8 @@ export function OnboardingFlow() {
             preferences: {
               genres: selectedGenres,
               genreWeights: genreWeights,
-              vibes: selectedVibes
+              vibes: selectedVibes,
+              theme: selectedTheme
             }
           });
           setActiveProfile('primary');
@@ -219,9 +236,9 @@ export function OnboardingFlow() {
                 <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Who's watching?</h2>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 1 of 3</span>
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 1 of 4</span>
                 <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
-                  <div className="h-full w-1/3 bg-primary rounded-full" />
+                  <div className="h-full w-1/4 bg-primary rounded-full" />
                 </div>
               </div>
             </div>
@@ -297,9 +314,9 @@ export function OnboardingFlow() {
                 <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Favorite Genres</h2>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 2 of 3</span>
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 2 of 4</span>
                 <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
-                  <div className="h-full w-2/3 bg-primary rounded-full" />
+                  <div className="h-full w-2/4 bg-primary rounded-full" />
                 </div>
               </div>
             </div>
@@ -370,9 +387,9 @@ export function OnboardingFlow() {
                 <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Tonight's Mood</h2>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 3 of 3</span>
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 3 of 4</span>
                 <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
-                  <div className="h-full w-full bg-primary rounded-full" />
+                  <div className="h-full w-3/4 bg-primary rounded-full" />
                 </div>
               </div>
             </div>
@@ -418,11 +435,11 @@ export function OnboardingFlow() {
                 Back
               </Button>
               <Button 
-                onClick={() => handleComplete()}
+                onClick={() => setStep(4)}
                 className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
               >
-                Start Watching
-                <ShieldCheck size={20} />
+                Continue
+                <ArrowRight size={20} />
               </Button>
             </div>
             
@@ -432,6 +449,127 @@ export function OnboardingFlow() {
             >
               Skip for now
             </button>
+          </motion.div>
+        )}
+
+        {step === 4 && (
+          <motion.div 
+            key="themes"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="relative z-20 w-full max-w-2xl mx-auto p-12 rounded-[3rem] bg-white/[0.03] border border-white/5 backdrop-blur-3xl shadow-2xl flex flex-col gap-10"
+          >
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Visuals</span>
+                <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Choose Your Identity</h2>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 4 of 4</span>
+                <div className="h-1 w-24 bg-zinc-900 rounded-full mt-2 overflow-hidden">
+                  <div className="h-full w-full bg-primary rounded-full" />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-zinc-500 text-sm font-medium">Select a visual theme for your cinematic journey. You can change this later.</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {THEMES.map(theme => (
+                <button
+                  key={theme.id}
+                  onClick={() => setSelectedTheme(theme.id)}
+                  className={cn(
+                    "p-6 rounded-2xl border transition-all flex flex-col items-start gap-3 group relative overflow-hidden",
+                    selectedTheme === theme.id 
+                      ? 'bg-white/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.1)]' 
+                      : 'bg-white/5 border-white/5 text-zinc-400 hover:bg-white/10 hover:border-white/20'
+                  )}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className={cn(
+                      "font-black text-sm uppercase tracking-widest transition-colors",
+                      selectedTheme === theme.id ? 'text-white' : 'text-zinc-400'
+                    )}>
+                      {theme.name}
+                    </span>
+                    <div className="flex gap-1.5">
+                      {theme.colors.map((c, i) => (
+                        <div key={i} className="w-3 h-3 rounded-full border border-white/10" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-medium text-zinc-500 leading-tight text-left">
+                    {theme.desc}
+                  </span>
+                  
+                  {selectedTheme === theme.id && (
+                    <motion.div 
+                      layoutId="activeTheme"
+                      className="absolute right-0 top-0 bottom-0 w-1 bg-primary"
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-4 w-full pt-4">
+               <Button 
+                onClick={() => setStep(3)}
+                variant="outline"
+                className="flex-1 h-16 rounded-2xl border-white/5 text-zinc-600 font-black uppercase tracking-widest text-[10px] hover:text-white"
+              >
+                Back
+              </Button>
+              <Button 
+                onClick={() => handleComplete()}
+                className="flex-[2] h-16 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
+              >
+                Complete Setup
+                <ShieldCheck size={20} />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 5 && (
+          <motion.div 
+            key="complete"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative z-20 w-full max-w-md mx-auto p-12 rounded-[3rem] bg-white/[0.03] border border-white/5 backdrop-blur-3xl shadow-2xl flex flex-col items-center text-center gap-8"
+          >
+            <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_50px_rgba(var(--primary-rgb),0.3)]">
+              <ShieldCheck size={48} className="animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <PretextHeadline 
+                text="Vault Secured" 
+                fontSize={32}
+                fontWeight={900}
+                className="text-white uppercase" 
+              />
+              <p className="text-zinc-500 font-medium">Identity verified. Personalizing your cinematic universe...</p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {[0, 1, 2].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{ 
+                    scale: [1, 1.5, 1],
+                    opacity: [0.3, 1, 0.3]
+                  }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    duration: 1,
+                    delay: i * 0.2
+                  }}
+                  className="w-1.5 h-1.5 rounded-full bg-primary"
+                />
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
