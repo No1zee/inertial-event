@@ -72,6 +72,29 @@ export default function TVShowsPage() {
     setRails([first, ...shuffled]);
   }, []);
 
+  const [visibleCount, setVisibleCount] = useState(5);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isSentinelInView, setIsSentinelInView] = useState(false);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsSentinelInView(entry.isIntersecting),
+      { rootMargin: '400px 0px', threshold: 0.01 }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount]);
+
+  useEffect(() => {
+    if (isSentinelInView && visibleCount < rails.length) {
+      const timer = setTimeout(() => {
+        setVisibleCount(prev => Math.min(prev + 3, rails.length));
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isSentinelInView, visibleCount, rails.length]);
+
   const heroItems = heavyHitters?.slice(0, 5) || [];
 
   return (
@@ -92,35 +115,48 @@ export default function TVShowsPage() {
           />
         )}
 
-        {rails.slice(0, 4).map(config => (
-          <AsyncRail key={config.id} config={config} />
+        {/* Dynamic Rails with Interleaved Brand Blocks */}
+        {rails.slice(0, visibleCount).map((config, index) => (
+          <div key={config.id}>
+            <AsyncRail config={config} />
+            
+            {/* Inject Brand Blocks */}
+            {index === 3 && (
+              <div className="py-12 pr-4 lg:pr-12">
+                <BrandBlock
+                  text="Your Next Obsession"
+                  subtext="Epic series. Unforgettable characters. Endless episodes."
+                  gradient="bg-gradient-to-r from-blue-950/40 via-indigo-950/40 to-purple-950/40"
+                  icon={<Tv2 className="w-16 h-16 text-blue-500" />}
+                  bgImage="https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?auto=format&fit=crop&q=60&w=1200"
+                />
+              </div>
+            )}
+            {index === 11 && (
+              <div className="py-12 pr-4 lg:pr-12">
+                <BrandBlock
+                  text="Binge. Repeat. Discover."
+                  subtext="From sitcoms to epics, your series journey starts here"
+                  gradient="bg-gradient-to-r from-cyan-950/40 via-teal-950/40 to-emerald-950/40"
+                  icon={<Zap className="w-16 h-16 text-cyan-500" />}
+                  bgImage="https://images.unsplash.com/photo-1461151351179-8143666f09ad?auto=format&fit=crop&q=60&w=1200"
+                />
+              </div>
+            )}
+          </div>
         ))}
 
-        {/* Brand Block - Binge Culture */}
-        <BrandBlock
-          text="Your Next Obsession"
-          subtext="Epic series. Unforgettable characters. Endless episodes."
-          gradient="bg-gradient-to-r from-blue-950/40 via-indigo-950/40 to-purple-950/40"
-          icon={<Tv2 className="w-16 h-16 text-blue-500" />}
-          bgImage="https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?auto=format&fit=crop&q=60&w=1200"
-        />
-
-        {rails.slice(4, 12).map(config => (
-          <AsyncRail key={config.id} config={config} />
-        ))}
-
-        {/* Second Brand Block */}
-        <BrandBlock
-          text="Binge. Repeat. Discover."
-          subtext="From sitcoms to epics, your series journey starts here"
-          gradient="bg-gradient-to-r from-cyan-950/40 via-teal-950/40 to-emerald-950/40"
-          icon={<Zap className="w-16 h-16 text-cyan-500" />}
-          bgImage="https://images.unsplash.com/photo-1461151351179-8143666f09ad?auto=format&fit=crop&q=60&w=1200"
-        />
-
-        {rails.slice(12).map(config => (
-          <AsyncRail key={config.id} config={config} />
-        ))}
+        {/* Sentinel */}
+        {visibleCount < rails.length && (
+          <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+                Synchronizing Archives...
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -144,7 +180,7 @@ function AsyncRail({ config }: { config: RailConfig }) {
   });
 
   if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-  if (!data || !Array.isArray(data)) return null;
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
 
   return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

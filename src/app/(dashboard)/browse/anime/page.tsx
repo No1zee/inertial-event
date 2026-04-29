@@ -73,6 +73,29 @@ export default function AnimePage() {
     setRails([hottestThisYear, englishHits, ...others]);
   }, []);
 
+  const [visibleCount, setVisibleCount] = useState(5);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isSentinelInView, setIsSentinelInView] = useState(false);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsSentinelInView(entry.isIntersecting),
+      { rootMargin: '400px 0px', threshold: 0.01 }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount]);
+
+  useEffect(() => {
+    if (isSentinelInView && visibleCount < rails.length) {
+      const timer = setTimeout(() => {
+        setVisibleCount(prev => Math.min(prev + 3, rails.length));
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isSentinelInView, visibleCount, rails.length]);
+
   const heroItems = anime?.slice(0, 5) || [];
 
   return (
@@ -93,35 +116,48 @@ export default function AnimePage() {
           />
         )}
 
-        {rails.slice(0, 3).map(config => (
-          <AsyncRail key={config.id} config={config} />
+        {/* Dynamic Rails with Interleaved Brand Blocks */}
+        {rails.slice(0, visibleCount).map((config, index) => (
+          <div key={config.id}>
+            <AsyncRail config={config} />
+            
+            {/* Inject Brand Blocks */}
+            {index === 2 && (
+              <div className="py-12 pr-4 lg:pr-12">
+                <BrandBlock
+                  text="Your Gateway to Japan"
+                  subtext="From shonen battles to slice-of-life moments, adventure awaits"
+                  gradient="bg-gradient-to-r from-pink-950/40 via-rose-950/40 to-red-950/40"
+                  icon={<Bird className="w-16 h-16 text-pink-500" />}
+                  bgImage="https://images.unsplash.com/photo-1578632738908-4521bd8c7cd9?auto=format&fit=crop&q=60&w=1200"
+                />
+              </div>
+            )}
+            {index === 9 && (
+              <div className="py-12 pr-4 lg:pr-12">
+                <BrandBlock
+                  text="Immerse. Dream. Believe."
+                  subtext="Where art meets storytelling in the most vibrant way"
+                  gradient="bg-gradient-to-r from-violet-950/40 via-fuchsia-950/40 to-pink-950/40"
+                  icon={<Star className="w-16 h-16 text-violet-400" />}
+                  bgImage="https://images.unsplash.com/photo-1541562232579-512a21359920?auto=format&fit=crop&q=60&w=1200"
+                />
+              </div>
+            )}
+          </div>
         ))}
 
-        {/* Brand Block - Anime Culture */}
-        <BrandBlock
-          text="Your Gateway to Japan"
-          subtext="From shonen battles to slice-of-life moments, adventure awaits"
-          gradient="bg-gradient-to-r from-pink-950/40 via-rose-950/40 to-red-950/40"
-          icon={<Bird className="w-16 h-16 text-pink-500" />}
-          bgImage="https://images.unsplash.com/photo-1578632738908-4521bd8c7cd9?auto=format&fit=crop&q=60&w=1200"
-        />
-
-        {rails.slice(3, 10).map(config => (
-          <AsyncRail key={config.id} config={config} />
-        ))}
-
-        {/* Second Brand Block */}
-        <BrandBlock
-          text="Immerse. Dream. Believe."
-          subtext="Where art meets storytelling in the most vibrant way"
-          gradient="bg-gradient-to-r from-violet-950/40 via-fuchsia-950/40 to-pink-950/40"
-          icon={<Star className="w-16 h-16 text-violet-400" />}
-          bgImage="https://images.unsplash.com/photo-1541562232579-512a21359920?auto=format&fit=crop&q=60&w=1200"
-        />
-
-        {rails.slice(10).map(config => (
-          <AsyncRail key={config.id} config={config} />
-        ))}
+        {/* Sentinel */}
+        {visibleCount < rails.length && (
+          <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+                Catalyzing Neural Uplink...
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -141,7 +177,7 @@ function AsyncRail({ config }: { config: RailConfig }) {
   });
 
   if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-  if (!data || !Array.isArray(data)) return null;
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
 
   return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 const FilterOverlay = dynamic(() => import('@/components/browse/FilterOverlay').then(mod => mod.FilterOverlay), {
   ssr: false,
 });
-import { useThemeStore } from '@/store/themeStore';
+import { useThemeStore } from '@/lib/stores/themeStore';
 import PavilionEntrance from '@/components/content/PavilionEntrance';
 import HeritageCard from '@/components/content/HeritageCard';
 const DirectorSidebar = dynamic(() => import('@/components/content/DirectorSidebar'), { ssr: false });

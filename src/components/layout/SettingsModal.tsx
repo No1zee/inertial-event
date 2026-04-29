@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Settings, User, Monitor, Database, Play, SkipForward, Volume2, Search, Info, Shield } from 'lucide-react';
 import { useLayoutState, useLayoutActions } from '@/lib/stores/uiStore';
 import { useUserPreferences, usePreferenceActions } from '@/lib/stores/localDataStore';
-import { useThemeStore, type Theme } from '@/store/themeStore';
+import { useThemeStore, type Theme } from '@/lib/stores/themeStore';
 import { useNotificationActions, useUIStore } from '@/lib/stores/uiStore';
 import { Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';

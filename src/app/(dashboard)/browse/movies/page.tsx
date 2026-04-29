@@ -95,6 +95,29 @@ export default function MoviesPage() {
     setRails([first, ...shuffled]);
   }, []);
 
+  const [visibleCount, setVisibleCount] = useState(5);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [isSentinelInView, setIsSentinelInView] = useState(false);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsSentinelInView(entry.isIntersecting),
+      { rootMargin: '400px 0px', threshold: 0.01 }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount]);
+
+  useEffect(() => {
+    if (isSentinelInView && visibleCount < rails.length) {
+      const timer = setTimeout(() => {
+        setVisibleCount(prev => Math.min(prev + 3, rails.length));
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isSentinelInView, visibleCount, rails.length]);
+
   const heroItems = heavyHitters?.slice(0, 5) || [];
 
   return (
@@ -115,35 +138,48 @@ export default function MoviesPage() {
           />
         )}
 
-        {rails.slice(0, 5).map(config => (
-          <AsyncRail key={config.id} config={config} />
+        {/* Dynamic Rails with Interleaved Brand Blocks */}
+        {rails.slice(0, visibleCount).map((config, index) => (
+          <div key={config.id}>
+            <AsyncRail config={config} />
+            
+            {/* Inject Brand Blocks at specific intervals */}
+            {index === 4 && (
+              <div className="py-12 pr-4 lg:pr-12">
+                <BrandBlock
+                  text="The Big Screen Experience"
+                  subtext="Cinema-quality entertainment, delivered to your screen"
+                  gradient="bg-gradient-to-r from-yellow-950/40 via-red-950/40 to-orange-950/40"
+                  icon={<Clapperboard className="w-16 h-16 text-yellow-500" />}
+                  bgImage="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200"
+                />
+              </div>
+            )}
+            {index === 14 && (
+              <div className="py-12 pr-4 lg:pr-12">
+                <BrandBlock
+                  text="Movie Night, Every Night"
+                  subtext="From blockbusters to indie gems, your perfect movie awaits"
+                  gradient="bg-gradient-to-r from-purple-950/40 via-pink-950/40 to-red-950/40"
+                  icon={<Popcorn className="w-16 h-16 text-purple-500" />}
+                  bgImage="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=60&w=1200"
+                />
+              </div>
+            )}
+          </div>
         ))}
 
-        {/* Brand Block - Cinematic Experience */}
-        <BrandBlock
-          text="The Big Screen Experience"
-          subtext="Cinema-quality entertainment, delivered to your screen"
-          gradient="bg-gradient-to-r from-yellow-950/40 via-red-950/40 to-orange-950/40"
-          icon={<Clapperboard className="w-16 h-16 text-yellow-500" />}
-          bgImage="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200"
-        />
-
-        {rails.slice(5, 15).map(config => (
-          <AsyncRail key={config.id} config={config} />
-        ))}
-
-        {/* Second Brand Block */}
-        <BrandBlock
-          text="Movie Night, Every Night"
-          subtext="From blockbusters to indie gems, your perfect movie awaits"
-          gradient="bg-gradient-to-r from-purple-950/40 via-pink-950/40 to-red-950/40"
-          icon={<Popcorn className="w-16 h-16 text-purple-500" />}
-          bgImage="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=60&w=1200"
-        />
-
-        {rails.slice(15).map(config => (
-          <AsyncRail key={config.id} config={config} />
-        ))}
+        {/* Sentinel */}
+        {visibleCount < rails.length && (
+          <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+                Archival Recovery Active...
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -163,7 +199,7 @@ function AsyncRail({ config }: { config: RailConfig }) {
   });
 
   if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-  if (!data || !Array.isArray(data)) return null;
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
 
   return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

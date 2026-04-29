@@ -125,9 +125,28 @@ import { useMemo } from 'react';
 export default function DashboardPage() {
   const hydrated = useHydrated();
   const activeProfile = useActiveProfile();
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(4);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sentinelRef);
+  
+  // Use a more robust intersection observer approach for infinite scroll
+  const [isSentinelInView, setIsSentinelInView] = useState(false);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSentinelInView(entry.isIntersecting);
+      },
+      { 
+        rootMargin: '400px 0px', // Trigger much earlier to ensure smooth loading
+        threshold: 0.01 
+      }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount, sortedRails.length]); // Re-observe when count changes as sentinel moves
 
   const sortedRails = useMemo(() => {
     if (!hydrated || !activeProfile?.preferences) return RAIL_CONFIGS;
@@ -183,13 +202,13 @@ export default function DashboardPage() {
   // Only increment if we're in view AND not already at the end
   // Added a check to prevent rapid-fire loading if skeletons have no height
   useEffect(() => {
-    if (isInView && visibleCount < sortedRails.length) {
+    if (isSentinelInView && visibleCount < sortedRails.length) {
       const timer = setTimeout(() => {
         setVisibleCount(prev => Math.min(prev + 2, sortedRails.length));
-      }, 500); // 500ms throttle to allow layouts to settle
+      }, 300); // Faster increment for smoother experience
       return () => clearTimeout(timer);
     }
-  }, [isInView, visibleCount, sortedRails.length]);
+  }, [isSentinelInView, visibleCount, sortedRails.length]);
 
   const { data: trending } = useQuery<Content[]>({
     queryKey: ['trending', activeProfile?.preferences],
@@ -329,6 +348,8 @@ function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
       </div>
     );
   }
+
+  if (data.length === 0) return null;
 
   return (
     <AtmosphericRail

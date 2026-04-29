@@ -209,8 +209,8 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
             'flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-10 lg:px-24 pb-12 pt-4 h-full'
           )}
         >
-          {isVisible &&
-            items && items.map(item => (
+          {(isVisible && items) ? (
+            items.map(item => (
               <div
                 key={`${item.type}-${item.id}`}
                 className={cn(
@@ -229,15 +229,16 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
                   providerId={providerId}
                 />
               </div>
-            ))}
-          {!isVisible &&
+            ))
+          ) : (
             Array(6)
               .fill(0)
               .map((_, i) => (
                 <div key={i} className={cn('shrink-0 animate-pulse bg-zinc-900 rounded-[2rem] relative overflow-hidden', getCardWidth(), aspectRatio === 'poster' ? 'aspect-[2/3]' : 'aspect-video')}>
                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
                 </div>
-              ))}
+              ))
+          )}
           <div className="min-w-[4rem] lg:min-w-[8rem] shrink-0" />
         </div>
       </div>

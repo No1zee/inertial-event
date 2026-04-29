@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useRef, useEffect, useMemo } from 'react';
-import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext';
+import * as Pretext from '@chenglou/pretext';
+
+// Use named extracts to ensure compatibility with various bundler configurations
+const prepareWithSegments = (Pretext as any).prepareWithSegments;
+const layoutWithLines = (Pretext as any).layoutWithLines;
 
 interface PretextLine {
   text: string;
