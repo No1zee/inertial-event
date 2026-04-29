@@ -234,11 +234,14 @@ export default function DashboardPage() {
 }
 
 function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
-  const { data, isLoading } = useQuery<Content[]>({
+  const { data, isLoading, isError } = useQuery<Content[]>({
     queryKey: ['rail', config.id],
     queryFn: () => config.fetcher(),
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 2, // 2 hours
     refetchOnWindowFocus: false,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
   });
 
   const provider = config.providerId

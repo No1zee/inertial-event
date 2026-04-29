@@ -84,6 +84,8 @@ interface TMDBItem {
   production_companies?: Array<{ name: string; iso_3166_1?: string }>;
   production_countries?: Array<{ iso_3166_1: string }>;
   adult?: boolean;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
 }
 
 export const contentApi = {
@@ -110,22 +112,25 @@ export const contentApi = {
 
   getTrending: async (page: number = 1): Promise<Content[]> => {
     try {
-      const res = await axios.get(getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`));
+      const res = await axios.get(getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`), { timeout: 10000 });
       const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent(item)));
-    } catch {
-      return generateMockContent(10);
+    } catch (e) {
+      console.error('Trending fetch failed:', e);
+      return generateMockContent(12);
     }
   },
 
   getPopularTV: async (page: number = 1): Promise<Content[]> => {
     try {
-      const res = await axios.get(getTmdbUrl('/tv/popular', `language=en-US&page=${page}`));
+      const res = await axios.get(getTmdbUrl('/tv/popular', `language=en-US&page=${page}`), { timeout: 10000 });
       const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' })));
-    } catch {
-      // Fallback to mock on error only
-      return [...MOCK_TV_SHOWS, ...generateMockContent(5)];
+    } catch (e) {
+      console.error('Popular TV fetch failed:', e);
+      return generateMockContent(12);
     }
   },
 
@@ -134,12 +139,15 @@ export const contentApi = {
       const endpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
       const randomPage = page || 1;
       const res = await axios.get(
-        getTmdbUrl(endpoint, `with_genres=${genreId}&sort_by=popularity.desc&language=en-US&page=${randomPage}`)
+        getTmdbUrl(endpoint, `with_genres=${genreId}&sort_by=popularity.desc&language=en-US&page=${randomPage}`),
+        { timeout: 10000 }
       );
-      return prioritizeContent((res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type })));
-    } catch {
-      // Fallback
-      return generateMockContent(10);
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type })));
+    } catch (e) {
+      console.error(`Genre ${genreId} fetch failed:`, e);
+      return generateMockContent(12);
     }
   },
 
@@ -148,17 +156,17 @@ export const contentApi = {
   getUpcoming: async (page?: number): Promise<Content[]> => {
     try {
       const randomPage = page || 1;
-      const res = await axios.get(getTmdbUrl('/movie/upcoming', `language=en-US&region=US&page=${randomPage}`));
+      const res = await axios.get(getTmdbUrl('/movie/upcoming', `language=en-US&region=US&page=${randomPage}`), { timeout: 10000 });
       const data = res.data.results || [];
-      // Filter only future dates to be safe
       const futureEvents = data.filter((item: TMDBItem) => {
         const release = new Date(item.release_date || '');
         return release > new Date();
       });
+      if (futureEvents.length === 0) return generateMockContent(12);
       return futureEvents.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch (e) {
-      console.error('Failed to fetch upcoming:', e);
-      return [];
+      console.error('Upcoming fetch failed:', e);
+      return generateMockContent(12);
     }
   },
 
@@ -169,13 +177,15 @@ export const contentApi = {
         getTmdbUrl(
           '/discover/tv',
           `with_keywords=210024&with_genres=16&language=en-US&sort_by=popularity.desc&page=${randomPage}`
-        )
+        ),
+        { timeout: 10000 }
       );
       const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'anime' }));
     } catch (e) {
-      console.error('Failed to fetch anime:', e);
-      return [];
+      console.error('Anime fetch failed:', e);
+      return generateMockContent(12);
     }
   },
 
@@ -189,19 +199,23 @@ export const contentApi = {
           getTmdbUrl(
             tmdbEndpoint,
             `sort_by=vote_average.desc&vote_count.gte=1000&language=en-US&page=${randomPage}${extraFilter}`
-          )
+          ),
+          { timeout: 10000 }
         ),
         axios.get(
           getTmdbUrl(
             tmdbEndpoint,
             `sort_by=vote_average.desc&vote_count.gte=1000&language=en-US&page=${randomPage + 1}${extraFilter}`
-          )
+          ),
+          { timeout: 10000 }
         ),
       ]);
       const data = [...(res1.data.results || []), ...(res2.data.results || [])];
+      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
-    } catch {
-      return [];
+    } catch (e) {
+      console.error('Bangers fetch failed:', e);
+      return generateMockContent(12);
     }
   },
 
@@ -217,20 +231,24 @@ export const contentApi = {
           getTmdbUrl(
             tmdbEndpoint,
             `sort_by=popularity.desc&vote_average.gte=7.5&${dateFilter}&language=en-US&page=${randomPage}${extraFilter}`
-          )
+          ),
+          { timeout: 10000 }
         ),
         axios.get(
           getTmdbUrl(
             tmdbEndpoint,
             `sort_by=popularity.desc&vote_average.gte=7.5&${dateFilter}&language=en-US&page=${randomPage + 1}${extraFilter}`
-          )
+          ),
+          { timeout: 10000 }
         ),
       ]);
 
       const data = [...(res1.data.results || []), ...(res2.data.results || [])];
+      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
-    } catch {
-      return [];
+    } catch (e) {
+      console.error('Classics fetch failed:', e);
+      return generateMockContent(12);
     }
   },
 
@@ -255,9 +273,10 @@ export const contentApi = {
         ),
       ]);
       const data = [...(res1.data.results || []), ...(res2.data.results || [])];
+      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -285,9 +304,10 @@ export const contentApi = {
         ),
       ]);
       const data = [...(res1.data.results || []), ...(res2.data.results || [])];
+      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -298,9 +318,11 @@ export const contentApi = {
       const queryType = type === 'anime' ? 'tv' : type;
       const cleanId = id.replace('tmdb_', '');
       const res = await axios.get(getTmdbUrl(`/${queryType}/${cleanId}/recommendations`, 'language=en-US&page=1'));
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -313,11 +335,14 @@ export const contentApi = {
         getTmdbUrl(
           '/discover/tv',
           `${genreQuery}&with_keywords=210024&language=en-US&sort_by=popularity.desc&page=${randomPage}`
-        )
+        ),
+        { timeout: 10000 }
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'anime' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return (data || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'anime' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -329,12 +354,15 @@ export const contentApi = {
         getTmdbUrl(
           '/discover/tv',
           `with_genres=16&with_keywords=210024&with_original_language=en&sort_by=popularity.desc&page=${randomPage}`
-        )
+        ),
+        { timeout: 10000 }
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'anime' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return (data || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'anime' }));
     } catch (e) {
       console.error('Failed to fetch english anime:', e);
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -348,9 +376,11 @@ export const contentApi = {
           `with_genres=16,35&without_keywords=210024&language=en-US&sort_by=popularity.desc&page=${randomPage}`
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -363,7 +393,7 @@ export const contentApi = {
       return results.map(res => transformToContent({ ...res.data, type: 'tv' }));
     } catch (e) {
       console.error('Failed to fetch viral adult swim:', e);
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -391,9 +421,10 @@ export const contentApi = {
       ]);
 
       const results = [...(page1.data.results || []), ...(page2.data.results || [])];
+      if (results.length === 0) return generateMockContent(12);
       return results.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -404,9 +435,11 @@ export const contentApi = {
       const res = await axios.get(
         getTmdbUrl('/discover/movie', 'with_runtime.lte=40&sort_by=popularity.desc&language=en-US&page=1')
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -437,7 +470,7 @@ export const contentApi = {
       const unique = results.filter((item, index, self) => index === self.findIndex(t => t.id === item.id));
       return unique.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -467,9 +500,11 @@ export const contentApi = {
           'with_networks=80&vote_average.gte=7.5&sort_by=vote_average.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -482,9 +517,11 @@ export const contentApi = {
           'with_genres=16,35&vote_average.gte=7&with_keywords=10683&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -497,9 +534,11 @@ export const contentApi = {
           'with_genres=16&with_keywords=210024&vote_average.gte=7&first_air_date.gte=2000-01-01&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -516,9 +555,11 @@ export const contentApi = {
           'with_genres=16,10402&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -531,9 +572,11 @@ export const contentApi = {
           'with_genres=16,10765&with_keywords=10683&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -543,9 +586,11 @@ export const contentApi = {
       const res = await axios.get(
         getTmdbUrl('/discover/tv', 'with_keywords=10332,10683&sort_by=popularity.desc&language=en-US&page=1')
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -558,9 +603,11 @@ export const contentApi = {
           'with_origin_country=GB&with_genres=35&vote_average.gte=7.5&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -573,9 +620,11 @@ export const contentApi = {
           'with_networks=80&first_air_date.lte=2010-01-01&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -589,9 +638,11 @@ export const contentApi = {
           'with_original_language=ko&with_genres=18&sort_by=popularity.desc&vote_average.gte=7&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -607,9 +658,10 @@ export const contentApi = {
         ),
       ]);
       const results = [...(nigeria.data.results || []), ...(southAfrica.data.results || [])];
+      if (results.length === 0) return generateMockContent(12);
       return results.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -622,9 +674,11 @@ export const contentApi = {
           'with_genres=35&vote_average.gte=7&first_air_date.lte=2010-01-01&sort_by=vote_average.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -634,9 +688,11 @@ export const contentApi = {
       const res = await axios.get(
         getTmdbUrl('/discover/tv', 'with_genres=10766&sort_by=popularity.desc&language=en-US&page=1')
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -649,9 +705,11 @@ export const contentApi = {
           'with_genres=18,10751&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -664,9 +722,11 @@ export const contentApi = {
           'with_original_language=es&with_genres=18&sort_by=popularity.desc&vote_average.gte=6&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -679,9 +739,11 @@ export const contentApi = {
           'with_original_language=hi&sort_by=popularity.desc&vote_average.gte=6&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -694,9 +756,11 @@ export const contentApi = {
           'with_genres=35,10751&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -706,9 +770,11 @@ export const contentApi = {
       const res = await axios.get(
         getTmdbUrl('/discover/tv', 'with_genres=10764&with_keywords=9840&sort_by=popularity.desc&language=en-US&page=1')
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -721,9 +787,11 @@ export const contentApi = {
           'with_genres=10749&vote_average.gte=6.5&sort_by=popularity.desc&language=en-US&page=1'
         )
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -758,7 +826,7 @@ export const contentApi = {
           .map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' }));
       }
     } catch {
-      return [];
+      return generateMockContent(10);
     }
   },
 
@@ -771,11 +839,14 @@ export const contentApi = {
         getTmdbUrl(
           '/discover/movie',
           `with_runtime.lte=100&vote_average.gte=7&sort_by=popularity.desc&page=${page || 1}`
-        )
+        ),
+        { timeout: 10000 }
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -783,11 +854,14 @@ export const contentApi = {
     try {
       // Comedy (35), Family (10751), Music (10402)
       const res = await axios.get(
-        getTmdbUrl('/discover/movie', `with_genres=35,10751,10402&sort_by=popularity.desc&page=${page || 1}`)
+        getTmdbUrl('/discover/movie', `with_genres=35,10751,10402&sort_by=popularity.desc&page=${page || 1}`),
+        { timeout: 10000 }
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(12);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -808,11 +882,15 @@ export const contentApi = {
 
       const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
       const res = await axios.get(
-        getTmdbUrl(tmdbEndpoint, `sort_by=popularity.desc&${dateFilter}&language=en-US&page=${page}${extraFilter}`)
+        getTmdbUrl(tmdbEndpoint, `sort_by=popularity.desc&${dateFilter}&language=en-US&page=${page}${extraFilter}`),
+        { timeout: 10000 }
       );
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type }));
-    } catch {
-      return [];
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(10);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
+    } catch (e) {
+      console.error(`New releases fetch failed for ${type}:`, e);
+      return generateMockContent(10);
     }
   },
 
@@ -830,11 +908,13 @@ export const contentApi = {
       } as Record<string, string>);
 
       const endpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
-      const res = await axios.get(getTmdbUrl(endpoint, queryParams.toString()));
-      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type }));
+      const res = await axios.get(getTmdbUrl(endpoint, queryParams.toString()), { timeout: 10000 });
+      const data = res.data.results || [];
+      if (data.length === 0) return generateMockContent(10);
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
     } catch (e) {
       console.error('Failed to discover content:', e);
-      return [];
+      return generateMockContent(10);
     }
   },
 
@@ -964,15 +1044,15 @@ export const contentApi = {
   search: async (query: string): Promise<Content[]> => {
     try {
       const res = await axios.get(
-        getTmdbUrl('/search/multi', `query=${encodeURIComponent(query)}&page=1&include_adult=false&language=en-US`)
+        getTmdbUrl('/search/multi', `query=${encodeURIComponent(query)}&page=1&include_adult=false&language=en-US`),
+        { timeout: 10000 }
       );
       const data = res.data.results || [];
-      // Filter only movie and tv
       const filtered = data.filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv');
       return filtered.map((item: TMDBItem) => transformToContent(item));
     } catch (e) {
-      console.error('Failed to search content:', e);
-      return [];
+      console.error('Search failed:', e);
+      return generateMockContent(12);
     }
   },
 
@@ -984,7 +1064,7 @@ export const contentApi = {
       return data.slice(0, 10).map((item: TMDBItem) => transformToContent(item, type));
     } catch (e) {
       console.error('Fetch recommendations failed:', e);
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -1002,10 +1082,11 @@ export const contentApi = {
     try {
       const res = await axios.get(getTmdbUrl(`/person/${personId}/combined_credits`, 'language=en-US'));
       const data = res.data.cast || [];
+      if (data.length === 0) return generateMockContent(12);
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent(item)));
     } catch (e) {
       console.error(`Failed to fetch person credits for ${personId}:`, e);
-      return [];
+      return generateMockContent(12);
     }
   },
 
@@ -1041,7 +1122,7 @@ export const contentApi = {
         .map((item: TMDBItem) => transformToContent({ ...item, type }));
     } catch (e) {
       console.error('Failed to discover by genres:', e);
-      return [];
+      return generateMockContent(limit);
     }
   },
 
@@ -1240,6 +1321,8 @@ const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime
       item.origin_country || item.production_countries?.map((c: { iso_3166_1: string }) => c.iso_3166_1) || [],
     status: 'ongoing',
     isAdult: item.adult || false,
+    seasons: item.number_of_seasons || (item.seasons?.length) || undefined,
+    episodes: item.number_of_episodes || undefined,
     seasonsList:
       item.seasons?.map((s: { id: number; season_number: number; episode_count: number; name: string }) => ({
         id: s.id,

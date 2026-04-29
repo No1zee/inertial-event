@@ -12,8 +12,6 @@ export interface SmartCollection {
 }
 
 export async function getSmartCollections(_historyIds: string[]): Promise<SmartCollection[]> {
-  const collections: SmartCollection[] = [];
-
   const themes = [
     { title: 'Existential Noir', query: 'cinematic poetry', desc: 'Gritty narratives and psychological depth.' },
     {
@@ -28,20 +26,33 @@ export async function getSmartCollections(_historyIds: string[]): Promise<SmartC
     },
   ];
 
-  for (const theme of themes) {
-    const items = await contentApi.search(theme.query);
-    if (items.length >= 4) {
-        collections.push({
-          id: `smart_${theme.title.toLowerCase().replace(/\s/g, '_')}`,
-          title: theme.title,
-          description: theme.desc,
-          items: items.slice(0, 8),
-          type: 'curated',
-          logic: `Synthesis complete: Highly compatible with your preference for ${theme.query.split(' ')[0]} narratives.`,
-          matchScore: Math.floor(Math.random() * (98 - 85 + 1) + 85),
-        });
-    }
-  }
+  try {
+    const results = await Promise.all(
+      themes.map(async (theme) => {
+        try {
+          const items = await contentApi.search(theme.query);
+          if (items.length >= 2) {
+            return {
+              id: `smart_${theme.title.toLowerCase().replace(/\s/g, '_')}`,
+              title: theme.title,
+              description: theme.desc,
+              items: items.slice(0, 8),
+              type: 'curated' as const,
+              logic: `Synthesis complete: Highly compatible with your preference for ${theme.query.split(' ')[0]} narratives.`,
+              matchScore: Math.floor(Math.random() * (98 - 85 + 1) + 85),
+            };
+          }
+          return null;
+        } catch (e) {
+          console.error(`Smart collection fetch failed for ${theme.title}:`, e);
+          return null;
+        }
+      })
+    );
 
-  return collections;
+    return results.filter((c): c is SmartCollection => c !== null);
+  } catch (e) {
+    console.error('getSmartCollections total failure:', e);
+    return [];
+  }
 }

@@ -8,7 +8,7 @@ export default function imageLoader({ src, width, quality }: { src: string; widt
   if (!src) return '';
 
   // Don't optimize local images already in public folder (unless they look like TMDB paths)
-  const isTmdbPath = src.startsWith('/t/p/') || (/^\/[a-zA-Z0-9]+\.(jpg|jpeg|png|webp|gif)$/.test(src));
+  const isTmdbPath = src.startsWith('/t/p/') || (/^\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|webp|gif)$/i.test(src));
   if (src.startsWith('/') && !isTmdbPath) {
     return src;
   }

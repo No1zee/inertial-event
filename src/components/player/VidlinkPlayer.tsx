@@ -143,7 +143,24 @@ export function VidlinkPlayer({
     // Transition cancel logic
   }, []);
 
-  const nextEpisodeNumber = Number(episode || 1) + 1;
+  const { nextSeasonNumber, nextEpisodeNumber } = useMemo(() => {
+    if (type === 'movie') return { nextSeasonNumber: 1, nextEpisodeNumber: 1 };
+    
+    const s = Number(season);
+    const e = Number(episode);
+    
+    // Boundary-aware logic for prefetching and internal state
+    const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
+    const currentSeasonMeta = content?.seasonsList?.find(m => m.season_number === s);
+    
+    if (currentSeasonMeta && e >= currentSeasonMeta.episode_count) {
+      if (s < totalSeasons) {
+        return { nextSeasonNumber: s + 1, nextEpisodeNumber: 1 };
+      }
+    }
+    
+    return { nextSeasonNumber: s, nextEpisodeNumber: e + 1 };
+  }, [type, season, episode, content]);
 
   const handleIpcMessage = useCallback((event: Event) => {
     const electronEvent = event as WebviewIpcEvent;
@@ -411,7 +428,7 @@ export function VidlinkPlayer({
     const checkAndPrefetchNext = async () => {
       const { currentTime, duration } = playbackRef.current;
       if (type !== 'movie' && hasNext && duration > 0 && currentTime / duration > 0.8) {
-        streamingOptimizer.preloadSources(tmdbId, type, Number(season), nextEpisodeNumber, content?.title || '', playerPrefs.audioLanguage);
+        streamingOptimizer.preloadSources(tmdbId, type, nextSeasonNumber, nextEpisodeNumber, content?.title || '', playerPrefs.audioLanguage);
       }
     };
     const interval = setInterval(checkAndPrefetchNext, 10000);

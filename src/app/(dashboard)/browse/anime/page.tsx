@@ -141,7 +141,7 @@ function AsyncRail({ config }: { config: RailConfig }) {
   });
 
   if (isLoading) return <div className="h-64 bg-zinc-900/10 animate-pulse rounded-xl" />;
-  if (!data || !Array.isArray(data) || data.length === 0) return null;
+  if (!data || !Array.isArray(data)) return null;
 
   return <ContentRail title={config.title} items={data} railId={config.id} />;
 }

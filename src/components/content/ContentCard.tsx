@@ -161,7 +161,22 @@ const ContentCard = memo(function ContentCard({
           `/watch?id=${item.id}&type=${contentType}${season ? `&season=${season}` : ''}${episode ? `&episode=${episode}` : ''}&progress=${currentTime}${providerQuery}`
         );
       } else {
-        router.push(`/watch?id=${item.id}&type=${contentType}&season=${season ?? 1}&episode=${(episode ?? 1) + 1}${providerQuery}`);
+        // Find next episode, potentially jumping seasons
+        let nextS = season ?? 1;
+        let nextE = (episode ?? 1) + 1;
+        
+        // Use available metadata to check for season jump
+        const currentSeasonMeta = item.seasonsList?.find(s => s.season_number === nextS);
+        if (currentSeasonMeta && nextE > currentSeasonMeta.episode_count) {
+           const totalSeasons = item.seasons || item.seasonsList?.length || 0;
+           if (nextS < totalSeasons) {
+              nextS += 1;
+              nextE = 1;
+              console.log(`[ContentCard] Completion jump: S${season}:E${episode} -> S${nextS}:E${nextE}`);
+           }
+        }
+        
+        router.push(`/watch?id=${item.id}&type=${contentType}&season=${nextS}&episode=${nextE}${providerQuery}`);
       }
     } else {
       router.push(`/watch?id=${item.id}&type=${contentType}${providerQuery}`);
@@ -393,9 +408,16 @@ function CardProgressBar({ item, providerColor }: { item: Content; providerColor
         </motion.div>
       </div>
       {resumeData && resumeData.currentTime > 30 && (
-        <div className="absolute top-3 right-3 z-30 flex items-center gap-1 px-2 py-1 bg-black/70 backdrop-blur-sm rounded-full border border-white/10">
-          <Clock size={10} style={{ color: providerColor || '#E50914' }} />
-          <span className="text-[9px] font-semibold text-white">{formatTime(resumeData.currentTime)}</span>
+        <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-black/70 backdrop-blur-md rounded-full border border-white/10 shadow-2xl">
+            <Clock size={10} style={{ color: providerColor || '#E50914' }} />
+            <span className="text-[9px] font-bold text-white tabular-nums">{formatTime(resumeData.currentTime)}</span>
+          </div>
+          {resumeData.season && (
+            <div className="px-1.5 py-0.5 bg-zinc-800/90 backdrop-blur-md rounded-sm border border-white/5 text-[8px] font-black text-zinc-100 uppercase tracking-wider">
+              S{resumeData.season} • E{resumeData.episode}
+            </div>
+          )}
         </div>
       )}
     </>

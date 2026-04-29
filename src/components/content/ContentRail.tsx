@@ -42,7 +42,7 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
     return () => observer.disconnect();
   }, []);
 
-  if (isEmpty) return null;
+  // if (isEmpty) return null;
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollContainerRef.current) return;

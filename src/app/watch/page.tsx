@@ -159,30 +159,51 @@ function WatchContent() {
     );
   }
 
-  const handleNext = React.useCallback(() => {
+  const handleNext = React.useCallback(async () => {
+    if (type === 'movie') return;
+
     let nextSeason = currentSeason;
     let nextEpisode = currentEpisode + 1;
 
-    if (seasonDetails) {
-      const maxEpisodes = seasonDetails.episodes?.length || 0;
-      if (nextEpisode > maxEpisodes) {
-        const nextSeasonNum = currentSeason + 1;
-        const nextSeasonExists = content?.seasonsList?.some(s => s.season_number === nextSeasonNum);
-        
-        if (nextSeasonExists || nextSeasonNum <= (content?.seasons || 0)) {
-          nextSeason = nextSeasonNum;
+    // Institutional Boundary Detection
+    const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
+    
+    // 1. Primary Check: Precise Season Details (Full Episode List)
+    if (seasonDetails && seasonDetails.episodes && seasonDetails.episodes.length > 0) {
+      const episodesInThisSeason = seasonDetails.episodes.length;
+      
+      if (nextEpisode > episodesInThisSeason) {
+        // Season boundary detected via precise episode list
+        if (currentSeason < totalSeasons) {
+          console.log(`[MaiWatch] Season boundary reached. Jumping from S${currentSeason}:E${currentEpisode} to S${currentSeason + 1}:E1`);
+          nextSeason = currentSeason + 1;
           nextEpisode = 1;
         } else {
-          console.log('[MaiWatch] Boundary reached: End of series');
+          console.log('[MaiWatch] Final episode of the series reached.');
+          return; // Termination point
+        }
+      }
+    } 
+    // 2. Secondary Check: seasonsList metadata fallback
+    else if (content?.seasonsList) {
+      const currentSeasonMeta = content.seasonsList.find(s => s.season_number === currentSeason);
+      if (currentSeasonMeta && nextEpisode > currentSeasonMeta.episode_count) {
+        if (currentSeason < totalSeasons) {
+          console.log(`[MaiWatch] Season boundary detected via seasonsList metadata fallback.`);
+          nextSeason = currentSeason + 1;
+          nextEpisode = 1;
+        } else {
           return;
         }
       }
     }
 
     navigateToEpisode(nextSeason, nextEpisode);
-  }, [currentSeason, currentEpisode, seasonDetails, content, navigateToEpisode]);
+  }, [currentSeason, currentEpisode, seasonDetails, content, navigateToEpisode, type]);
 
   const handlePrev = React.useCallback(() => {
+    if (type === 'movie') return;
+
     let nextSeason = currentSeason;
     let nextEpisode = currentEpisode - 1;
 
@@ -199,14 +220,28 @@ function WatchContent() {
     }
 
     navigateToEpisode(nextSeason, nextEpisode);
-  }, [currentSeason, currentEpisode, content, navigateToEpisode]);
+  }, [currentSeason, currentEpisode, content, navigateToEpisode, type]);
 
-  const hasNext =
-    type !== 'movie' &&
-    ((seasonDetails && currentEpisode < seasonDetails.episodes.length) ||
-      content?.seasonsList?.some(s => s.season_number > currentSeason) ||
-      currentSeason < (content?.seasons || 0) ||
-      !seasonDetails); // Assume next exists if details are loading
+  const hasNext = React.useMemo(() => {
+    if (type === 'movie') return false;
+    
+    // 1. Check current season boundary
+    if (seasonDetails && seasonDetails.episodes) {
+      if (currentEpisode < seasonDetails.episodes.length) return true;
+    } else if (content?.seasonsList) {
+      const currentS = content.seasonsList.find(s => s.season_number === currentSeason);
+      if (currentS && currentEpisode < currentS.episode_count) return true;
+    }
+
+    // 2. Check series boundary (is there a next season?)
+    const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
+    if (currentSeason < totalSeasons) return true;
+
+    // 3. Fallback: Loading state
+    if (!seasonDetails && !content) return true;
+
+    return false;
+  }, [type, seasonDetails, currentEpisode, currentSeason, content]);
 
   const hasPrev = type !== 'movie' && (currentEpisode > 1 || currentSeason > 1);
 

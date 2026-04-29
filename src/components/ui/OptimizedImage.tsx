@@ -61,12 +61,18 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         alt={alt || 'Media asset'}
         priority={priority}
         fill={fill}
-        unoptimized={finalSrc.startsWith('/') && !finalSrc.startsWith('/t/p/') && !(/^\/[a-zA-Z0-9]+\.(jpg|jpeg|png|webp|gif)$/.test(finalSrc))}
+        unoptimized={
+          finalSrc.startsWith('/') && 
+          !finalSrc.startsWith('/t/p/') && 
+          !finalSrc.startsWith('/_next/') &&
+          !(/^\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|webp|gif)$/i.test(finalSrc))
+        }
         onLoad={e => {
           setIsLoaded(true);
           onLoad?.(e);
         }}
-        onError={() => {
+        onError={(e) => {
+          console.error(`Institutional Asset Error: Failed to load image at ${finalSrc}`, { alt });
           setError(true);
         }}
         className={cn(

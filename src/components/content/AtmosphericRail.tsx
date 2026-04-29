@@ -98,7 +98,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
     }
   };
 
-  if (!items || items.length === 0) return null;
+  // if (!items || items.length === 0) return null; // Removed to prevent silent failures/vanishing rails
 
   return (
     <section

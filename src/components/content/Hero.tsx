@@ -44,7 +44,7 @@ export function Hero({ items = [] }: HeroProps) {
     if (!uiVisible) setUiVisible(true);
   };
 
-  if (!safeItems.length) return null;
+  if (!safeItems.length) return <HeroSkeleton />;
 
   return (
     <section
