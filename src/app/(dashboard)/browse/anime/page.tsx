@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bird, Star } from 'lucide-react';
 import { Hero } from '@/components/content/Hero';
 import { ContentRail } from '@/components/content/ContentRail';
