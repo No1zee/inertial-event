@@ -244,6 +244,7 @@ export default function NativePlayer({
         }}
         onCanPlay={() => {
           remote.unmute();
+          remote.changeVolume(1);
           if (initialTime > 0) {
             remote.seek(initialTime);
           }

@@ -210,6 +210,9 @@ export const usePlayerStore = createWithEqualityFn<PlayerStore>()(
             loading: false,
             // Reset playback state for new media
             ...defaultPlaybackState,
+            // Automatically put on 100% volume for new content
+            volume: 1,
+            muted: false,
           });
         },
 

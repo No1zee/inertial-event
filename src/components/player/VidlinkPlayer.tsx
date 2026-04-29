@@ -209,16 +209,18 @@ export function VidlinkPlayer({
 
       const handleDomReady = () => {
         setPlayerReady(true);
-        if (initialProgress > 0) {
-          (wv as ElectronWebView)
-            .executeJavaScript(
+        (wv as ElectronWebView)
+          .executeJavaScript(
+            `
+                  const video = document.querySelector('video');
+                  if (video) {
+                    if (${initialProgress} > 0) video.currentTime = ${initialProgress};
+                    video.volume = 1;
+                    video.muted = false;
+                  }
               `
-                    const video = document.querySelector('video');
-                    if (video) video.currentTime = ${initialProgress};
-                `
-            )
-            .catch((err: Error) => console.warn('[MaiWatch] Failed to set resume time:', err));
-        }
+          )
+          .catch((err: Error) => console.warn('[MaiWatch] Failed to initialize webview video state:', err));
       };
 
       const handleConsoleMessage = (e: { message: string }) => {

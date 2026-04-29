@@ -6,6 +6,7 @@ import { Content } from '@/lib/types/content';
 import { AtmosphericRail } from './AtmosphericRail';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
 import { cn } from '@/lib/utils';
+import { useHydrated } from '@/lib/hooks/useHydrated';
 
 interface RailConfig {
   id: string;

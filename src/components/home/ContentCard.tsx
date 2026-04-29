@@ -12,9 +12,6 @@ interface ContentCardProps {
 
 export const ContentCard: React.FC<ContentCardProps> = ({ item, isFocused, onFocus }) => {
   const router = useRouter();
-
-  if (!item || (!item.id && !item._id)) return null;
-
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,6 +20,8 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, isFocused, onFoc
       cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   }, [isFocused]);
+
+  if (!item || (!item.id && !item._id)) return null;
 
   const handleClick = () => {
     router.push(`/watch/${item.id || item._id}`);
