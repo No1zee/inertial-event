@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface AdultSwimHeroProps {
   item: Content;
@@ -57,7 +58,7 @@ export function AdultSwimHero({ item }: AdultSwimHeroProps) {
       >
         {item.backdrop_path && (
           <OptimizedImage
-            src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`}
+            src={getOptimizedImageUrl(item.backdrop_path, 'original')}
             alt=""
             fill
             className="w-full h-full object-cover"

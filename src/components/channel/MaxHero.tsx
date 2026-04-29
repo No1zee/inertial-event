@@ -6,6 +6,7 @@ import { Play, Info, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '../ui/OptimizedImage';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface MaxHeroProps {
   item: Content;
@@ -25,7 +26,7 @@ export function MaxHero({ item }: MaxHeroProps) {
       {/* Backdrop Image */}
       <div className="absolute inset-0">
         <OptimizedImage
-          src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`}
+          src={getOptimizedImageUrl(item.backdrop_path, 'original')}
           alt={item.title}
           fill
           className="object-cover"

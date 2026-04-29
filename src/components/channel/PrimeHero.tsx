@@ -6,6 +6,7 @@ import { Play, Plus, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { OptimizedImage } from '../ui/OptimizedImage';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface PrimeHeroProps {
   item: Content;
@@ -19,7 +20,7 @@ export function PrimeHero({ item }: PrimeHeroProps) {
       {/* Backdrop Image */}
       <div className="absolute inset-0">
         <OptimizedImage
-          src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`}
+          src={getOptimizedImageUrl(item.backdrop_path, 'original')}
           alt={item.title}
           fill
           className="object-cover"

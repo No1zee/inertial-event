@@ -32,6 +32,7 @@ interface VidlinkPlayerProps {
   onBack?: () => void;
   hasNext?: boolean;
   hasPrev?: boolean;
+  showUI?: boolean;
 }
 
 interface VidlinkEvent {
@@ -80,6 +81,7 @@ export function VidlinkPlayer({
   onBack,
   hasNext,
   hasPrev,
+  showUI = true,
 }: VidlinkPlayerProps) {
   const router = useRouter();
   const addToHistory = useLocalDataStore(state => state.addToWatchHistory);
@@ -466,6 +468,12 @@ export function VidlinkPlayer({
             handleNextEpisode();
           }
         }
+      } else if (event.data?.type === 'NEXT_EPISODE') {
+        console.log('[MaiWatch] VidLink Internal: Next Episode Triggered');
+        if (hasNext) handleNextEpisode();
+      } else if (event.data?.type === 'PREV_EPISODE') {
+        console.log('[MaiWatch] VidLink Internal: Prev Episode Triggered');
+        if (hasPrev && onPrevRef.current) onPrevRef.current();
       }
     };
     window.addEventListener('message', handleMessage);
@@ -582,6 +590,46 @@ export function VidlinkPlayer({
           </div>
         )}
       </motion.div>
+
+      {/* DIRECTORIAL NAVIGATION OVERLAY (Feature 6 Fix) */}
+      <AnimatePresence>
+        {showUI && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-y-0 inset-x-0 z-[150] pointer-events-none flex items-center justify-between px-8"
+          >
+            {hasPrev && (
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onClick={() => onPrevRef.current?.()}
+                className="group pointer-events-auto p-6 bg-black/20 hover:bg-white/10 backdrop-blur-2xl rounded-full border border-white/5 transition-all active:scale-90"
+                aria-label="Previous Episode"
+              >
+                <ChevronLeft size={48} className="text-white/20 group-hover:text-white transition-colors" strokeWidth={1} />
+              </motion.button>
+            )}
+
+            <div className="flex-1" />
+
+            {hasNext && (
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                onClick={() => handleNextEpisode()}
+                className="group pointer-events-auto p-6 bg-black/20 hover:bg-white/10 backdrop-blur-2xl rounded-full border border-white/5 transition-all active:scale-90"
+                aria-label="Next Episode"
+              >
+                <ChevronRight size={48} className="text-white/20 group-hover:text-white transition-colors" strokeWidth={1} />
+              </motion.button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {type !== 'movie' && hasNext && (
         <CinematicEndCredits

@@ -158,7 +158,7 @@ export function Sidebar() {
         </div>
 
         {/* Directorial Navigation Stack */}
-        <div className="flex-1 overflow-y-auto pt-8 pb-4 scrollbar-hide space-y-8">
+        <div className="flex-1 overflow-y-auto pt-8 pb-4 space-y-8 custom-scrollbar">
           {navGroups.map(group => (
             <div key={group.title} className="space-y-3">
               <AnimatePresence>

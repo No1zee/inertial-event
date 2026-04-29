@@ -61,7 +61,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         alt={alt || 'Media asset'}
         priority={priority}
         fill={fill}
-        unoptimized={finalSrc.startsWith('/')}
+        unoptimized={finalSrc.startsWith('/') && !finalSrc.startsWith('/t/p/') && !(/^\/[a-zA-Z0-9]+\.(jpg|jpeg|png|webp|gif)$/.test(finalSrc))}
         onLoad={e => {
           setIsLoaded(true);
           onLoad?.(e);

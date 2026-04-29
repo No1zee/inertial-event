@@ -187,6 +187,38 @@
   .will-change-opacity { will-change: opacity; }
   .will-change-transform-opacity { will-change: transform, opacity; }
 
+  /* Scrollbar Management (Institutional Purity) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom Premium Scrollbar (Always active but subtle) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsla(var(--brand-primary-rgb), 0.1);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsla(var(--brand-primary-rgb), 0.3);
+  }
+
   /* --- African Cinematic Universe (ACU) Branding --- */
   .acu-badge {
     @apply absolute top-2 left-2 z-20 px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-[0.15em] shadow-2xl flex items-center gap-1.5;
@@ -243,7 +275,14 @@
   .debug-ok { color: #0f0; }
 }
 
-/* Custom Scrollbar (Institutional Purity Edition) */
+/* Root Scroll Stabilization */
+html, body {
+  overflow-x: hidden;
+  height: auto;
+  min-height: 100%;
+}
+
+/* Global Custom Scrollbar Application */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -254,13 +293,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsla(346, 84%, 50%, 0.1);
+  background: hsla(var(--brand-primary-rgb), 0.05);
   border-radius: 10px;
-  @apply transition-colors duration-300;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsla(346, 84%, 50%, 0.25);
+  background: hsla(var(--brand-primary-rgb), 0.2);
 }
 
 /* Global Animations (Framer Motion Sync) */

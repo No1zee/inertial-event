@@ -17,6 +17,8 @@ export const SettingsModal: React.FC = () => {
   const { setSettingsOpen } = useLayoutActions();
   const { theme, setTheme } = useThemeStore();
   const { addNotification } = useNotificationActions();
+  const preferences = useUserPreferences();
+  const { updatePreferences } = usePreferenceActions();
   const [activeSection, setActiveSection] = React.useState<'profile' | 'playback' | 'visual' | 'network' | 'search'>('playback');
 
   const handleUpdatePreference = (updates: any) => {

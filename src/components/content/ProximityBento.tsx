@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
 import { useRouter } from 'next/navigation';
 import { Content } from '@/lib/types/content';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 const DIRECTORIAL_SUGGESTIONS = [
   "A masterclass in non-linear storytelling and rhythmic pacing.",
@@ -73,7 +74,7 @@ export function ProximityBento() {
         {/* Background Scan Effect */}
         <div className="absolute inset-0 z-0">
           <OptimizedImage 
-            src={`https://image.tmdb.org/t/p/original${spotlight.backdrop || spotlight.backdrop_path}`}
+            src={getOptimizedImageUrl(spotlight.backdrop || spotlight.backdrop_path, 'original')}
             alt={spotlight.title}
             fill
             className="object-cover opacity-40 group-hover/spotlight:scale-105 transition-transform duration-[2s] ease-out"

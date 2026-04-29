@@ -12,6 +12,7 @@ import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useHydrated } from '@/lib/hooks/useHydrated';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface CinemaMarqueeProps {
   items?: Content[];
@@ -107,7 +108,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0"
           >
-            <ParallaxBackground src={currentItem.backdrop || currentItem.poster || currentItem.backdrop_path || currentItem.poster_path || '/images/hero_placeholder.jpg'} />
+            <ParallaxBackground src={getOptimizedImageUrl(currentItem.backdrop || currentItem.poster || currentItem.backdrop_path || currentItem.poster_path, 'original') || '/images/hero_placeholder.jpg'} />
 
             <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/30 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-transparent" />

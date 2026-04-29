@@ -5,6 +5,7 @@ import { Content } from '@/lib/types/content';
 import { Play, Plus, Info, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { OptimizedImage } from '../ui/OptimizedImage';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { useRef } from 'react';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 
@@ -47,7 +48,7 @@ export function HuluHero({ item }: HuluHeroProps) {
       {/* Cinematic Backdrop */}
       <motion.div style={{ y: y1, scale, opacity }} className="absolute inset-0 z-0">
         <OptimizedImage
-          src={`https://image.tmdb.org/t/p/original${item.backdrop_path}`}
+          src={getOptimizedImageUrl(item.backdrop_path, 'original')}
           alt={item.title}
           fill
           className="object-cover opacity-70"

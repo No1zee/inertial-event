@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { ParallaxBackground } from './CinemaMarquee';
 import { PretextHeadline } from '../Common/PretextHeadline';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface HeroProps {
   items?: Content[];
@@ -62,7 +63,7 @@ export function Hero({ items = [] }: HeroProps) {
         >
           {/* Background Image (Base Layer) */}
           <div className="absolute inset-0">
-            <ParallaxBackground src={currentItem.backdrop || '/images/hero_placeholder.jpg'} />
+            <ParallaxBackground src={getOptimizedImageUrl(currentItem.backdrop || currentItem.backdrop_path, 'original') || '/images/hero_placeholder.jpg'} />
             {/* Gradients for readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />

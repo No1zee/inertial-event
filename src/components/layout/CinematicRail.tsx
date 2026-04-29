@@ -100,7 +100,7 @@ export const CinematicRail: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-3 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 px-4 space-y-3 overflow-y-auto custom-scrollbar">
         <AnimatePresence mode="wait">
           <motion.div
             key={isRailExpanded ? 'expanded' : 'collapsed'}

@@ -43,14 +43,27 @@ function WatchContent() {
     if (e && e !== currentEpisode) setCurrentEpisode(e);
   }, [searchParams, currentSeason, currentEpisode]);
 
+  // Unified Navigation Utility
+  const navigateToEpisode = React.useCallback((s: number, e: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('season', s.toString());
+    params.set('episode', e.toString());
+    // Use replace to avoid polluting history with every episode jump
+    router.replace(`/watch?${params.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
-
-  // Redirect if no ID
+  // Redirect if no ID or missing params (Canonical Enforcement)
   useEffect(() => {
     if (!id) {
       router.push('/');
+      return;
     }
-  }, [id, router]);
+
+    // Force canonical URL for TV/Anime if params are missing
+    if (type !== 'movie' && (!searchParams.get('season') || !searchParams.get('episode'))) {
+      navigateToEpisode(currentSeason, currentEpisode);
+    }
+  }, [id, type, searchParams, currentSeason, currentEpisode, navigateToEpisode, router]);
 
   const handleBack = React.useCallback(() => {
     if (typeof window !== 'undefined' && window.history.length <= 1) {
@@ -146,27 +159,30 @@ function WatchContent() {
     );
   }
 
-  const handleNext = () => {
-    // Fallback next logic: try to increment episode even if details are missing
+  const handleNext = React.useCallback(() => {
     let nextSeason = currentSeason;
     let nextEpisode = currentEpisode + 1;
 
     if (seasonDetails) {
-      if (nextEpisode > seasonDetails.episodes.length) {
-        const nextSeasonExists = content?.seasonsList?.some(s => s.season_number === currentSeason + 1);
-        if (nextSeasonExists || currentSeason < (content?.seasons || 0)) {
-          nextSeason = currentSeason + 1;
+      const maxEpisodes = seasonDetails.episodes?.length || 0;
+      if (nextEpisode > maxEpisodes) {
+        const nextSeasonNum = currentSeason + 1;
+        const nextSeasonExists = content?.seasonsList?.some(s => s.season_number === nextSeasonNum);
+        
+        if (nextSeasonExists || nextSeasonNum <= (content?.seasons || 0)) {
+          nextSeason = nextSeasonNum;
           nextEpisode = 1;
         } else {
-          return; // End of series
+          console.log('[MaiWatch] Boundary reached: End of series');
+          return;
         }
       }
     }
 
-    router.push(`/watch?id=${id}&type=${type}&season=${nextSeason}&episode=${nextEpisode}`);
-  };
+    navigateToEpisode(nextSeason, nextEpisode);
+  }, [currentSeason, currentEpisode, seasonDetails, content, navigateToEpisode]);
 
-  const handlePrev = () => {
+  const handlePrev = React.useCallback(() => {
     let nextSeason = currentSeason;
     let nextEpisode = currentEpisode - 1;
 
@@ -175,14 +191,15 @@ function WatchContent() {
         const prevSeasonNum = currentSeason - 1;
         const prevSeason = content?.seasonsList?.find(s => s.season_number === prevSeasonNum);
         nextSeason = prevSeasonNum;
-        nextEpisode = prevSeason?.episode_count || 1;
+        nextEpisode = prevSeason?.episode_count || 1; 
       } else {
-        return; // Start of series
+        console.log('[MaiWatch] Boundary reached: Start of series');
+        return;
       }
     }
 
-    router.push(`/watch?id=${id}&type=${type}&season=${nextSeason}&episode=${nextEpisode}`);
-  };
+    navigateToEpisode(nextSeason, nextEpisode);
+  }, [currentSeason, currentEpisode, content, navigateToEpisode]);
 
   const hasNext =
     type !== 'movie' &&
@@ -227,6 +244,7 @@ function WatchContent() {
           onBack={handleBack}
           hasNext={!!hasNext}
           hasPrev={!!hasPrev}
+          showUI={showUI}
         />
       </main>
 
@@ -260,7 +278,7 @@ function WatchContent() {
           currentEpisode={currentEpisode}
           onSelect={(s, e) => {
             setShowEpisodeNavigator(false);
-            router.push(`/watch?id=${id}&type=${type}&season=${s}&episode=${e}${activeSourceId ? `&provider=${activeSourceId}` : ''}`);
+            navigateToEpisode(s, e);
           }}
           seasons={content.seasonsList}
         />
