@@ -1135,28 +1135,46 @@ export const contentApi = {
 
     try {
       const genres = preferences.genres || [];
-      // 2/5 (40%) should be influenced. If we have 20 items, 8 should be personalized.
+      const vibes = preferences.vibes || [];
+      
+      // 40% of the rail should be personalized
       const totalCount = trendingContent.length;
       const personalizedCount = Math.ceil(totalCount * 0.4);
       const baseCount = totalCount - personalizedCount;
 
-      // Fetch personalized items (mix of movie and tv)
-      const [pMovies, pTV] = await Promise.all([
-        contentApi.getDiscoverByGenres(genres, 'movie', 10),
-        contentApi.getDiscoverByGenres(genres, 'tv', 10)
-      ]);
+      // Fetch personalized items based on genres
+      const genrePoolPromises = genres.length > 0 ? [
+        contentApi.getDiscoverByGenres(genres, 'movie', 15),
+        contentApi.getDiscoverByGenres(genres, 'tv', 15)
+      ] : [];
 
-      const personalizedPool = [...pMovies, ...pTV];
+      // Fetch personalized items based on vibes
+      const vibePoolPromises = vibes.map(vibeId => {
+        const config = VIBE_MAP[vibeId];
+        if (!config) return Promise.resolve([]);
+        return contentApi.discover({ 
+          with_genres: config.genres.join(','),
+          with_keywords: config.keywords.join(','),
+          sort_by: 'popularity.desc'
+        }, 'movie');
+      });
+
+      const pools = await Promise.all([...genrePoolPromises, ...vibePoolPromises]);
+      const personalizedPool = pools.flat();
       
       if (personalizedPool.length === 0) return trendingContent;
 
-      // Shuffle personalized pool
-      const shuffledPersonalized = personalizedPool.sort(() => Math.random() - 0.5).slice(0, personalizedCount);
+      // Deduplicate and Shuffle personalized pool
+      const uniquePool = personalizedPool.filter((item, index, self) => 
+        index === self.findIndex(t => t.id === item.id)
+      );
+      
+      const shuffledPersonalized = uniquePool.sort(() => Math.random() - 0.5).slice(0, personalizedCount);
       
       // Combine: Base trending (60%) + Personalized (40%)
       const baseTrending = trendingContent.slice(0, baseCount);
       
-      // Final mix shuffled slightly so personalized items aren't all at the end
+      // Final mix shuffled slightly
       return [...baseTrending, ...shuffledPersonalized].sort(() => Math.random() - 0.5);
     } catch (e) {
       console.error('Failed to create personalized mix:', e);
@@ -1247,6 +1265,43 @@ const GENRE_MAP: Record<string, number> = {
   'supernatural thriller': 53,
   'survival': 12,
   'disaster': 28
+};
+
+/**
+ * Institutional Vibe Mapping
+ * Maps onboarding vibes to TMDB genre/keyword clusters
+ */
+export const VIBE_MAP: Record<string, { genres: number[], keywords: number[], sort: string }> = {
+  'chilled': {
+    genres: [10749, 35],
+    keywords: [10683, 9840], // chill out, relaxing
+    sort: 'popularity.desc'
+  },
+  'high-energy': {
+    genres: [28, 53, 12],
+    keywords: [10402, 9715], // fast-paced, high-octane
+    sort: 'popularity.desc'
+  },
+  'thought-provoking': {
+    genres: [18, 99, 9648],
+    keywords: [10332, 1701], // existential, philosophical
+    sort: 'vote_average.desc'
+  },
+  'dark-gritty': {
+    genres: [80, 27, 53],
+    keywords: [10683, 1533], // noir, gritty
+    sort: 'popularity.desc'
+  },
+  'lighthearted': {
+    genres: [35, 10751],
+    keywords: [9840, 10332], // feel-good, funny
+    sort: 'popularity.desc'
+  },
+  'epic': {
+    genres: [12, 14, 878],
+    keywords: [10402, 9715, 1701], // grand, legendary, epic
+    sort: 'popularity.desc'
+  }
 };
 
 export const prioritizeContent = (contents: Content[]): Content[] => {

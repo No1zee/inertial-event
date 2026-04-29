@@ -14,6 +14,7 @@ export function SmartCollections() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCollection, setSelectedCollection] = useState<SmartCollection | null>(null);
   const watchHistory = useLocalDataStore(state => state.watchHistory);
+  const activeProfile = useLocalDataStore(state => state.profiles.find(p => p.id === state.activeProfileId));
 
   useEffect(() => {
     // Correctly map contentIds from the watch history array
@@ -21,11 +22,11 @@ export function SmartCollections() {
       ? watchHistory.map(h => h.contentId).filter(Boolean)
       : [];
       
-    getSmartCollections(historyIds).then(data => {
+    getSmartCollections(historyIds, activeProfile?.preferences).then(data => {
       setCollections(data);
       setIsLoading(false);
     });
-  }, [watchHistory]);
+  }, [watchHistory, activeProfile?.preferences]);
 
   if (isLoading && collections.length === 0) return null;
 

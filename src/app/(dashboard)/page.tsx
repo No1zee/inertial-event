@@ -130,22 +130,55 @@ export default function DashboardPage() {
   const isInView = useInView(sentinelRef);
 
   const sortedRails = useMemo(() => {
-    if (!hydrated || !activeProfile?.preferences?.genreWeights) return RAIL_CONFIGS;
+    if (!hydrated || !activeProfile?.preferences) return RAIL_CONFIGS;
     
-    const weights = activeProfile.preferences.genreWeights;
+    const { genreWeights, vibes } = activeProfile.preferences;
+    const weights = genreWeights || {};
+    const activeVibes = vibes || [];
     
-    // Create a scoring map
+    // Mapping between onboarding IDs and rail IDs
+    const ID_MAPPING: Record<string, string> = {
+      'sci-fi': 'scifi',
+      'action': 'action',
+      'horror': 'horror',
+      'comedy': 'comedy',
+      'drama': 'popular_tv', // Drama boosts the TV rail
+      'documentary': 'documentary',
+      'anime': 'anime'
+    };
+
+    // Vibe to Rail boosts
+    const VIBE_BOOSTS: Record<string, string[]> = {
+      'high-energy': ['action', 'scifi', 'thriller'],
+      'chilled': ['comedy', 'family'],
+      'dark-gritty': ['horror', 'action'],
+      'epic': ['scifi', 'african_cinema'],
+      'thought-provoking': ['documentary', 'popular_tv']
+    };
+
     return [...RAIL_CONFIGS].sort((a, b) => {
-      const weightA = weights[a.id] || 0;
-      const weightB = weights[b.id] || 0;
+      let scoreA = 0;
+      let scoreB = 0;
+
+      // 1. Genre Weights (Direct or Mapped)
+      Object.entries(ID_MAPPING).forEach(([genreId, railId]) => {
+        if (a.id === railId) scoreA += (weights[genreId] || 0) * 10;
+        if (b.id === railId) scoreB += (weights[genreId] || 0) * 10;
+      });
+
+      // 2. Vibe Boosts
+      activeVibes.forEach(vibeId => {
+        if (VIBE_BOOSTS[vibeId]?.includes(a.id)) scoreA += 5;
+        if (VIBE_BOOSTS[vibeId]?.includes(b.id)) scoreB += 5;
+      });
+
+      // 3. Fallback to default weights
+      scoreA += weights[a.id] || 0;
+      scoreB += weights[b.id] || 0;
       
-      // If both have weights, sort by weight
-      if (weightA !== weightB) return weightB - weightA;
-      
-      // Default stable sort
-      return 0;
+      return scoreB - scoreA;
     });
-  }, [hydrated, activeProfile?.preferences?.genreWeights]);
+  }, [hydrated, activeProfile?.preferences]);
 
   // Only increment if we're in view AND not already at the end
   // Added a check to prevent rapid-fire loading if skeletons have no height
