@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { Search, User, Bell, ChevronRight, LayoutGrid } from 'lucide-react';
 import { useLayoutActions, useNavigationActions } from '@/lib/stores/uiStore';
@@ -126,6 +126,7 @@ export const Header: React.FC = () => {
           </button>
           <div className="w-[1px] h-4 bg-white/10 mx-1" />
           <button
+            onClick={() => router.push('/profile')}
             className={cn(
               "flex items-center gap-3 rounded-xl hover:bg-white/5 transition-all group",
               isScrolled ? "px-2 py-1" : "px-3 py-2"

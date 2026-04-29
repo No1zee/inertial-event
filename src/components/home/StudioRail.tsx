@@ -17,7 +17,7 @@ export function StudioRail() {
     <div className="px-4 md:px-12 mb-16">
       <div className="mb-6 px-2">
         <PretextHeadline
-          text="Mai Archive Features"
+          text="Studio Network Hub"
           fontSize={12}
           fontWeight={700}
           letterSpacing="0.4em"
@@ -28,7 +28,7 @@ export function StudioRail() {
         {studios.map(studio => (
           <button
             key={studio.id}
-            onClick={() => router.push(`/channel/${studio.slug}`)}
+            onClick={() => router.push(`/channel/${studio.id}`)}
             title={studio.name}
             aria-label={studio.name}
             className={cn(

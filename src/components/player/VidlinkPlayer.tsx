@@ -110,6 +110,15 @@ export function VidlinkPlayer({
   const transitionTriggeredRef = useRef(false);
   const lastInteractionRef = useRef<number>(Date.now());
   const hasFailedNativeRef = useRef<boolean>(false);
+  const playbackRef = useRef({ currentTime: 0, duration: 0 });
+
+  useEffect(() => {
+    const unsub = usePlayerStore.subscribe(
+      (state) => ({ currentTime: state.currentTime, duration: state.duration }),
+      (vals) => { playbackRef.current = vals; }
+    );
+    return unsub;
+  }, []);
 
   const webviewRef = useRef<ElectronWebView | null>(null);
   const onNextRef = useRef(onNext);
@@ -415,14 +424,6 @@ export function VidlinkPlayer({
     aegisShield.updateCurrentSource(activeSource.id);
   }, [activeSource.id]);
 
-  const playbackRef = useRef({ currentTime: 0, duration: 0 });
-  useEffect(() => {
-    const unsub = usePlayerStore.subscribe(
-      (state) => ({ currentTime: state.currentTime, duration: state.duration }),
-      (vals) => { playbackRef.current = vals; }
-    );
-    return unsub;
-  }, []);
 
   useEffect(() => {
     const checkAndPrefetchNext = async () => {
@@ -547,7 +548,13 @@ export function VidlinkPlayer({
   }, [loadMedia, tmdbId, type, content, season, episode, src]);
 
 
-  if (!isHydrated) return null;
+  if (!isHydrated) {
+    return (
+      <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+        <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 z-[100] bg-black flex flex-col group-player overflow-hidden max-h-screen">
@@ -597,6 +604,7 @@ export function VidlinkPlayer({
               ) : (
                 <iframe
                   src={src}
+                  title="Video Player"
                   className="flex-1 w-full h-full border-none"
                   allowFullScreen
                   allow="autoplay; encrypted-media; picture-in-picture"

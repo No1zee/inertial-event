@@ -161,11 +161,6 @@ export const HomeDashboard: React.FC = () => {
         />
       )}
 
-      {/* 4. Studio & Provider Rail */}
-      <StudioRail />
-
-      {/* 5. Critics Choice (Aesthetic Break) */}
-      <CriticsChoice />
     </section>
   );
 };

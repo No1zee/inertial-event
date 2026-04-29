@@ -62,10 +62,11 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         priority={priority}
         fill={fill}
         unoptimized={
-          finalSrc.startsWith('/') && 
+          finalSrc.startsWith('http') ||
+          (finalSrc.startsWith('/') && 
           !finalSrc.startsWith('/t/p/') && 
           !finalSrc.startsWith('/_next/') &&
-          !(/^\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|webp|gif)$/i.test(finalSrc))
+          !(/^\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|webp|gif)$/i.test(finalSrc)))
         }
         onLoad={e => {
           setIsLoaded(true);
@@ -76,7 +77,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           setError(true);
         }}
         className={cn(
-          'transition-all duration-[2000ms] ease-[cubic-bezier(0.4, 0, 0.2, 1)]',
+          'transition-all duration-[700ms] ease-[cubic-bezier(0.4, 0, 0.2, 1)]',
           isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-md',
           error ? 'opacity-0' : '',
           className

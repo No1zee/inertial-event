@@ -24,29 +24,55 @@ export function FileExplorer() {
     setIsLoading(true);
     setError(null);
     try {
-      // Using the full URL to ensure we hit the backend port 5000 if not proxying
-      // Assuming Next.js rewrites or direct call. Using default localhost:5000 for now based on context.
-      // In layout we have NEXT_PUBLIC_API_URL but let's be robust.
+      // Detect if we are in production (Vercel) vs local development
+      const isProd = typeof window !== 'undefined' && 
+                    (window.location.hostname.includes('vercel.app') || 
+                     window.location.hostname.includes('maiwatches.com'));
+
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('your-vercel-domain')
           ? process.env.NEXT_PUBLIC_API_URL
-          : '';
+          : 'http://localhost:5000'; // Fallback to standard bridge port
 
       const encodedPath = encodeURIComponent(path);
-      const res = await fetch(`${apiUrl}/tunnel/list?path=${encodedPath}`);
+      
+      // Add a timeout to the fetch to detect bridge unavailability quickly
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      if (!res.ok) throw new Error('Failed to load directory');
+      try {
+        const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        
+        if (isHttps && apiUrl.startsWith('http://')) {
+          throw new Error('Security Block: Your browser blocks connecting to a local "http" bridge from a secure "https" site. Please access MaiWatch via a local address (e.g. http://localhost:3000) or use a secure tunnel for the bridge.');
+        }
 
-      const data = (await res.json()) as { files: FileItem[]; path: string };
+        const res = await fetch(`${apiUrl}/tunnel/list?path=${encodedPath}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      // Sort: Folders first, then files
-      const sorted = (data.files || []).sort((a: FileItem, b: FileItem) => {
-        if (a.isDirectory === b.isDirectory) return a.name.localeCompare(b.name);
-        return a.isDirectory ? -1 : 1;
-      });
+        if (!res.ok) throw new Error('Failed to load directory');
 
-      setItems(sorted);
-      setCurrentPath(data.path);
+        const data = (await res.json()) as { files: FileItem[]; path: string };
+
+        const sorted = (data.files || []).sort((a: FileItem, b: FileItem) => {
+          if (a.isDirectory === b.isDirectory) return a.name.localeCompare(b.name);
+          return a.isDirectory ? -1 : 1;
+        });
+
+        setItems(sorted);
+        setCurrentPath(data.path);
+      } catch (fetchErr) {
+        if (fetchErr instanceof Error && fetchErr.message.includes('Security Block')) {
+          throw fetchErr;
+        }
+        if (isProd) {
+          throw new Error('LAN Tunnel Unavailable in Cloud. Ensure the MaiWatch bridge is running and reachable.');
+        } else {
+          throw new Error('Local Bridge Not Found. Ensure the MaiWatch background process is running on port 5000.');
+        }
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {

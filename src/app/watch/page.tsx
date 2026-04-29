@@ -112,52 +112,8 @@ function WatchContent() {
   // 1. Fetch Content Details
   const { data: content, isLoading: contentLoading, error: contentError } = useContentDetails(id || '', type);
 
-  // Watch history is now initialized natively in the player components to prevent race conditions
-
   // 2. Fetch Season Details
   const { data: seasonDetails } = useSeasonDetails(id || '', currentSeason, type, type !== 'movie');
-
-  if (contentLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-black">
-        <div className="flex flex-col items-center gap-12">
-          <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-primary font-bold tracking-[0.4em] text-[10px] uppercase animate-pulse">
-              Preparing Sanctuary
-            </span>
-            <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest opacity-60">
-              Retrieving Secure Stream Keys
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (contentError || !content) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-black">
-        <div className="text-center space-y-8 max-w-md px-6">
-          <AlertCircle className="h-16 w-16 text-red-500/20 mx-auto" strokeWidth={1} />
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-white tracking-tighter">Stream Interrupted</h2>
-            <p className="text-zinc-400 text-sm font-medium">
-              The sanctuary could not establish a stable connection to this broadcast.
-            </p>
-          </div>
-          <Button
-            onClick={() => router.back()}
-            variant="outline"
-            className="h-14 px-10 rounded-2xl border-white/10 hover:bg-white hover:text-black transition-all"
-          >
-            <ArrowLeft className="mr-3 h-5 w-5" />
-            Return to Hub
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const handleNext = React.useCallback(async () => {
     if (type === 'movie') return;
@@ -244,6 +200,49 @@ function WatchContent() {
   }, [type, seasonDetails, currentEpisode, currentSeason, content]);
 
   const hasPrev = type !== 'movie' && (currentEpisode > 1 || currentSeason > 1);
+
+  if (contentLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <div className="flex flex-col items-center gap-12">
+          <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-primary font-bold tracking-[0.4em] text-[10px] uppercase animate-pulse">
+              Preparing Sanctuary
+            </span>
+            <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest opacity-60">
+              Retrieving Secure Stream Keys
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (contentError || !content) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <div className="text-center space-y-8 max-w-md px-6">
+          <AlertCircle className="h-16 w-16 text-red-500/20 mx-auto" strokeWidth={1} />
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-white tracking-tighter">Stream Interrupted</h2>
+            <p className="text-zinc-400 text-sm font-medium">
+              The sanctuary could not establish a stable connection to this broadcast.
+            </p>
+          </div>
+          <Button
+            onClick={() => router.back()}
+            variant="outline"
+            className="h-14 px-10 rounded-2xl border-white/10 hover:bg-white hover:text-black transition-all"
+          >
+            <ArrowLeft className="mr-3 h-5 w-5" />
+            Return to Hub
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
 
   const cleanTmdbId = id!.replace('tmdb_', '');
 

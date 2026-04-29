@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Play, Info, Star, Volume2, VolumeX, Calendar } from 'lucide-react';
+import { Play, Info, Star, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Content } from '@/lib/types/content';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
@@ -12,7 +12,6 @@ import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useHydrated } from '@/lib/hooks/useHydrated';
-import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface CinemaMarqueeProps {
   items?: Content[];
@@ -40,23 +39,29 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
   const openContentModal = useUIStore(state => state.openContentModal);
   const getResumeData = useLocalDataStore(state => state.getResumeData);
 
-  const currentItem = Array.isArray(items) && items.length > 0 ? items[index % items.length] : null;
+  const displayItems = (items || []).filter(item => item && item.id).slice(0, 5);
+  // Ensure index is always valid for the current displayItems
+  const safeIndex = displayItems.length > 0 ? index % displayItems.length : 0;
+  const currentItem = displayItems.length > 0 ? displayItems[safeIndex] : null;
 
   useEffect(() => {
-    if (!items || items.length === 0) return;
+    if (!displayItems || displayItems.length === 0) return;
 
     const duration = 12000;
-    setScrollingProgress(100); // Start the CSS transition
+    setScrollingProgress(100); 
 
     const timer = setTimeout(() => {
-      setIndex(prev => (prev + 1) % items.length);
-      setScrollingProgress(0); // Reset for next item
+      setIndex(prev => {
+        const next = prev + 1;
+        return displayItems.length > 0 ? next % displayItems.length : 0;
+      });
+      setScrollingProgress(0); 
     }, duration);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [items, items.length, index]);
+  }, [displayItems.length, index]);
 
   if (!isHydrated || !currentItem) {
     return (
@@ -101,158 +106,136 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
       <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] lg:rounded-[3.5rem] border border-white/5 bg-[#050505]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={currentItem.id}
+            key={currentItem.id || safeIndex}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0"
           >
-            <ParallaxBackground src={getOptimizedImageUrl(currentItem.backdrop || currentItem.poster || currentItem.backdrop_path || currentItem.poster_path, 'original') || '/images/hero_placeholder.jpg'} />
-
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/30 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-transparent" />
-            <div className="absolute inset-0 bg-black/20" />
-
-            <div className="absolute inset-0 z-10 flex flex-col justify-end px-10 sm:px-16 lg:px-24 pb-24 lg:pb-32">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="max-w-2xl space-y-8"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                    <span className="text-white/80 font-bold tracking-[0.3em] text-[9px] uppercase">
-                      Directorial Feature
-                    </span>
-                  </div>
-                </div>
-
-                <div className="min-h-[140px] sm:min-h-[180px] lg:min-h-[220px] flex items-center">
-                  <PretextHeadline
-                    text={currentItem.title}
-                    fontSize={typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 104}
-                    fontWeight={900}
-                    lineHeight={0.8}
-                    letterSpacing="-0.05em"
-                    shadow={{
-                      color: 'rgba(0,0,0,0.6)',
-                      blur: 40,
-                      offsetX: 0,
-                      offsetY: 15
-                    }}
-                    className="text-white"
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl">
-                    <Star size={12} className="text-red-600 fill-red-600" />
-                    <span className="text-zinc-300 text-[11px] font-bold tracking-wider uppercase">
-                      {Math.round((currentItem.rating || 0) * 10)}% Quality
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 px-3 py-1.5 rounded-xl">
-                    <Calendar size={12} className="text-zinc-500" />
-                    <span className="text-zinc-400 text-[11px] font-bold tracking-wider uppercase">
-                      {currentItem.releaseDate?.substring(0, 4)}
-                    </span>
-                  </div>
-                  <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-400">
-                    Archival Grade
-                  </div>
-                  <div className="px-3 py-1.5 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 text-[10px] uppercase tracking-[0.2em] font-bold shadow-[0_0_15px_rgba(220,38,38,0.1)]">
-                    4K Master
-                  </div>
-                </div>
-
-                <p className="text-zinc-400 text-lg max-w-xl line-clamp-3 leading-relaxed font-medium">
-                  {currentItem.description}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-5 pt-4">
-                  <Button
-                    size="lg"
-                    className="h-16 w-full sm:w-auto px-12 rounded-2xl bg-white text-black hover:bg-zinc-200 transition-all font-bold text-lg flex items-center gap-4"
-                    onClick={handlePlay}
-                  >
-                    <Play size={22} fill="currentColor" />
-                    Play Now
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-16 w-full sm:w-auto px-10 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold text-lg flex items-center gap-4 transition-all"
-                    onClick={() => openContentModal(currentItem)}
-                  >
-                    <Info size={22} />
-                    More Details
-                  </Button>
-                </div>
-              </motion.div>
-            </div>
+            <OptimizedImage
+              src={currentItem.backdrop || currentItem.poster || ''}
+              alt={currentItem.title || ''}
+              fallbackSrc="/images/hero_placeholder.jpg"
+              className="w-full h-full object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/20 to-transparent" />
           </motion.div>
         </AnimatePresence>
 
-        <div className="absolute bottom-12 right-12 z-30 flex items-center gap-6">
-          <div className="relative flex items-center justify-center p-1 w-12 h-12">
-            <svg className="w-full h-full transform -rotate-90">
+        <div className="absolute bottom-24 lg:bottom-32 left-10 lg:left-24 z-20 space-y-6 max-w-[90%] lg:max-w-[50%]">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            key={`info-${currentItem.id}`}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <span className="px-3 py-1 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-red-600/20">
+                Institutional Choice
+              </span>
+              <div className="flex items-center gap-1.5 text-zinc-300 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                <span className="text-xs font-bold leading-none">{(currentItem.rating || 0).toFixed(1)}</span>
+              </div>
+            </div>
+            
+            <PretextHeadline 
+              text={currentItem.title || ''} 
+              fontSize={typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 104}
+              fontWeight={900}
+              className="text-white mb-4"
+            />
+            
+            <p className="text-zinc-400 text-sm lg:text-lg line-clamp-3 lg:line-clamp-2 max-w-xl font-medium leading-relaxed">
+              {currentItem.description}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="flex flex-wrap items-center gap-4 pt-4"
+          >
+            <Button
+              onClick={handlePlay}
+              size="lg"
+              className="bg-white hover:bg-zinc-200 text-black font-black px-8 py-7 rounded-2xl flex items-center gap-3 transition-all active:scale-95 group/btn"
+            >
+              <div className="bg-black rounded-full p-1 group-hover/btn:scale-110 transition-transform">
+                <Play size={18} className="fill-white text-white" />
+              </div>
+              <span className="text-lg font-black">Watch Now</span>
+            </Button>
+
+            <Button
+              onClick={() => openContentModal(currentItem)}
+              variant="outline"
+              size="lg"
+              className="bg-zinc-950/40 hover:bg-zinc-900 border-white/10 hover:border-white/20 text-white font-bold px-8 py-7 rounded-2xl backdrop-blur-xl flex items-center gap-3 transition-all active:scale-95"
+            >
+              <Info size={20} />
+              <span className="text-lg font-bold">More Details</span>
+            </Button>
+          </motion.div>
+        </div>
+
+        <div className="absolute top-10 right-10 z-20 flex flex-col items-center gap-4">
+          <div className="relative flex items-center justify-center w-12 h-12">
+            <svg className="w-full h-full -rotate-90">
               <circle
                 cx="24"
                 cy="24"
                 r="20"
+                fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                fill="transparent"
                 className="text-zinc-800"
               />
-              <circle
+              <motion.circle
                 cx="24"
                 cy="24"
                 r="20"
+                fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                fill="transparent"
-                strokeDasharray="125.6"
-                strokeDashoffset={125.6 - (125.6 * scrollingProgress) / 100}
-                className="text-red-600 transition-all duration-[12s] ease-linear"
+                strokeDasharray="126"
+                animate={{ strokeDashoffset: 126 - (126 * scrollingProgress) / 100 }}
+                transition={{ duration: 0.5 }}
+                className="text-red-600"
               />
             </svg>
             <span className="absolute text-[9px] font-bold text-zinc-500 tracking-tighter">
-              {index + 1} / {Math.min(items.length, 5)}
+              {safeIndex + 1} / {displayItems.length}
             </span>
           </div>
 
           <button
             onClick={() => setIsMuted(!isMuted)}
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
-            className="p-5 rounded-3xl bg-zinc-950/40 backdrop-blur-3xl border border-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all group flex items-center gap-3"
+            className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90 group"
           >
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-0 group-hover:opacity-100 transition-all">
-              {isMuted ? 'Audio Off' : 'Audio On'}
+            <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-0 group-hover:opacity-100 transition-all mr-2">
+              {isMuted ? 'Muted' : 'Unmuted'}
             </span>
             {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
         </div>
 
         <div className="absolute bottom-12 left-10 lg:left-24 z-20 flex gap-3">
-          {items
-            ?.filter(item => item && item.id)
-            .slice(0, 5)
-            .map((item, i) => (
-              <button
-                key={item?.id || i}
-                onClick={() => setIndex(i)}
-                aria-label={`Switch to story ${i + 1}`}
-                className={cn(
-                  'h-1 rounded-full transition-all duration-700',
-                  i === index ? 'w-16 bg-red-600' : 'w-6 bg-zinc-800 hover:bg-zinc-600'
-                )}
-              />
-            ))}
+          {displayItems.map((item, i) => (
+            <button
+              key={item.id || i}
+              onClick={() => setIndex(i)}
+              aria-label={`Switch to story ${i + 1}`}
+              className={cn(
+                'h-1 rounded-full transition-all duration-700',
+                i === safeIndex ? 'w-16 bg-red-600' : 'w-6 bg-zinc-800 hover:bg-zinc-600'
+              )}
+            />
+          ))}
         </div>
       </div>
     </section>

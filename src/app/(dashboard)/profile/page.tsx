@@ -9,8 +9,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 import { LoginForm } from '@/components/auth/LoginForm';
+import { useHydrated } from '@/lib/hooks/useHydrated';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
+  const isHydrated = useHydrated();
   const { user, logout } = useAuthStore();
   const profiles = useProfiles();
   const activeProfile = useActiveProfile();
@@ -24,6 +27,14 @@ export default function ProfilePage() {
     setActiveProfile('');
   };
 
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+      </div>
+    );
+  }
+  
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 px-4">

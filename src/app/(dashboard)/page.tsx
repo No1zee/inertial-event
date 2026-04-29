@@ -45,21 +45,21 @@ const RAIL_CONFIGS: RailConfig[] = [
   },
   {
     id: 'netflix_originals',
-    title: 'Features',
+    title: 'Netflix Originals',
     fetcher: () => contentApi.discover({ with_networks: '213' }, 'tv'),
     aspectRatio: 'poster' as const,
     providerId: 'netflix',
   },
   {
     id: 'adult_swim',
-    title: 'Features',
+    title: 'Adult Swim Vault',
     fetcher: () => contentApi.discover({ with_networks: '80' }, 'tv'),
     aspectRatio: '16:9' as const,
     providerId: 'adult-swim',
   },
   {
     id: 'hulu_picks',
-    title: 'Features',
+    title: 'Hulu Originals',
     fetcher: () => contentApi.discover({ with_networks: '453' }, 'tv'),
     aspectRatio: 'poster' as const,
     providerId: 'hulu',
@@ -74,12 +74,6 @@ const RAIL_CONFIGS: RailConfig[] = [
     id: 'day_one_movies',
     title: 'Premiere Releases',
     fetcher: () => contentApi.getDayOneDrops('movie'),
-    aspectRatio: 'poster' as const,
-  },
-  {
-    id: 'bangers',
-    title: "Critics' Choice",
-    fetcher: () => contentApi.getBangers('movie'),
     aspectRatio: 'poster' as const,
   },
   {
@@ -309,10 +303,10 @@ function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
     return (
       <div className="px-10 lg:px-24 space-y-8 animate-pulse relative overflow-hidden min-h-[400px]">
         {provider && (
-          <div
-            className="absolute top-0 right-0 w-[400px] h-[400px] opacity-5 blur-[100px] pointer-events-none bg-[var(--brand-color)]"
-            style={{ '--brand-color': provider.color } as React.CSSProperties}
-          />
+<div
+                    className="absolute top-0 right-0 w-[400px] h-[400px] opacity-5 blur-[100px] pointer-events-none"
+                    style={{ backgroundColor: provider.color } as React.CSSProperties}
+                  />
         )}
         <div className="flex items-center gap-3">
           <div className="h-[1px] w-6 bg-zinc-800" />

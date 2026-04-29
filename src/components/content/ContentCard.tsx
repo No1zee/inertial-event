@@ -33,8 +33,6 @@ const ContentCard = memo(function ContentCard({
   priority = false,
   providerId,
 }: ContentCardProps) {
-  if (!item || !item.id) return null;
-
   const router = useRouter();
   const { addToLibrary, removeFromLibrary, isInLibrary } = useLibraryActions();
   const openContentModal = useUIStore(state => state.openContentModal);
@@ -45,6 +43,9 @@ const ContentCard = memo(function ContentCard({
   const autoPlayPreviews = usePreferencesStore(state => state.autoPlay);
 
   const [showPreview, setShowPreview] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  if (!item || !item.id) return null;
 
   const inLibrary = isInLibrary(String(item.id));
   const contentType = item.type || (item.seasonsList && item.seasonsList.length > 0 ? 'tv' : 'movie');
@@ -143,7 +144,6 @@ const ContentCard = memo(function ContentCard({
   const badge = getBadge();
   const matchScore = Math.min(Math.round((item.rating || 0) * 10), 100);
 
-  const [isNavigating, setIsNavigating] = useState(false);
   const provider = providerId ? getProviderById(providerId) || getProviderBySlug(providerId) : null;
 
   const handlePlay = (e: React.MouseEvent) => {
@@ -235,8 +235,12 @@ const ContentCard = memo(function ContentCard({
           const rawSource = isLandscape 
             ? item.backdrop || item.poster || item.backdrop_path || item.poster_path
             : item.poster || item.poster_path || item.backdrop || item.backdrop_path;
-            
+
           const sourceUrl = getOptimizedImageUrl(rawSource, isLandscape ? 'w780' : 'w500');
+
+          if (!rawSource) {
+            console.warn(`[ContentCard] Missing image source for ${item.title} (${item.id}). Falling back to placeholder.`);
+          }
 
           return (
             <OptimizedImage
@@ -244,7 +248,7 @@ const ContentCard = memo(function ContentCard({
               alt={item.title}
               fill
               priority={priority}
-              className="object-cover transition-all duration-700 ease-out group-hover:scale-110 opacity-80 group-hover:opacity-100"
+              className="object-cover transition-all duration-700 ease-out group-hover:scale-110"
               sizes={isLandscape ? '(max-width: 768px) 350px, 420px' : '(max-width: 768px) 200px, 250px'}
             />
           );

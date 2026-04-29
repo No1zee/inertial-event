@@ -1401,7 +1401,8 @@ const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime
         (v: { type: string; site: string; key: string }) => v.type === 'Trailer' && v.site === 'YouTube'
       )?.key || undefined,
     belongsToCollection: item.belongs_to_collection || undefined,
-    director: item.credits?.crew?.find((c: { job: string; name: string }) => c.job === 'Director')?.name || undefined,
+    director: (item.credits?.crew?.find((c: { job: string; name: string }) => c.job === 'Director')?.name) || 
+              (item.created_by && Array.isArray(item.created_by) && item.created_by.length > 0 ? item.created_by[0].name : undefined),
     directors:
       item.credits?.crew
         ?.filter((c: { job: string; name: string }) => c.job === 'Director')
@@ -1410,7 +1411,7 @@ const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime
     ratings: {
       imdb: {
         score: item.vote_average ? Number(item.vote_average.toFixed(1)) : 0,
-        votes: item.vote_count,
+        votes: item.vote_count || 0
       },
       rottenTomatoes: {
         score: item.vote_average ? Math.round(item.vote_average * 10) : 0,
