@@ -61,7 +61,7 @@ export const PROVIDERS = [
     name: 'For the Aunties',
     color: '#D4AF37',
     slug: 'aunties',
-    logo: '/providers/aunties.svg',
+    logo: '/providers/aunties.jpg',
     font: 'var(--font-playfair)',
   },
   {

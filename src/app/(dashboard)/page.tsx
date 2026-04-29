@@ -147,9 +147,14 @@ export default function DashboardPage() {
     });
   }, [hydrated, activeProfile?.preferences?.genreWeights]);
 
+  // Only increment if we're in view AND not already at the end
+  // Added a check to prevent rapid-fire loading if skeletons have no height
   useEffect(() => {
     if (isInView && visibleCount < sortedRails.length) {
-      setVisibleCount(prev => prev + 2);
+      const timer = setTimeout(() => {
+        setVisibleCount(prev => Math.min(prev + 2, sortedRails.length));
+      }, 500); // 500ms throttle to allow layouts to settle
+      return () => clearTimeout(timer);
     }
   }, [isInView, visibleCount, sortedRails.length]);
 
@@ -250,7 +255,7 @@ function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
 
   if (isLoading) {
     return (
-      <div className="px-10 lg:px-24 space-y-8 animate-pulse relative overflow-hidden">
+      <div className="px-10 lg:px-24 space-y-8 animate-pulse relative overflow-hidden min-h-[400px]">
         {provider && (
           <div
             className="absolute top-0 right-0 w-[400px] h-[400px] opacity-5 blur-[100px] pointer-events-none bg-[var(--brand-color)]"
@@ -278,6 +283,16 @@ function AtmosphericAsyncRail({ config }: { config: RailConfig }) {
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="px-10 lg:px-24 py-12 text-center border border-white/5 rounded-[3rem] mx-10 lg:mx-24 bg-zinc-900/20">
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+          Failed to load {config.title} archive
+        </p>
       </div>
     );
   }

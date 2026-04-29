@@ -111,25 +111,27 @@ export const contentApi = {
   },
 
   getTrending: async (page: number = 1): Promise<Content[]> => {
+    const url = getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`);
     try {
-      const res = await axios.get(getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`), { timeout: 10000 });
+      const res = await axios.get(url, { timeout: 10000 });
       const data = res.data.results || [];
       if (data.length === 0) return generateMockContent(12);
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent(item)));
-    } catch (e) {
-      console.error('Trending fetch failed:', e);
+    } catch (e: any) {
+      console.error(`[ContentAPI] Trending fetch failed for URL: ${url}`, e);
       return generateMockContent(12);
     }
   },
 
   getPopularTV: async (page: number = 1): Promise<Content[]> => {
+    const url = getTmdbUrl('/tv/popular', `language=en-US&page=${page}`);
     try {
-      const res = await axios.get(getTmdbUrl('/tv/popular', `language=en-US&page=${page}`), { timeout: 10000 });
+      const res = await axios.get(url, { timeout: 10000 });
       const data = res.data.results || [];
       if (data.length === 0) return generateMockContent(12);
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' })));
-    } catch (e) {
-      console.error('Popular TV fetch failed:', e);
+    } catch (e: any) {
+      console.error(`[ContentAPI] Popular TV fetch failed for URL: ${url}`, e);
       return generateMockContent(12);
     }
   },

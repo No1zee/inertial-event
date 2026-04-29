@@ -60,7 +60,7 @@ export function AuntiesHero({ item }: AuntiesHeroProps) {
             className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-md border border-amber-500/20 rounded-xl px-5 py-3 mb-6"
           >
             <OptimizedImage
-              src="/providers/aunties.svg"
+              src="/providers/aunties.jpg"
               alt="Aunties Logo"
               width={32}
               height={32}

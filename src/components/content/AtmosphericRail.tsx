@@ -210,7 +210,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
           )}
         >
           {isVisible &&
-            items.map(item => (
+            items && items.map(item => (
               <div
                 key={`${item.type}-${item.id}`}
                 className={cn(
