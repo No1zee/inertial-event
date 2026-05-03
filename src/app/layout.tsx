@@ -8,7 +8,7 @@ import { LivingBackground } from '../components/layout/LivingBackground';
 import { SeriesTracker } from '../components/Common/SeriesTracker';
 import { RouteInterceptor } from '../components/Common/RouteInterceptor';
 import { Toaster } from 'sonner';
-import { Analytics } from '@vercel/analytics/react';
+import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const outfit = Outfit({
