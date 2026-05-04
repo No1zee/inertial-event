@@ -9,14 +9,16 @@ import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Button } from '@/components/ui/button';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { contentApi } from '@/lib/api/content';
+import { SeasonDetails, SeasonEpisode } from '@/lib/types/content';
 
 interface TMDBItem {
   id: string | number;
   title?: string;
   name?: string;
   overview?: string;
-  backdrop_path?: string;
-  still_path?: string;
+  backdrop_path?: string | null;
+  still_path?: string | null;
+  vote_average?: number;
   nextEpisodeParams?: { season: number; episode: number };
 }
 
@@ -24,8 +26,8 @@ interface PostPlayOverlayProps {
   show: boolean;
   onClose: () => void;
   currentId: string;
-  type: 'movie' | 'tv' | 'anime';
-  onPlay: (id: string, type: 'movie' | 'tv' | 'anime', season?: number, episode?: number) => void;
+  type: 'movie' | 'tv' | 'anime' | 'series';
+  onPlay: (id: string, type: 'movie' | 'tv' | 'anime' | 'series', season?: number, episode?: number) => void;
   nextEpisode?: { season: number; episode: number } | null;
 }
 
@@ -74,16 +76,21 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
 
   const fetchRecommendations = useCallback(async () => {
     try {
+      if (String(currentId).startsWith('mock-')) {
+        setRecommendations([]);
+        return;
+      }
+
       const typeParam = type === 'anime' ? 'tv' : type;
       const results = await contentApi.getRecommendations(currentId, typeParam as 'movie' | 'tv');
       if (results && results.length > 0) {
         // transform results back to TMDBItem format if needed
-        const valid: any[] = results.map(c => ({
+        const valid: TMDBItem[] = results.map(c => ({
           id: c.id,
-          title: c.title,
+          title: c.title || c.name,
           backdrop_path: c.backdrop_path || c.backdrop,
           vote_average: c.rating,
-          overview: c.description
+          overview: c.description || c.overview
         })).slice(0, 4);
         setRecommendations(valid);
         if (valid.length > 0) selectItem(valid[0]);
@@ -110,12 +117,15 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
   );
 
   const fetchNextEpisode = useCallback(async () => {
-    if (!nextEpisode || type === 'movie') return;
+    if (!nextEpisode || type === 'movie' || String(currentId).startsWith('mock-')) {
+      if (String(currentId).startsWith('mock-')) fetchRecommendations();
+      return;
+    }
     try {
-      const data = await contentApi.getSeasonDetails(currentId, nextEpisode.season);
+      const data = await contentApi.getSeasonDetails(currentId, nextEpisode.season) as SeasonDetails;
       // find specific episode
-      const episodes = (data as any)?.episodes || [];
-      const ep = episodes.find((e: any) => e.episode_number === nextEpisode.episode);
+      const episodes = data?.episodes || [];
+      const ep = episodes.find((e: SeasonEpisode) => e.episode_number === nextEpisode.episode);
 
       if (ep) {
         const epData = {
@@ -130,7 +140,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
     } catch {
       fetchRecommendations();
     }
-  }, [currentId, nextEpisode, startCountdown, fetchRecommendations]);
+  }, [currentId, nextEpisode, startCountdown, fetchRecommendations, type]);
 
   useEffect(() => {
     if (show) {
@@ -218,7 +228,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
             className="flex items-center gap-4"
           >
             <span className="text-[hsl(var(--brand-leaf))] font-bold tracking-[0.4em] text-[10px] uppercase">
-              {nextEpisode ? (timer > 0 ? `Sanctuary Transitioning in ${timer}s` : 'Up Next') : 'Directorial Picks'}
+              {nextEpisode ? (timer > 0 ? `Playing next in ${timer}s` : 'Up Next') : 'Recommended for You'}
             </span>
             {timer > 0 && nextEpisode && (
               <div
@@ -279,7 +289,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
                 className="flex gap-6 items-center"
               >
                 <Button
-                  aria-label={timer > 0 && nextEpisode ? 'Commence Play' : 'Stream Now'}
+                  aria-label={timer > 0 && nextEpisode ? 'Play Now' : 'Play'}
                   onClick={() => {
                     if (selectedItem.nextEpisodeParams) {
                       onPlay(
@@ -295,7 +305,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
                   className="h-16 px-12 rounded-2xl bg-[hsl(var(--brand-primary))] text-white text-lg font-bold hover:scale-105 active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-[hsl(var(--brand-leaf))]/30"
                 >
                   <Play fill="white" className="mr-3" />
-                  {timer > 0 && nextEpisode ? 'Commence Play' : 'Stream Now'}
+                  {timer > 0 && nextEpisode ? 'Play Now' : 'Play'}
                 </Button>
 
                 {!nextEpisode ? (
@@ -312,7 +322,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
                     variant="ghost"
                     className="h-16 px-10 rounded-2xl text-white/40 hover:text-white transition-all"
                   >
-                    Hold Transmission
+                    Cancel Auto-play
                   </Button>
                 )}
               </motion.div>

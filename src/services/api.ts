@@ -27,7 +27,7 @@ api.interceptors.request.use(async config => {
     }
   }
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('Mai_auth_token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('Nova_auth_token') : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

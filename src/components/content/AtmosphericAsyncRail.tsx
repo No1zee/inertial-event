@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Content } from '@/lib/types/content';
 import { AtmosphericRail } from './AtmosphericRail';
@@ -14,22 +15,25 @@ interface RailConfig {
   fetcher: () => Promise<Content[]>;
   aspectRatio?: 'poster' | '16:9' | '21:9' | 'landscape' | 'ultrawide';
   providerId?: string;
+  playTrailerOnClick?: boolean;
 }
 
 interface AtmosphericAsyncRailProps {
   config: RailConfig;
   type?: string; // e.g. 'movie', 'tv', 'anime' for query key uniqueness
+  salt?: number | string;
 }
 
-export function AtmosphericAsyncRail({ config, type = 'global' }: AtmosphericAsyncRailProps) {
+export function AtmosphericAsyncRail({ config, type = 'global', salt }: AtmosphericAsyncRailProps) {
   const hydrated = useHydrated();
   const { data, isLoading, isError } = useQuery<Content[]>({
-    queryKey: ['rail', type, config.id],
+    queryKey: ['rail', type, config.id, salt],
     queryFn: () => config.fetcher(),
-    staleTime: 1000 * 60 * 60, // 1 hour
-    gcTime: 1000 * 60 * 60 * 2, // 2 hours
+    staleTime: 60 * 60 * 1000, // 1 hour (Data is stable, background SWR handles updates)
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours persistence
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
     placeholderData: (previousData) => previousData,
   });
 
@@ -41,9 +45,10 @@ export function AtmosphericAsyncRail({ config, type = 'global' }: AtmosphericAsy
     return (
       <div className="px-10 lg:px-24 space-y-8 animate-pulse relative overflow-hidden min-h-[400px]">
         {provider && (
-          <div
+          <motion.div
             className="absolute top-0 right-0 w-[400px] h-[400px] opacity-5 blur-[100px] pointer-events-none"
-            style={{ backgroundColor: provider.color } as React.CSSProperties}
+            initial={false}
+            animate={{ backgroundColor: provider.color }}
           />
         )}
         <div className="flex items-center gap-3">
@@ -75,7 +80,7 @@ export function AtmosphericAsyncRail({ config, type = 'global' }: AtmosphericAsy
     return (
       <div className="px-10 lg:px-24 py-12 text-center border border-white/5 rounded-[3rem] mx-10 lg:mx-24 bg-zinc-900/20">
         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-          Failed to load {config.title} archive
+          Failed to load {config.title}
         </p>
       </div>
     );
@@ -108,7 +113,7 @@ export function AtmosphericAsyncRail({ config, type = 'global' }: AtmosphericAsy
           <div className="flex items-center gap-4 px-12 py-10 rounded-[2rem] border border-dashed border-white/5 bg-zinc-900/10">
             <div className="w-2 h-2 rounded-full bg-zinc-800 animate-pulse" />
             <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-              Archival Induction in Progress...
+              No content available
             </span>
           </div>
         </div>
@@ -123,6 +128,7 @@ export function AtmosphericAsyncRail({ config, type = 'global' }: AtmosphericAsy
       railId={config.id}
       aspectRatio={config.aspectRatio}
       providerId={config.providerId}
+      playTrailerOnClick={config.playTrailerOnClick}
     />
   );
 }

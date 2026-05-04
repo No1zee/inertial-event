@@ -80,12 +80,12 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            allowRunningInsecureContent: true, // Allow http://localhost media in app://
+            // allowRunningInsecureContent is only needed in dev for localhost media
+            allowRunningInsecureContent: isDev, 
             preload: path.join(__dirname, 'preload.js'),
             webviewTag: true,
             spellcheck: false,
-            spellcheck: false,
-            sandbox: false, // Disabling Sandbox to allow file:// preload access
+            sandbox: !isDev, // Enable Sandbox in production for hardened security
             autoplayPolicy: 'no-user-gesture-required' // Critical for background trailers
         }
     });
@@ -175,7 +175,7 @@ function createWindow() {
                         }
                     }
 
-// 2. Inject Robust CSP for ALL domains to allow MaiWatch features (Torrent/Sources/Proxy)
+// 2. Inject Robust CSP for ALL domains to allow NovaStream features (Torrent/Sources/Proxy)
 let csp = "";
 if (isDev) {
     // Development: Allow Next.js HMR, unsafe-eval for devtools, and localhost
@@ -185,7 +185,7 @@ if (isDev) {
     csp = "default-src 'self' 'unsafe-inline' https: http://127.0.0.1:* http://localhost:*;";
 }
 
-const domains = "https://inertial-event.vercel.app https://MaiWatch.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.vidsrc.to https://*.vidsrc.cc https://*.vidsrc.xyz http://127.0.0.1:5000 http://localhost:5000";
+const domains = "https://inertial-event.vercel.app https://novastream.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.vidsrc.to https://*.vidsrc.cc https://*.vidsrc.xyz http://127.0.0.1:5000 http://localhost:5000";
 
 // Rebuild script-src
 const scriptSrc = isDev 
@@ -240,8 +240,8 @@ csp += ` script-src ${scriptSrc} ${domains};`;
         // 2. Allow specific user-solicited external links (e.g., Discord, Wiki)
         const allowedExternals = ['discord.gg', 'github.com', 'wikipedia.org', 'themoviedb.org'];
         if (allowedExternals.some(h => url.includes(h))) {
-            console.log(`[AG] OPENING EXTERNAL LINK: ${details.url}`);
-            shell.openExternal(details.url);
+            console.log(`[AG] REDIRECTING EXTERNAL LINK TO IN-APP BROWSER: ${details.url}`);
+            mainWindow.webContents.send('OPEN_EXTERNAL_LINK', { url: details.url });
             return { action: 'deny' };
         }
 
@@ -376,11 +376,17 @@ csp += ` script-src ${scriptSrc} ${domains};`;
         console.error(`[AG] FAILED TO LOAD: ${validatedURL}`);
         console.error(`[AG] Error: ${errorCode} (${errorDescription})`);
         
+        // Critical: Log to main terminal and user data for remote debugging
+        if (typeof log === 'function') log(`[Load Error] URL: ${validatedURL} | Code: ${errorCode} | Desc: ${errorDescription}`);
+        
         // Visual feedback for any load failure in production
         if (!isDev) {
-            dialog.showErrorBox('MaiWatch Load Error', 
-                `Failed to load: ${validatedURL}\nError: ${errorDescription} (${errorCode})`
-            );
+            // Avoid showing error box for minor/transient asset fails if possible, but for main load it's critical
+            if (errorCode !== -3) { // Ignore aborted requests
+                dialog.showErrorBox('NovaStream Load Error', 
+                    `Failed to load resource: ${validatedURL}\n\nError: ${errorDescription} (${errorCode})\n\nPlease check your internet connection or restart the app.`
+                );
+            }
         }
     });
 
@@ -424,6 +430,10 @@ csp += ` script-src ${scriptSrc} ${domains};`;
 
     ipcMain.on('CAST_SCAN_STOP', () => {
         castService.stopScan();
+    });
+
+    ipcMain.on('OPEN_IN_SHELL', (event, url) => {
+        if (url) shell.openExternal(url);
     });
 
     ipcMain.handle('CAST_PLAY', async (event, { deviceId, url, metadata }) => {
@@ -552,9 +562,14 @@ app.on('ready', async () => {
 
         server.use(express.static(staticPath));
         
-        // SPA Fallback: Any 404 goes to index.html
-        server.get(/(.*)/, (req, res) => {
-            res.sendFile(path.join(staticPath, 'index.html'));
+        // SPA Fallback: Any 404 goes to index.html, but NOT for static assets (js, css, png, etc.)
+        server.get('*', (req, res) => {
+            // If the path has a file extension, it's an asset that's truly missing
+            if (req.path.includes('.') && !req.path.endsWith('.html')) {
+                res.status(404).send('Not Found');
+            } else {
+                res.sendFile(path.join(staticPath, 'index.html'));
+            }
         });
         
         const expressServer = server.listen(0, '127.0.0.1', () => {
@@ -676,10 +691,15 @@ app.on('ready', async () => {
             const url = details.url;
             const urlLower = url.toLowerCase();
             
+            // [DEBUG] Trace all requests to find 404 source
+            if (url.includes('_next/static')) {
+                // log(`[Asset Trace] ${url}`);
+            }
+
             // 1. Critical Reroute: Intercept absolute cloud URLs, app://, or localhost:3000 -> proxy://
             const isLocal = url.includes('localhost:3000') || url.includes('127.0.0.1:3000');
             const isVercelApi = url.startsWith('https://inertial-event.vercel.app/api/');
-            const isMaiWatchApi = url.startsWith('https://maiwatch.app/api/');
+            const isNovaStreamApi = url.startsWith('https://novastream.app/api/');
             
             if (url.startsWith('app://-/tmdb-api/') || (isLocal && url.includes('/tmdb-api/'))) {
                 const redirected = `proxy://-/tmdb-api/${url.split('/tmdb-api/')[1]}`;
@@ -690,7 +710,7 @@ app.on('ready', async () => {
                 const redirected = `proxy://-/tmdb-img/${url.split('/tmdb-img/')[1]}`;
                 return callback({ redirectURL: redirected });
             }
-            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi || isMaiWatchApi) {
+            if (url.startsWith('app://-/api/') || (isLocal && url.includes('/api/')) || isVercelApi || isNovaStreamApi) {
                 const pathPart = url.split('/api/')[1];
                 const redirected = `proxy://-/api/${pathPart}`;
                 

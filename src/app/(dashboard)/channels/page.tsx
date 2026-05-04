@@ -3,7 +3,7 @@ import ChannelsClient from './ChannelsClient';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Live Channels | MaiWatch',
+  title: 'Live Channels | NovaStream',
   description: 'Experience 24/7 curated cinematic broadcasts. No decisions, just high-fidelity entertainment.',
 };
 

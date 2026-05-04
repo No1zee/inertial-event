@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Play, Info, Plus, Check, Volume2, VolumeX, Sparkles } from 'lucide-react';
-import { useContentStore, type Content } from '../../store/contentStore';
+import { useContentStore } from '../../store/contentStore';
+import { type Content } from '@/lib/types/content';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,7 +67,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
   return (
     <div className="relative w-full h-[85vh] min-h-[700px] overflow-hidden group/hero">
       {/* Background / Trailer Container */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <motion.div
           key={content?.id || content?._id}
           initial={{ opacity: 0 }}
@@ -114,7 +115,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
       </AnimatePresence>
 
       {/* Content Info */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <motion.div
           key={`info-${content?.id || content?._id}`}
           initial={{ opacity: 0, x: -50 }}
@@ -216,7 +217,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                   navigator
                     .share({
                       title: content?.title,
-                      text: `I'm exploring ${content?.title} at MaiWatch Scenery!`,
+                      text: `I'm exploring ${content?.title} at NovaStream!`,
                       url: url,
                     })
                     .then(() => logExperimentEvent('viral_loop', 'A' as ExperimentGroup, 'share_success'));

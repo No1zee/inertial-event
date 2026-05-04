@@ -11,7 +11,7 @@ import { getProviderById } from '@/lib/constants/providers';
 import { CinematicHero } from './CinematicHero';
 import { ContentRail } from '@/components/content/ContentRail';
 import { useInView } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { Content } from '@/lib/types/content';
 import { useRouter } from 'next/navigation';
 import { useUIStore } from '@/lib/stores/uiStore';
@@ -45,6 +45,8 @@ import {
   useAdultSwimRetro,
   useKoreanDramas,
   useAfricanMovies,
+  useNollywoodExcellence,
+  useAfrofuturism,
   useClassicSitcoms,
   useSoapOperas,
   useFamilyDramas,
@@ -130,6 +132,11 @@ export default function ChannelView({ id }: { id: string }) {
   // Aunties Channel Content
   const { data: koreanDramas } = useKoreanDramas();
   const { data: africanMovies } = useAfricanMovies();
+  const { data: nollywood } = useNollywoodExcellence();
+  const { data: afrofuturism } = useAfrofuturism();
+  const { data: eastAfrican } = useAfricanMovies('east');
+  const { data: southernAfrican } = useAfricanMovies('southern');
+  const { data: northAfrican } = useAfricanMovies('north');
   const { data: classicSitcoms } = useClassicSitcoms();
   const { data: soapOperas } = useSoapOperas();
   const { data: familyDramas } = useFamilyDramas();
@@ -307,6 +314,9 @@ export default function ChannelView({ id }: { id: string }) {
             <h1 id={`fallback-${provider.id}`} className="text-4xl font-black text-white tracking-tighter hidden">
               {provider.name}
             </h1>
+            <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.6em] whitespace-nowrap">
+            Celebrating African Stories
+          </span>
           </div>
         </div>
 
@@ -415,40 +425,40 @@ export default function ChannelView({ id }: { id: string }) {
         {/* African Cinematic Universe (ACU) */}
         {isAcu && (
           <>
-            <ContentRail title="Nollywood Excellence 🇳🇬" items={africanMovies} railId="acu-nollywood" />
+            <ContentRail title="Nollywood Excellence 🇳🇬" items={nollywood} railId="acu-nollywood" />
+            <ContentRail title="Afrofuturism Vanguard 🚀" items={afrofuturism} railId="acu-afrofuturism" />
+            
             <div className="py-12 px-6 md:px-12 lg:px-24 bg-gradient-to-r from-yellow-900/10 via-black to-red-900/10 border-y border-yellow-500/10 my-8">
+              <div className="flex flex-col">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Status</span>
+              <span className="text-sm text-yellow-500/80 font-bold uppercase">Streaming Now</span>
+            </div>
               <div className="max-w-4xl">
-                <h3 className="text-yellow-500 font-black uppercase tracking-[0.4em] mb-4 text-xs">ACU PROCLAMATION</h3>
+                <h3 className="text-yellow-500 font-black uppercase tracking-[0.4em] mb-4 text-xs">ACU VISION</h3>
                 <p className="text-2xl md:text-4xl text-white font-bold tracking-tight leading-tight">
                   Our stories are the heartbeat of the globe. Welcome to the dawn of the African Cinematic Universe.
                 </p>
               </div>
             </div>
-            <ContentRail
-              title="Zim-Film Heritage 🇿🇼"
-              items={africanMovies?.filter(m => m.title.toLowerCase().includes('zimbabwe') || Math.random() > 0.7)}
-              railId="acu-zim"
-              aspectRatio="landscape"
-            />
-            <ContentRail title="South African Noir 🇿🇦" items={actionMovies} railId="acu-sa-noir" />
-            <ContentRail
-              title="Safari & Wildlife Masterpieces 🐘"
-              items={documentaries}
-              railId="acu-safari"
-              aspectRatio="landscape"
-            />
+
+            <ContentRail title="West African Echoes 🇳🇬🇬🇭" items={africanMovies} railId="acu-west" />
+            <ContentRail title="Southern African Noir 🇿🇦🇿🇼" items={southernAfrican} railId="acu-southern" />
+            <ContentRail title="East African Epics 🇰🇪🇪🇹" items={eastAfrican} railId="acu-east" />
+            <ContentRail title="North African Nights 🇪🇬🇲🇦" items={northAfrican} railId="acu-north" />
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4 md:px-12 lg:px-24 py-12">
               <div className="p-8 rounded-3xl bg-zinc-900/50 border border-yellow-500/10 hover:border-yellow-500/30 transition-all cursor-pointer group">
-                <h4 className="text-yellow-500 font-bold mb-2">Heritage Vault</h4>
+                <h4 className="text-yellow-500 font-bold mb-2">Classic Cinema</h4>
                 <p className="text-zinc-400 text-sm">
                   Digitally restored masterpieces from the golden age of African cinema.
                 </p>
               </div>
               <div className="p-8 rounded-3xl bg-zinc-900/50 border border-yellow-500/10 hover:border-yellow-500/30 transition-all cursor-pointer group">
                 <h4 className="text-yellow-500 font-bold mb-2">Regional Hubs</h4>
-                <p className="text-zinc-400 text-sm">
-                  Explore curated collections from West, East, and Southern Africa.
-                </p>
+                <span className="relative z-10 flex items-center gap-3">
+                <Play fill="currentColor" size={16} />
+                Watch Now
+              </span>
               </div>
               <div className="p-8 rounded-3xl bg-zinc-900/50 border border-yellow-500/10 hover:border-yellow-500/30 transition-all cursor-pointer group">
                 <h4 className="text-yellow-500 font-bold mb-2">Talent Spotlights</h4>

@@ -139,18 +139,41 @@ class VidlinkService {
             // 3. Fallback: VidSrc (Robust)
             if (isMovie) {
                 sources.push({
-                    url: `https://vidsrc.icu/embed/movie/${imdbId || cleanId}`,
-                    quality: "720p",
+                    url: `https://vidsrc.to/embed/movie/${imdbId || numericId}`,
+                    quality: "1080p",
                     type: "embed" as const,
                     provider: "VidSrc (Stable)"
                 });
+                sources.push({
+                    url: `https://vidsrc.xyz/embed/movie/${imdbId || numericId}`,
+                    quality: "1080p",
+                    type: "embed" as const,
+                    provider: "VidSrc XYZ"
+                });
+                sources.push({
+                    url: `https://vidsrc.icu/embed/movie/${imdbId || cleanId}`,
+                    quality: "720p",
+                    type: "embed" as const,
+                    provider: "VidSrc ICU"
+                });
             } else {
-                // VidSrc usually uses /embed/tv/ID/SEASON/EPISODE
+                sources.push({
+                    url: `https://vidsrc.to/embed/tv/${imdbId || numericId}/${season}/${episode}`,
+                    quality: "1080p",
+                    type: "embed" as const,
+                    provider: "VidSrc (Stable)"
+                });
+                sources.push({
+                    url: `https://vidsrc.xyz/embed/tv/${imdbId || numericId}/${season}/${episode}`,
+                    quality: "1080p",
+                    type: "embed" as const,
+                    provider: "VidSrc XYZ"
+                });
                 sources.push({
                     url: `https://vidsrc.icu/embed/tv/${imdbId || cleanId}/${season}/${episode}`,
                     quality: "720p",
                     type: "embed" as const,
-                    provider: "VidSrc (Stable)"
+                    provider: "VidSrc ICU"
                 });
             }
 

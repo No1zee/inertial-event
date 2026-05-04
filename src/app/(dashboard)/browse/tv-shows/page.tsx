@@ -8,6 +8,7 @@ import { Hero } from '@/components/content/Hero';
 import { AtmosphericAsyncRail } from '@/components/content/AtmosphericAsyncRail';
 import { BrandBlock } from '@/components/brand/BrandBlock';
 import { contentApi } from '@/lib/api/content';
+import { type Content } from '@/lib/types/content';
 
 import { useLastWatched } from '@/lib/stores/localDataStore';
 import { useHydrated } from '@/lib/hooks/useHydrated';
@@ -16,42 +17,42 @@ const TV_RAILS = [
   // Fresh & New
   { id: 'day1', title: 'Day 1 Drops 💧', fetcher: () => contentApi.getDayOneDrops('tv') },
   { id: 'fresh', title: 'Fresh Seasons 🔥', fetcher: () => contentApi.getFresh('tv') },
-  { id: 'popular', title: 'Most Popular Series', fetcher: () => contentApi.getPopularTV() },
+  { id: 'popular', title: 'Most Popular Series', fetcher: () => contentApi.getPopularTV(Math.floor(Math.random() * 3) + 1) },
   // Curated Collections
-  { id: 'bangers', title: 'Binge-Worthy Bangers 💯', fetcher: () => contentApi.getBangers('tv') },
-  { id: 'underrated', title: 'Underrated Series 💎', fetcher: () => contentApi.getUnderrated('tv') },
-  { id: 'classics', title: 'TV Hall of Fame 🏆', fetcher: () => contentApi.getClassics('tv') },
+  { id: 'bangers', title: 'Binge-Worthy Bangers 💯', fetcher: () => contentApi.getBangers('tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'underrated', title: 'Underrated Series 💎', fetcher: () => contentApi.getUnderrated('tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'classics', title: 'TV Hall of Fame 🏆', fetcher: () => contentApi.getClassics('tv', Math.floor(Math.random() * 5) + 1) },
   {
     id: 'acclaimed',
     title: 'Critically Acclaimed',
-    fetcher: () => contentApi.discover({ sort_by: 'vote_average.desc', 'vote_count.gte': '1000' }, 'tv'),
+    fetcher: () => contentApi.discover({ sort_by: 'vote_average.desc', 'vote_count.gte': '1000', page: Math.floor(Math.random() * 3) + 1 }, 'tv'),
   },
   // Drama & Prestige
-  { id: 'drama', title: 'Bingeable Dramas 🎭', fetcher: () => contentApi.getByGenre(18, 'tv') },
-  { id: 'mystery', title: 'Mystery & Suspense', fetcher: () => contentApi.getByGenre(9648, 'tv') },
-  { id: 'war', title: 'War & History', fetcher: () => contentApi.getByGenre(10768, 'tv') },
+  { id: 'drama', title: 'Bingeable Dramas 🎭', fetcher: () => contentApi.getByGenre(18, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'mystery', title: 'Mystery & Suspense', fetcher: () => contentApi.getByGenre(9648, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'war', title: 'War & History', fetcher: () => contentApi.getByGenre(10768, 'tv', Math.floor(Math.random() * 5) + 1) },
   // Comedy & Sitcoms
-  { id: 'comedy', title: 'Sitcom Staples 😂', fetcher: () => contentApi.getByGenre(35, 'tv') },
-  { id: 'family', title: 'Family Shows', fetcher: () => contentApi.getByGenre(10751, 'tv') },
-  { id: 'kids', title: 'Kids & Family', fetcher: () => contentApi.getByGenre(10762, 'tv') },
+  { id: 'comedy', title: 'Sitcom Staples 😂', fetcher: () => contentApi.getByGenre(35, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'family', title: 'Family Shows', fetcher: () => contentApi.getByGenre(10751, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'kids', title: 'Kids & Family', fetcher: () => contentApi.getByGenre(10762, 'tv', Math.floor(Math.random() * 5) + 1) },
   // Crime & Action
-  { id: 'crime', title: 'Crime & Punishment 🕵️', fetcher: () => contentApi.getByGenre(80, 'tv') },
-  { id: 'action', title: 'Action-Packed Series', fetcher: () => contentApi.getByGenre(10759, 'tv') },
+  { id: 'crime', title: 'Crime & Punishment 🕵️', fetcher: () => contentApi.getByGenre(80, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'action', title: 'Action-Packed Series', fetcher: () => contentApi.getByGenre(10759, 'tv', Math.floor(Math.random() * 5) + 1) },
   // Sci-Fi & Fantasy
-  { id: 'scifi', title: 'Worlds Beyond 👽', fetcher: () => contentApi.getByGenre(10765, 'tv') },
-  { id: 'animation', title: 'Animated Series', fetcher: () => contentApi.getByGenre(16, 'tv') },
+  { id: 'scifi', title: 'Worlds Beyond 👽', fetcher: () => contentApi.getByGenre(10765, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'animation', title: 'Animated Series', fetcher: () => contentApi.getByGenre(16, 'tv', Math.floor(Math.random() * 5) + 1) },
   {
     id: 'anime',
     title: 'Anime Hits',
-    fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc' }, 'tv'),
+    fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc', page: Math.floor(Math.random() * 5) + 1 }, 'tv'),
   },
   // Reality & Documentary
-  { id: 'reality', title: 'Reality Bites 📺', fetcher: () => contentApi.getByGenre(10764, 'tv') },
-  { id: 'docu', title: 'Real Stories 📚', fetcher: () => contentApi.getByGenre(99, 'tv') },
-  { id: 'talk', title: 'Talk Shows & News', fetcher: () => contentApi.getByGenre(10767, 'tv') },
+  { id: 'reality', title: 'Reality Bites 📺', fetcher: () => contentApi.getByGenre(10764, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'docu', title: 'Real Stories 📚', fetcher: () => contentApi.getByGenre(99, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'talk', title: 'Talk Shows & News', fetcher: () => contentApi.getByGenre(10767, 'tv', Math.floor(Math.random() * 5) + 1) },
   // International
-  { id: 'soap', title: 'Soap Opera', fetcher: () => contentApi.getByGenre(10766, 'tv') },
-  { id: 'western', title: 'Western Series', fetcher: () => contentApi.getByGenre(37, 'tv') },
+  { id: 'soap', title: 'Soap Opera', fetcher: () => contentApi.getByGenre(10766, 'tv', Math.floor(Math.random() * 5) + 1) },
+  { id: 'western', title: 'Western Series', fetcher: () => contentApi.getByGenre(37, 'tv', Math.floor(Math.random() * 5) + 1) },
 ];
 
 export default function TVShowsPage() {

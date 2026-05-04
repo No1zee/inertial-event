@@ -10,14 +10,14 @@ interface StreamSource {
 interface ContentItem {
   id: string;
   title: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
 }
 //consumet link doesnt work anymore.find alternative
 class SourceProvider {
   private consumetAPI = 'https://consumet.org';
   private cache: Map<string, Map<string, StreamSource[]>> = new Map();
 
-  async getSources(contentId: string, type: 'movie' | 'tv' | 'anime', title: string): Promise<StreamSource[]> {
+  async getSources(contentId: string, type: 'movie' | 'tv' | 'anime' | 'series', title: string): Promise<StreamSource[]> {
     try {
       const response = await fetch(
         `${API_BASE_URL}/sources?id=${contentId}&type=${type}&title=${encodeURIComponent(title)}`

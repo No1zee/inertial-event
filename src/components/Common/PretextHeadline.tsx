@@ -3,9 +3,27 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import * as Pretext from '@chenglou/pretext';
 
-// Use named extracts to ensure compatibility with various bundler configurations
-const prepareWithSegments = (Pretext as any).prepareWithSegments;
-const layoutWithLines = (Pretext as any).layoutWithLines;
+interface PretextModule {
+  prepareWithSegments: (text: string, font: string) => unknown;
+  layoutWithLines: (prepared: unknown, maxWidth: number, lineHeight: number) => { height: number; lines: { text: string; width: number }[] };
+}
+
+// Robust module resolution for @chenglou/pretext (Handles ESM, CJS, and various bundler artifacts)
+const getPretextModule = () => {
+  try {
+    const mod = Pretext as any;
+    if (mod.default && typeof mod.default.prepareWithSegments === 'function') return mod.default;
+    if (typeof mod.prepareWithSegments === 'function') return mod;
+    // Fallback for some specific CJS bundling patterns
+    return mod;
+  } catch {
+    return null;
+  }
+};
+
+const pretextModule = getPretextModule();
+const prepareWithSegments = pretextModule?.prepareWithSegments;
+const layoutWithLines = pretextModule?.layoutWithLines;
 
 interface PretextLine {
   text: string;
@@ -87,9 +105,9 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
       const prepared = prepareWithSegments(text, fontString);
       const pxLineHeight = safeFontSize * safeLineHeight;
 
-      const result = layoutWithLines(prepared, safeMaxWidth, pxLineHeight);
+      const result = layoutWithLines(prepared, safeMaxWidth, pxLineHeight) as { height: number; lines: { text: string; width: number }[] };
 
-      const mappedLines: PretextLine[] = result.lines.map((line, i) => ({
+      const mappedLines: PretextLine[] = result.lines.map((line: { text: string; width: number }, i: number) => ({
         text: line.text,
         x: 0,
         y: i * pxLineHeight,
@@ -142,7 +160,7 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
     }
 
     if (letterSpacing) {
-      (ctx as any).letterSpacing = letterSpacing;
+      (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = letterSpacing;
     }
 
     ctx.fillStyle = color;

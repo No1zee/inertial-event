@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Play, Info, Star } from 'lucide-react';
+import { Sparkles, Play, Star } from 'lucide-react';
 import { Content } from '@/lib/types/content';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
@@ -17,7 +17,7 @@ interface EditorialSpotlightProps {
 
 export const EditorialSpotlight: React.FC<EditorialSpotlightProps> = ({
   item,
-  curationReason = "Critic's Choice / Essential Cinema",
+  curationReason = "Critic&apos;s Choice / Essential Cinema",
   className,
 }) => {
   const router = useRouter();
@@ -41,7 +41,7 @@ export const EditorialSpotlight: React.FC<EditorialSpotlightProps> = ({
           src={item.backdrop || item.backdrop_path || item.poster || ""}
           alt={item.title}
           fill
-          className="object-cover opacity-60 group-hover/spotlight:scale-105 transition-transform duration-[2s] ease-out"
+          className="object-cover opacity-60 group-hover/spotlight:scale-105 transition-transform [transition-duration:2s] ease-out"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
@@ -60,13 +60,13 @@ export const EditorialSpotlight: React.FC<EditorialSpotlightProps> = ({
 
         <PretextHeadline
           text={item.title}
-          fontSize={56}
+          fontSize={48}
           fontWeight={900}
-          letterSpacing="-0.04em"
-          className="text-white mb-4 uppercase leading-none"
+          letterSpacing="-0.03em"
+          className="text-white mb-2 uppercase leading-none"
         />
 
-        <p className="text-sm text-zinc-400 font-medium line-clamp-3 mb-8 leading-relaxed">
+        <p className="text-xs text-zinc-400 font-medium line-clamp-2 mb-8 leading-relaxed max-w-lg">
           {item.description}
         </p>
 

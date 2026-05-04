@@ -30,7 +30,7 @@ export type AuthSession = {
 
 export const useAuthStore = createWithEqualityFn<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -47,7 +47,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
       },
     }),
     {
-      name: 'MaiWatch-auth-storage',
+      name: 'NovaStream-auth-storage',
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

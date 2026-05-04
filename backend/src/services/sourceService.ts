@@ -47,40 +47,62 @@ class SourceService {
             const mappedType: 'movie' | 'tv' = (type === 'tv' || type === 'anime' || type === 'series') ? 'tv' : 'movie';
             
             // Parallel execution with error boundaries inside each service
-            const results = await Promise.allSettled([
-                vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type, audioPreference),
-                consumetService.getStreamingLinks(contentId, episodeNumber, seasonNumber, type, title),
-                torrentService.getSources(contentId, episodeNumber, seasonNumber, type),
-                VidsrcResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber),
-                EmbedSuResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber)
-            ]);
+            console.error(`[SourceService] Starting aggregation for ${title} (${contentId}) - S${seasonNumber}E${episodeNumber}`);
+            
+            const providers = [
+                { name: 'Vidlink', fn: () => vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type, audioPreference) },
+                { name: 'Consumet', fn: () => consumetService.getStreamingLinks(contentId, episodeNumber, seasonNumber, type, title) },
+                { name: 'Torrent', fn: () => torrentService.getSources(contentId, episodeNumber, seasonNumber, type) },
+                { name: 'Vidsrc Mirrors', fn: () => VidsrcResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber) },
+                { name: 'EmbedSu', fn: () => EmbedSuResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber) }
+            ];
+
+            const results = await Promise.allSettled(providers.map(p => p.fn()));
 
             const aggregated: IProviderResponse = {
                 sources: [],
                 subtitles: []
             };
 
-            const providerNames = ['Vidlink', 'Consumet', 'Torrent', 'Vidsrc Mirrors', 'EmbedSu'];
             results.forEach((result, index) => {
-                const name = providerNames[index];
+                const name = providers[index].name;
                 if (result.status === 'fulfilled' && result.value) {
                     const value = result.value as IProviderResponse;
-                    console.log(`[SourceService] Provider ${name} yielded ${value.sources?.length || 0} sources`);
-                    if (value.sources) {
-                        value.sources.forEach((s: any) => {
-                            if (s.type === 'hls' || s.type === 'mp4') {
-                                console.log(`   - [DIRECT] ${s.provider} -> ${s.url.substring(0, 50)}...`);
-                            }
-                        });
+                    const sourceCount = value.sources?.length || 0;
+                    const subCount = value.subtitles?.length || 0;
+                    
+                    console.log(`[SourceService] [${name}] SUCCESS: Found ${sourceCount} sources, ${subCount} subtitles`);
+
+                    if (value.sources && value.sources.length > 0) {
                         aggregated.sources.push(...value.sources);
                     }
-                    if (value.subtitles) {
+                    if (value.subtitles && value.subtitles.length > 0) {
                         aggregated.subtitles.push(...value.subtitles);
                     }
                 } else if (result.status === 'rejected') {
-                    console.error(`[SourceService] Provider ${name} REJECTED:`, result.reason);
+                    console.error(`[SourceService] [${name}] REJECTED:`, result.reason);
+                } else {
+                    console.warn(`[SourceService] [${name}] EMPTY or NULL response`);
                 }
             });
+
+            // Safety Fallback: If no sources found at all, try one last time to generate a direct Vidlink embed
+            // This handles cases where vidlinkService might have failed due to TMDB ID resolution issues
+            if (aggregated.sources.length === 0) {
+                console.log(`[SourceService] Critical: No sources found. Generating emergency fallback for ${contentId}`);
+                const cleanId = contentId.replace(/^(tmdb_|tv_|movie_|series_)/, '');
+                const isMovie = mappedType === 'movie';
+                const fallbackUrl = isMovie 
+                    ? `https://vidlink.pro/movie/${cleanId}`
+                    : `https://vidlink.pro/tv/${cleanId}/${seasonNumber}/${episodeNumber}`;
+                
+                aggregated.sources.push({
+                    url: fallbackUrl,
+                    quality: "1080p",
+                    type: "embed",
+                    provider: "Vidlink (Fallback)"
+                });
+            }
 
             // Deduplication logic
             const uniqueSources = Array.from(
@@ -120,7 +142,7 @@ class SourceService {
                 return qPriority(a.quality || '') - qPriority(b.quality || '');
             });
 
-            console.log(`[SourceService] Final unique sources count: ${uniqueSources.length}`);
+
             
             // Background Warm-up (Fire and Forget)
             this.warmupTopSources(uniqueSources).catch(err => 
@@ -129,7 +151,7 @@ class SourceService {
 
             // If no sources found, return empty result to trigger frontend iframe fallback
             if (uniqueSources.length === 0) {
-                console.warn("[SourceService] No sources found from any provider.");
+
             }
 
             return {
@@ -138,7 +160,7 @@ class SourceService {
             };
 
         } catch (error) {
-            console.error('Critical Error in Source Aggregation:', error);
+
             // Fail open with empty result rather than crashing
             console.warn("Critical source error, returning empty sources.");
             return {
@@ -173,7 +195,7 @@ class SourceService {
         const directSources = sources.filter(s => s.type === 'hls' || s.type === 'mp4').slice(0, 3);
         if (directSources.length === 0) return;
 
-        console.log(`[SourceService] Cinematic Warm-up: Priming ${directSources.length} direct streams...`);
+
         
         // We use Promise.allSettled to ensure we don't block, but also don't crash the server loop
         Promise.allSettled(
@@ -181,7 +203,7 @@ class SourceService {
         ).then(results => {
             const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
             if (successCount > 0) {
-                console.log(`[SourceService] Warm-up Complete: ${successCount}/${directSources.length} streams primed.`);
+
             }
         }).catch(() => {});
     }

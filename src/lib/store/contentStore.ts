@@ -40,7 +40,7 @@ export const useContentStore = createWithEqualityFn<ContentState>()(
         })),
     }),
     {
-      name: 'MaiWatch-content-storage',
+      name: 'NovaStream-content-storage',
     }
   )
 );

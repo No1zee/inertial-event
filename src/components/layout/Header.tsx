@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useMemo } from 'react';
-import { Search, User, Bell, ChevronRight, LayoutGrid } from 'lucide-react';
+import React from 'react';
+import { Search, User, Bell, LayoutGrid } from 'lucide-react';
 import { useLayoutActions, useNavigationActions } from '@/lib/stores/uiStore';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ import { useScrollInfo } from '@/hooks/useScrollInfo';
 export const Header: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { setCommandCenterOpen } = useLayoutActions();
+  const { setSearchOpen } = useLayoutActions();
   const { setSidebarOpen } = useNavigationActions();
   const { isScrolled } = useScrollInfo(20);
   const { user, _hasHydrated } = useAuthStore();
@@ -104,7 +104,7 @@ export const Header: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setCommandCenterOpen(true)}
+          onClick={() => setSearchOpen(true)}
           className={cn(
             "flex items-center gap-4 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-3xl shadow-2xl transition-all hover:bg-white/5 group",
             isScrolled ? "px-4 h-10" : "px-6 h-14"
@@ -114,7 +114,7 @@ export const Header: React.FC = () => {
           <span className={cn(
             "font-bold tracking-[0.2em] text-zinc-500 uppercase transition-all",
             isScrolled ? "text-[8px] mr-2" : "text-[10px] mr-4"
-          )}>Initialize Search</span>
+          )}>Search</span>
           {!isScrolled && (
             <div className="px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 text-[9px] font-bold text-zinc-600 tracking-tight">
               ⌘K

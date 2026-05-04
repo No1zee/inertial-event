@@ -7,7 +7,6 @@ import { X, Sparkles, Film, Tv, Zap, Bookmark, Command, History, Star } from 'lu
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { useLayoutState, useLayoutActions, useUIStore } from '@/lib/stores/uiStore';
 import { SearchBar } from '@/components/content/SearchBar';
-import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { useUISounds } from '@/hooks/useUISounds';
@@ -15,10 +14,10 @@ import { cn } from '@/lib/utils';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 
-export const CommandCenter: React.FC = () => {
+export const SearchModal: React.FC = () => {
   const router = useRouter();
-  const { isCommandCenterOpen } = useLayoutState();
-  const { setCommandCenterOpen } = useLayoutActions();
+  const { isSearchOpen } = useLayoutState();
+  const { setSearchOpen } = useLayoutActions();
   const { playSound } = useUISounds();
 
   const { openContentModal } = useUIStore();
@@ -60,44 +59,44 @@ export const CommandCenter: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setCommandCenterOpen(!isCommandCenterOpen);
+        setSearchOpen(!isSearchOpen);
       }
-      if (e.key === 'Escape' && isCommandCenterOpen) {
-        setCommandCenterOpen(false);
+      if (e.key === 'Escape' && isSearchOpen) {
+        setSearchOpen(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCommandCenterOpen, setCommandCenterOpen]);
+  }, [isSearchOpen, setSearchOpen]);
 
   const handleSearch = (query: string, isAi?: boolean) => {
-    setCommandCenterOpen(false);
+    setSearchOpen(false);
     router.push(`/search?q=${encodeURIComponent(query)}&ai=${isAi}`);
   };
 
   const shortcuts = [
-    { label: 'Cinema', icon: Film, href: '/browse/movies', desc: 'Feature Films' },
-    { label: 'Broadcast', icon: Tv, href: '/browse/tv-shows', desc: 'Serialized Content' },
-    { label: 'Vanguard', icon: Zap, href: '/browse/anime', desc: 'Anime Collection' },
-    { label: 'Records', icon: History, href: '/history', desc: 'Watch History' },
-    { label: 'Archives', icon: Bookmark, href: '/watchlist', desc: 'Curated Watchlist' },
+    { label: 'Movies', icon: Film, href: '/browse/movies', desc: 'Feature Films' },
+    { label: 'TV Shows', icon: Tv, href: '/browse/tv-shows', desc: 'Series' },
+    { label: 'Anime', icon: Zap, href: '/browse/anime', desc: 'Anime Collection' },
+    { label: 'History', icon: History, href: '/history', desc: 'Your viewing history' },
+    { label: 'Watchlist', icon: Bookmark, href: '/watchlist', desc: 'Saved for later' },
   ];
 
   return (
     <AnimatePresence>
-      {isHydrated && isCommandCenterOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 md:p-12">
+      {isHydrated && isSearchOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-start justify-center p-6 md:p-12 pt-24 md:pt-32">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setCommandCenterOpen(false)}
+            onClick={() => setSearchOpen(false)}
             className="fixed inset-0 bg-background/80 backdrop-blur-2xl"
           />
 
           {/* Atmospheric Background Layer */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout" initial={false}>
             {activeBackground && (
               <motion.div
                 key={activeBackground}
@@ -135,7 +134,7 @@ export const CommandCenter: React.FC = () => {
                   <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center text-primary">
                     <Command size={16} />
                   </div>
-                  <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em]">Console</h2>
+                  <h2 className="text-xs font-black text-foreground uppercase tracking-[0.2em]">Universal Search</h2>
                 </div>
               </div>
 
@@ -145,7 +144,7 @@ export const CommandCenter: React.FC = () => {
                     key={item.label}
                     onClick={() => {
                       router.push(item.href);
-                      setCommandCenterOpen(false);
+                      setSearchOpen(false);
                     }}
                     className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-white/[0.03] text-left group transition-all"
                   >
@@ -177,21 +176,21 @@ export const CommandCenter: React.FC = () => {
                 <div className="flex items-center justify-between mb-16 px-4">
                   <div className="space-y-1">
                     <PretextHeadline
-                      text="Oracle"
+                      text="Search"
                       fontSize={36}
                       fontWeight={900}
                       letterSpacing="-0.05em"
                       className="text-foreground uppercase"
                     />
-                    <div className="text-[10px] font-bold text-primary uppercase tracking-[0.4em]">Atmospheric Discovery</div>
+                    <div className="text-[10px] font-bold text-primary uppercase tracking-[0.4em]">Find something to watch</div>
                   </div>
                   <button
                     onClick={() => {
                       playSound('click');
-                      setCommandCenterOpen(false);
+                      setSearchOpen(false);
                     }}
                     className="h-14 w-14 rounded-full bg-surface-deep border border-border text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
-                    aria-label="Close command center"
+                    aria-label="Close search"
                   >
                     <X size={24} />
                   </button>
@@ -202,7 +201,7 @@ export const CommandCenter: React.FC = () => {
                     variant="compact"
                     onSearch={handleSearch}
                     onChange={setQuery}
-                    placeholder="Direct your search..."
+                    placeholder="Search movies, shows, anime..."
                   />
                 </div>
 
@@ -212,15 +211,15 @@ export const CommandCenter: React.FC = () => {
                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">
                       {query
                         ? isSearching
-                          ? 'Processing...'
-                          : `${results.length} Matches Found`
-                        : 'Cinematic Registry'}
+                          ? 'Searching...'
+                          : `${results.length} results`
+                        : 'Suggested Genres'}
                     </span>
                     <div className="h-[1px] flex-1 bg-white/5" />
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence>
                       {query ? (
                         <motion.div
                           key="results"
@@ -240,7 +239,7 @@ export const CommandCenter: React.FC = () => {
                               onMouseEnter={() => playSound('hover')}
                               onClick={() => {
                                 playSound('click');
-                                setCommandCenterOpen(false);
+                                setSearchOpen(false);
                                 openContentModal(item);
                               }}
                               data-testid="content-card"
@@ -276,26 +275,26 @@ export const CommandCenter: React.FC = () => {
                           {results.length === 0 && !isSearching && (
                             <div className="py-20 text-center">
                               <div className="text-zinc-600 font-black uppercase tracking-[0.3em] italic">
-                                No results found in archive.
+                                No results found.
                               </div>
                             </div>
                           )}
                         </motion.div>
                       ) : (
                         <motion.div
-                          key="vibes"
+                          key="genres"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           className="grid grid-cols-2 gap-4"
                         >
                           {[
-                            { label: 'Cinematic Poetry', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', vibe: 'cinematic poetry' },
-                            { label: 'Noir Shadow', icon: Film, color: 'text-zinc-400', bg: 'bg-zinc-800/40', vibe: 'noir shadow' },
-                            { label: 'Afrofuturism', icon: Zap, color: 'text-emerald-400', bg: 'bg-emerald-400/10', vibe: 'afrofuturism' },
-                            { label: 'Cerebral Thriller', icon: Command, color: 'text-purple-400', bg: 'bg-purple-400/10', vibe: 'cerebral thriller' },
-                            { label: 'Vanguard Anime', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-400/10', vibe: 'vanguard anime' },
-                            { label: 'Aurelian Classic', icon: Star, color: 'text-orange-400', bg: 'bg-orange-400/10', vibe: 'aurelian classic' },
+                            { label: 'Action', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', vibe: 'action' },
+                            { label: 'Drama', icon: Film, color: 'text-zinc-400', bg: 'bg-zinc-800/40', vibe: 'drama' },
+                            { label: 'Sci-Fi', icon: Zap, color: 'text-emerald-400', bg: 'bg-emerald-400/10', vibe: 'sci-fi' },
+                            { label: 'Thriller', icon: Command, color: 'text-purple-400', bg: 'bg-purple-400/10', vibe: 'thriller' },
+                            { label: 'Anime', icon: Zap, color: 'text-blue-400', bg: 'bg-blue-400/10', vibe: 'anime' },
+                            { label: 'Classic', icon: Star, color: 'text-orange-400', bg: 'bg-orange-400/10', vibe: 'classic' },
                           ].map((vibe) => (
                             <button
                               key={vibe.label}
@@ -313,7 +312,7 @@ export const CommandCenter: React.FC = () => {
                                   className="text-foreground uppercase group-hover:text-primary transition-colors"
                                 />
                                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                                  Directorial Vibe
+                                  Genre
                                 </div>
                               </div>
                             </button>
@@ -331,14 +330,14 @@ export const CommandCenter: React.FC = () => {
                     <kbd className="px-2.5 py-1.5 rounded-lg bg-surface-elevated border border-border text-[10px] font-black text-muted-foreground">
                       ESC
                     </kbd>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Abort</span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Close</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <kbd className="px-2.5 py-1.5 rounded-lg bg-surface-elevated border border-border text-[10px] font-black text-muted-foreground">
                       RET
                     </kbd>
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                      Execute
+                      Select
                     </span>
                   </div>
                 </div>

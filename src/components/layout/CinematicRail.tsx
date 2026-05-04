@@ -35,21 +35,19 @@ const navItems: NavItem[] = [
   { label: 'Home', icon: Home, href: '/', view: 'home' },
   { label: 'Browse', icon: Compass, href: '/browse', view: 'browse' },
   { label: 'Live TV', icon: Tv, href: '/channels', view: 'channels' },
-  { label: 'Movies', icon: Film, href: '/browse/movies', view: 'movies' },
-  { label: 'TV Shows', icon: Tv, href: '/browse/tv-shows', view: 'tv' },
-  { label: 'Anime', icon: Zap, href: '/browse/anime', view: 'anime' },
-  { label: 'Files', icon: Folder, href: '/files', view: 'files' },
-  { label: 'History', icon: Clock, href: '/history', view: 'history' },
-  { label: 'Watchlist', icon: Bookmark, href: '/watchlist', view: 'watchlist' },
-  { label: 'Collections', icon: Library, href: '/collections', view: 'home' },
-  { label: 'Profile', icon: User, href: '/profile', view: 'profile' },
+  { label: 'My List', icon: Bookmark, href: '/watchlist', view: 'watchlist' },
 ];
 
 export const CinematicRail: React.FC = () => {
   const pathname = usePathname();
   const { isRailExpanded } = useLayoutState();
-  const { setIsRailExpanded, setCommandCenterOpen } = useLayoutActions();
+  const { setIsRailExpanded, setSearchOpen } = useLayoutActions();
   const { setActiveSection: setActiveView } = useNavigationActions();
+
+  // Institutional Immersion: Hide sidebar during playback or on watch page
+  const isWatchPage = pathname?.startsWith('/watch');
+  
+  if (isWatchPage) return null;
 
   return (
     <motion.aside
@@ -74,7 +72,7 @@ export const CinematicRail: React.FC = () => {
       {/* Command Trigger */}
       <div className="px-4 mb-8 shrink-0">
         <button
-          onClick={() => setCommandCenterOpen(true)}
+          onClick={() => setSearchOpen(true)}
           className={cn(
             'w-full flex items-center justify-center h-12 rounded-2xl bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-all group overflow-hidden',
             isRailExpanded ? 'px-4 justify-start' : 'px-0'
@@ -101,7 +99,7 @@ export const CinematicRail: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-3 overflow-y-auto custom-scrollbar">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
             key={isRailExpanded ? 'expanded' : 'collapsed'}
             initial="hidden"

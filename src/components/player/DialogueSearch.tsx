@@ -5,11 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Play, Clock, X, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PretextHeadline } from '../Common/PretextHeadline';
+export interface DialogueItem {
+  text: string;
+  time: number;
+  context?: string;
+  type?: string;
+}
+
 interface DialogueSearchProps {
   show: boolean;
   onClose: () => void;
   onJump: (time: number) => void;
-  subtitles: any[];
+  subtitles: DialogueItem[];
 }
 
 export const DialogueSearch: React.FC<DialogueSearchProps> = ({
@@ -24,7 +31,7 @@ export const DialogueSearch: React.FC<DialogueSearchProps> = ({
   const dialogueResults = [
     { text: "We have to go back to the sanctuary.", time: 450, context: "Chapter 4: The Return" },
     { text: "The director's cut is almost ready.", time: 1200, context: "Chapter 12: Finalization" },
-    { text: "MaiWatch provides high-fidelity entertainment.", time: 1800, context: "Chapter 18: The Reveal" },
+    { text: "NovaStream provides high-fidelity entertainment.", time: 1800, context: "Chapter 18: The Reveal" },
   ].filter(r => r.text.toLowerCase().includes(query.toLowerCase()) && query.length > 2);
 
   const semanticResults = [

@@ -24,33 +24,24 @@ interface NavItem {
 
 const navGroups = [
   {
-    title: 'Discover',
+    title: 'Browse',
     items: [
       { label: 'Home', icon: Home, href: '/' },
-      { label: 'Browse', icon: Compass, href: '/browse' },
+      { label: 'Movies', icon: Film, href: '/browse/movies' },
+      { label: 'TV Shows', icon: Tv, href: '/browse/tv-shows' },
       { label: 'Live TV', icon: Tv, href: '/tv' },
     ],
   },
   {
     title: 'Library',
     items: [
-      { label: 'Movies', icon: Film, href: '/browse/movies' },
-      { label: 'TV Shows', icon: Tv, href: '/browse/tv-shows' },
-      { label: 'Anime', icon: Zap, href: '/browse/anime' },
-      { label: 'Files', icon: Folder, href: '/files' },
-    ],
-  },
-  {
-    title: 'Sanctum',
-    items: [
-      { label: 'History', icon: Clock, href: '/history' },
       { label: 'Watchlist', icon: Bookmark, href: '/watchlist' },
-      { label: 'Collections', icon: Library, href: '/collections' },
-      { label: 'Profile', icon: User, href: '/profile' },
+      { label: 'History', icon: Clock, href: '/history' },
+      { label: 'My Lists', icon: Library, href: '/collections' },
     ],
   },
   {
-    title: 'Studios',
+    title: 'Channels',
     items: PROVIDERS.map(p => ({
       label: p.name,
       icon: p.slug === 'acu' ? Zap : Film, // Fallback icons
@@ -60,105 +51,105 @@ const navGroups = [
     })),
   },
 ];
-
-export function Sidebar() {
-  const { sidebarOpen } = useNavigationState();
-  const { setSidebarOpen } = useNavigationActions();
-  const [isHovered, setIsHovered] = React.useState(false);
-  const pathname = usePathname();
-
-  // Dynamic Data
-  const watchHistory = useWatchHistory();
-  const { removeFromWatchHistory } = useWatchHistoryActions();
-  const collections = useCollections();
-
-  const historyCount = watchHistory.length;
-  const watchlistCount = collections.find(c => c.id === 'watch-later')?.items.length || 0;
-
-  const recentlyPlayed = React.useMemo(() => {
-    const distinct = new Map();
-    watchHistory.forEach(item => {
-      if (!distinct.has(item.contentId)) {
-        distinct.set(item.contentId, item);
-      }
-    });
-    return Array.from(distinct.values()).slice(0, 3);
-  }, [watchHistory]);
-
-  // Determine effective expansion state
-  // On desktop (>= 1024px), we expand on hover.
-  // On mobile (< 1024px), we use the global sidebarOpen state.
-  const [isDesktop, setIsDesktop] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
-
-  const isExpanded = isDesktop ? isHovered : sidebarOpen;
-
-  return (
-    <>
-      {/* Mobile Overlay */}
-      <AnimatePresence>
-        {!isDesktop && sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white/40 z-[400] backdrop-blur-md"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Main Sidebar Chassis */}
-      <motion.aside
-        onMouseEnter={() => isDesktop && setIsHovered(true)}
-        onMouseLeave={() => isDesktop && setIsHovered(false)}
-        initial={false}
-        animate={{
-          width: isExpanded ? (isDesktop ? 280 : 300) : isDesktop ? 88 : 0,
-          x: !isDesktop && !sidebarOpen ? -320 : 0,
-          opacity: !isDesktop && !sidebarOpen ? 0 : 1,
-        }}
-        transition={{
-          type: 'spring',
-          stiffness: 220,
-          damping: 28,
-        }}
-        className={cn(
-          'fixed top-0 left-0 z-[500] h-screen flex flex-col',
-          'bg-[hsl(var(--surface-deep))/0.9] border-r border-[hsl(var(--border))] shadow-sm transition-colors duration-500',
-          'backdrop-blur-[20px]',
-          isHovered && 'bg-[hsl(var(--surface-elevated))/0.95]'
-        )}
-      >
-        {/* Header / Logo */}
-        <div
+  
+  export function Sidebar() {
+    const { sidebarOpen } = useNavigationState();
+    const { setSidebarOpen } = useNavigationActions();
+    const [isHovered, setIsHovered] = React.useState(false);
+    const pathname = usePathname();
+  
+    // Dynamic Data
+    const watchHistory = useWatchHistory();
+    const { removeFromWatchHistory } = useWatchHistoryActions();
+    const collections = useCollections();
+  
+    const historyCount = watchHistory.length;
+    const watchlistCount = collections.find(c => c.id === 'watch-later')?.items.length || 0;
+  
+    const recentlyPlayed = React.useMemo(() => {
+      const distinct = new Map();
+      watchHistory.forEach(item => {
+        if (!distinct.has(item.contentId)) {
+          distinct.set(item.contentId, item);
+        }
+      });
+      return Array.from(distinct.values()).slice(0, 3);
+    }, [watchHistory]);
+  
+    // Determine effective expansion state
+    // On desktop (>= 1024px), we expand on hover.
+    // On mobile (< 1024px), we use the global sidebarOpen state.
+    const [isDesktop, setIsDesktop] = React.useState(false);
+  
+    React.useEffect(() => {
+      const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+      checkDesktop();
+      window.addEventListener('resize', checkDesktop);
+      return () => window.removeEventListener('resize', checkDesktop);
+    }, []);
+  
+    const isExpanded = isDesktop ? isHovered : sidebarOpen;
+  
+    return (
+      <>
+        {/* Mobile Overlay */}
+        <AnimatePresence>
+          {!isDesktop && sidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-[400] backdrop-blur-md"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+  
+        {/* Main Sidebar Chassis */}
+        <motion.aside
+          onMouseEnter={() => isDesktop && setIsHovered(true)}
+          onMouseLeave={() => isDesktop && setIsHovered(false)}
+          initial={false}
+          animate={{
+            width: isExpanded ? (isDesktop ? 280 : 300) : isDesktop ? 88 : 0,
+            x: !isDesktop && !sidebarOpen ? -320 : 0,
+            opacity: !isDesktop && !sidebarOpen ? 0 : 1,
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 220,
+            damping: 28,
+          }}
           className={cn(
-            'h-24 flex items-center border-b border-border/30 shrink-0 transition-all duration-500',
-            isExpanded ? 'px-8 justify-between' : 'px-0 justify-center'
+            'fixed top-0 left-0 z-[500] h-screen flex flex-col',
+            'bg-[hsl(var(--surface-deep))/0.9] border-r border-[hsl(var(--border))] shadow-sm transition-colors duration-500',
+            'backdrop-blur-[20px]',
+            isHovered && 'bg-[hsl(var(--surface-elevated))/0.95]'
           )}
         >
-          <Link href="/" onClick={() => !isDesktop && setSidebarOpen(false)}>
-            <Logo size="md" showText={isExpanded} />
-          </Link>
-          {isExpanded && !isDesktop && (
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-all"
-              aria-label="Close sidebar"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-
-        {/* Directorial Navigation Stack */}
-        <div className="flex-1 overflow-y-auto pt-8 pb-4 space-y-8 custom-scrollbar">
+          {/* Header / Logo */}
+          <div
+            className={cn(
+              'h-24 flex items-center border-b border-border/30 shrink-0 transition-all duration-500',
+              isExpanded ? 'px-8 justify-between' : 'px-0 justify-center'
+            )}
+          >
+            <Link href="/" onClick={() => !isDesktop && setSidebarOpen(false)}>
+              <Logo size="md" showText={isExpanded} />
+            </Link>
+            {isExpanded && !isDesktop && (
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-all"
+                aria-label="Close sidebar"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+  
+          {/* Main Navigation Stack */}
+          <div className="flex-1 overflow-y-auto pt-8 pb-4 space-y-8 custom-scrollbar">
           {navGroups.map(group => (
             <div key={group.title} className="space-y-3">
               <AnimatePresence>
@@ -190,14 +181,14 @@ export function Sidebar() {
                       isOpen={isExpanded}
                       isActive={pathname === item.href}
                       count={count}
-                      isApp={group.title === 'Studios'}
+                      isApp={group.title === 'Channels'}
                       hoverColor={(item as NavItem).hoverColor}
                       customIcon={
                         (item as NavItem).logo ? (
                           <div
                             className={cn(
                               'relative w-5 h-5 transition-opacity duration-300',
-                              group.title === 'Studios'
+                              group.title === 'Channels'
                                 ? 'w-full h-full opacity-100'
                                 : 'opacity-60 group-hover/item:opacity-100'
                             )}

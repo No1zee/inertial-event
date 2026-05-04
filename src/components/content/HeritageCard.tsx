@@ -54,7 +54,7 @@ const HeritageCard = memo(function HeritageCard({ item, onPlay, onInfo }: Herita
         </div>
 
         {/* Back: Educational/Metadata */}
-        <div className="absolute inset-0 backface-hidden rounded-xl overflow-hidden bg-[#1a1109] ring-1 ring-amber-500/30 p-8 flex flex-col justify-between rotate-y-180">
+        <div className="absolute inset-0 backface-hidden rounded-xl overflow-hidden bg-[hsl(24,25%,4%)] ring-1 ring-amber-500/30 p-8 flex flex-col justify-between rotate-y-180">
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-amber-500">
               <Info size={16} />

@@ -1,15 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, Quote, Play, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Trophy, Quote, Play, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { PretextHeadline } from '../Common/PretextHeadline';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+
+interface Review {
+  id: string;
+  content: string;
+  author: string;
+}
 
 export function CriticsChoice() {
   const router = useRouter();
@@ -19,7 +24,7 @@ export function CriticsChoice() {
     setMounted(true);
   }, []);
 
-  const { data: bangers, isLoading } = useQuery<Content[]>({
+  const { data: bangers } = useQuery<Content[]>({
     queryKey: ['critics_bangers'],
     queryFn: () => contentApi.getUnderrated('movie', 1),
     staleTime: 1000 * 60 * 60,
@@ -28,9 +33,9 @@ export function CriticsChoice() {
   // Pick a single "Masterpiece" from the underrated list
   const masterpiece = bangers?.[0];
 
-  const { data: reviews } = useQuery<any[]>({
+  const { data: reviews } = useQuery<Review[]>({
     queryKey: ['masterpiece_reviews', masterpiece?.id],
-    queryFn: () => masterpiece ? contentApi.getReviews(masterpiece.id, masterpiece.type) : Promise.resolve([]),
+    queryFn: () => masterpiece ? contentApi.getReviews(masterpiece.id, masterpiece.type === 'anime' ? 'tv' : masterpiece.type) : Promise.resolve([]),
     enabled: !!masterpiece,
     staleTime: 1000 * 60 * 60,
   });
@@ -39,6 +44,11 @@ export function CriticsChoice() {
   const topReview = reviews?.find(r => r.content.length > 100 && r.content.length < 500) || reviews?.[0];
 
   if (!mounted || !masterpiece) return null;
+
+  const editorialText = topReview?.content || 
+    (masterpiece.description && masterpiece.description.length > 50 
+      ? masterpiece.description.slice(0, 350) + '...' 
+      : (masterpiece.heritage?.curatorNote || masterpiece.overview || ''));
 
   return (
     <section className="px-10 lg:px-24 py-24 relative overflow-hidden">
@@ -77,7 +87,7 @@ export function CriticsChoice() {
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           viewport={{ once: true }}
           className="lg:col-span-8 relative aspect-video lg:aspect-auto h-[400px] lg:h-[600px] rounded-[3rem] overflow-hidden border border-white/5 group cursor-pointer shadow-[0_40px_80px_rgba(0,0,0,0.6)]"
-          onClick={() => router.push(`/watch?id=${masterpiece.id}&type=movie`)}
+          onClick={() => router.push(`/watch?id=${masterpiece.id}&type=${masterpiece.type}`)}
         >
           <OptimizedImage
             src={masterpiece.backdrop || masterpiece.poster || ''}
@@ -139,7 +149,7 @@ export function CriticsChoice() {
                 <div className="relative">
                   {/* We use Pretext for the actual description to give it that "printed" feel */}
                   <PretextHeadline
-                    text={topReview?.content || (masterpiece.description && masterpiece.description.length > 50 ? masterpiece.description.slice(0, 350) + '...' : masterpiece.heritage?.curatorNote)}
+                    text={editorialText}
                     fontSize={15}
                     fontWeight={500}
                     lineHeight={1.6}
@@ -175,19 +185,19 @@ export function CriticsChoice() {
 
           {/* Cinematic Stats Grid */}
           <div className="grid grid-cols-3 gap-3 h-[120px]">
-            <div className="rounded-[2rem] bg-zinc-900/40 border border-white/5 flex flex-col items-center justify-center text-center p-3">
+            <div className="rounded-[2rem] bg-black/40 border border-white/5 flex flex-col items-center justify-center text-center p-3">
               <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Genre</div>
               <div className="text-[11px] font-black text-white uppercase truncate w-full px-2">
                 {masterpiece.genres?.[0] || 'Cinema'}
               </div>
             </div>
-            <div className="rounded-[2rem] bg-zinc-900/40 border border-white/5 flex flex-col items-center justify-center text-center p-3">
+            <div className="rounded-[2rem] bg-black/40 border border-white/5 flex flex-col items-center justify-center text-center p-3">
               <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">IMDb</div>
               <div className="text-lg font-black text-amber-500">
                 {masterpiece.ratings?.imdb?.score || masterpiece.rating?.toFixed(1) || '8.4'}
               </div>
             </div>
-            <div className="rounded-[2rem] bg-zinc-900/40 border border-white/5 flex flex-col items-center justify-center text-center p-3">
+            <div className="rounded-[2rem] bg-black/40 border border-white/5 flex flex-col items-center justify-center text-center p-3">
               <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Rotten</div>
               <div className="text-lg font-black text-red-500">
                 {masterpiece.ratings?.rottenTomatoes?.score ? `${masterpiece.ratings.rottenTomatoes.score}%` : '92%'}

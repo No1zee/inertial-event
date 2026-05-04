@@ -25,7 +25,7 @@ export const getSources = async (req: Request, res: Response) => {
             parseInt(season as string) || 1,
             parseInt(episode as string) || 1,
             title as string,
-            (type as 'movie' | 'tv' | 'anime' | 'series') || 'movie',
+            (type as 'movie' | 'tv' | 'anime') || 'movie',
             audioPreference as string
         );
         

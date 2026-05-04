@@ -1,29 +1,27 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
-
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePlayerStore } from '@/lib/stores/playerStore';
+import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useUserPreferencesStore, useActiveSource, usePlayerPreferences } from '@/lib/stores/preferencesStore';
 import NativePlayer from './NativePlayer';
-import { streamingOptimizer } from '@/services/streamingOptimizer';
-import { aegisShield } from '@/services/AegisShield';
-import { CinematicEndCredits } from './CinematicEndCredits';
-import SourceSwitcher from './overlay/SourceSwitcher';
-import { usePlayerActions, usePlayerStore } from '@/lib/stores/playerStore';
-
-import { cn } from '@/lib/utils';
-import StillWatchingOverlay from './overlay/StillWatchingOverlay';
-
+import { useUIStore } from '@/lib/stores/uiStore';
+import { useStillWatching } from './hooks/useStillWatching';
+import { shallow } from 'zustand/shallow';
 import { Content } from '@/lib/types/content';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
+import { aegisShield } from '@/services/AegisShield';
 import '@/types/electron.d';
+
+import { useSourceState } from './hooks/useSourceState';
+import { WebViewBridge } from './WebViewBridge';
+import { OverlayContainer } from './overlay/OverlayContainer';
 
 interface VidlinkPlayerProps {
   tmdbId: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   season?: string | number;
   episode?: string | number;
   content?: Content;
@@ -33,41 +31,8 @@ interface VidlinkPlayerProps {
   hasNext?: boolean;
   hasPrev?: boolean;
   showUI?: boolean;
-}
-
-interface VidlinkEvent {
-  type: string;
-  data: {
-    event: string;
-    currentTime: number;
-    duration: number;
-  };
-}
-
-interface WebviewIpcEvent extends Event {
-  channel: string;
-  args: unknown[];
-}
-
-interface ElectronWebView extends HTMLWebViewElement {
-  executeJavaScript(script: string): Promise<unknown>;
-}
-
-interface SourceItem {
-  url: string;
-  type: string;
-  quality?: string;
-  provider?: string;
-}
-
-interface DirectSource {
-  sources: SourceItem[];
-  provider?: string;
-  subtitles?: {
-    url: string;
-    label?: string;
-    lang: string;
-  }[];
+  onSeasonChange?: (s: number) => void;
+  onEpisodeChange?: (e: string) => void;
 }
 
 export function VidlinkPlayer({
@@ -81,36 +46,53 @@ export function VidlinkPlayer({
   onBack,
   hasNext,
   hasPrev,
+  onSeasonChange,
+  onEpisodeChange,
   showUI = true,
 }: VidlinkPlayerProps) {
-  const router = useRouter();
+  if (!tmdbId || tmdbId === 'NaN' || isNaN(Number(String(tmdbId).replace('tmdb_', '')))) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-black text-white p-12">
+        <div className="w-1.5 h-1.5 rounded-full bg-zinc-800 mb-6" />
+        <PretextHeadline text="UNABLE TO LOAD" fontSize={10} fontWeight={900} letterSpacing="0.4em" className="text-zinc-500 mb-4" />
+        <h2 className="text-3xl font-black mb-4 uppercase tracking-tighter">Playback Interrupted</h2>
+        <p className="text-zinc-500 mb-12 max-w-md text-center leading-relaxed">
+          We encountered an issue identifying this title. Please try returning to the home screen to refresh your session.
+        </p>
+        <button 
+          onClick={() => window.location.href = '/'} 
+          className="h-14 px-10 bg-white text-black rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform"
+        >
+          Return Home
+        </button>
+      </div>
+    );
+  }
+
   const addToHistory = useLocalDataStore(state => state.addToWatchHistory);
+  const getResumeData = useLocalDataStore(state => state.getResumeData);
+  const globalPrefs = useLocalDataStore(state => state.globalPreferences);
   const activeSource = useActiveSource();
-  const cycleToNextSource = useUserPreferencesStore(state => state.cycleToNextSource);
   const playerPrefs = usePlayerPreferences();
-  const { setCurrentTime, setDuration, setPlaying, resetPlayer, loadMedia } = usePlayerActions();
+  const visualBoost = useUIStore(state => state.visualBoost, shallow);
 
-  const [animeEndpoint, setAnimeEndpoint] = useState<string | null>(null);
-  const [isFetchingMalId, setIsFetchingMalId] = useState<boolean>(type === 'anime');
-  const [playerReady, setPlayerReady] = useState(false);
-  const [allSources, setAllSources] = useState<SourceItem[]>([]);
-  const [activeSourceUrl, setActiveSourceUrl] = useState<string>('');
-  const [preloadPath, setPreloadPath] = useState<string | null>(null);
-  const [directResult, setDirectResult] = useState<DirectSource | null>(null);
-  const [showSourceSwitcher, setShowSourceSwitcher] = useState(false);
-  const [showStillWatching, setShowStillWatching] = useState(false);
-
-  const [initialProgress, setInitialProgress] = useState(0);
-  const [consecutiveEpisodes, setConsecutiveEpisodes] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [initialProgress, setInitialProgress] = useState(0);
+  const [showSourceSwitcher, setShowSourceSwitcher] = useState(false);
+  const [discoveredSource, setDiscoveredSource] = useState<{ url: string; type: string } | null>(null);
+  const [consecutiveEpisodes, setConsecutiveEpisodes] = useState(0);
 
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-  const transitionTriggeredRef = useRef(false);
   const lastInteractionRef = useRef<number>(Date.now());
-  const hasFailedNativeRef = useRef<boolean>(false);
   const playbackRef = useRef({ currentTime: 0, duration: 0 });
+
+  const { 
+    showStillWatching, 
+    checkStillWatching, 
+    handleContinueWatching: originalHandleContinueWatching,
+    resetConsecutiveAutoplays 
+  } = useStillWatching();
+
+  useEffect(() => setIsHydrated(true), []);
 
   useEffect(() => {
     const unsub = usePlayerStore.subscribe(
@@ -120,45 +102,14 @@ export function VidlinkPlayer({
     return unsub;
   }, []);
 
-  const webviewRef = useRef<ElectronWebView | null>(null);
-  const onNextRef = useRef(onNext);
-  const onPrevRef = useRef(onPrev);
-
   useEffect(() => {
-    onNextRef.current = onNext;
-  }, [onNext]);
-  useEffect(() => {
-    onPrevRef.current = onPrev;
-  }, [onPrev]);
-
-  const handleBack = useCallback(() => {
-    if (onBack) {
-      onBack();
-    } else {
-      if (typeof window !== 'undefined' && window.history.length > 1) {
-        window.history.back();
-      } else {
-        window.location.href = '/';
-      }
-    }
-  }, [onBack]);
-
-  const handleNextEpisode = useCallback(() => {
-    setConsecutiveEpisodes(prev => prev + 1);
-    if (onNext) onNext();
-  }, [onNext]);
-
-  const handleCancelTransition = useCallback(() => {
-    // Transition cancel logic
-  }, []);
+    setConsecutiveEpisodes(0);
+  }, [tmdbId, season, episode, type]);
 
   const { nextSeasonNumber, nextEpisodeNumber } = useMemo(() => {
     if (type === 'movie') return { nextSeasonNumber: 1, nextEpisodeNumber: 1 };
-    
     const s = Number(season);
     const e = Number(episode);
-    
-    // Boundary-aware logic for prefetching and internal state
     const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
     const currentSeasonMeta = content?.seasonsList?.find(m => m.season_number === s);
     
@@ -167,291 +118,70 @@ export function VidlinkPlayer({
         return { nextSeasonNumber: s + 1, nextEpisodeNumber: 1 };
       }
     }
-    
     return { nextSeasonNumber: s, nextEpisodeNumber: e + 1 };
   }, [type, season, episode, content]);
 
-  const handleIpcMessage = useCallback((event: Event) => {
-    const electronEvent = event as WebviewIpcEvent;
-    const channel = electronEvent.channel;
-    const data = electronEvent.args?.[0] as Record<string, unknown> | undefined;
+  const {
+    src,
+    isNativeSource,
+    allSources,
+    directResult,
+    activeSourceUrl,
+    isFetchingMalId,
+    hasFailedNative,
+    handleSourceSelect,
+    handleNativeError,
+    cycleToNextSource
+  } = useSourceState({
+    tmdbId,
+    type,
+    season,
+    episode,
+    content,
+    nextSeasonNumber,
+    nextEpisodeNumber,
+    hasNext
+  });
 
-    if (channel === 'video-ended' || channel === 'AG_ENDED') {
-      if (!transitionTriggeredRef.current) {
-        transitionTriggeredRef.current = true;
-        onNextRef.current?.();
-      }
-    } else if (channel === 'AG_UPDATE' && data) {
-      const { currentTime, duration } = data as { currentTime: number; duration: number };
-      if (content && currentTime > 0) {
-        setCurrentTime(currentTime);
-        setDuration(duration);
-        addToHistory({
-          contentId: tmdbId,
-          type,
-          title: content.title || 'Untitled',
-          poster: content.poster || '',
-          backdrop: content.backdrop || '',
-          currentTime,
-          duration,
-          season: type !== 'movie' ? Number(season) : undefined,
-          episode: type !== 'movie' ? Number(episode) : undefined,
-        });
-      }
-    }
-  }, [tmdbId, type, content, season, episode, setCurrentTime, setDuration, addToHistory]);
-
-
-  const onWebviewRef = useCallback(
-    (wv: HTMLWebViewElement | null) => {
-      if (!wv || webviewRef.current === wv) return;
-      webviewRef.current = wv as unknown as ElectronWebView;
-
-      const handleDomReady = () => {
-        setPlayerReady(true);
-        (wv as ElectronWebView)
-          .executeJavaScript(
-            `
-                  const video = document.querySelector('video');
-                  if (video) {
-                    if (${initialProgress} > 0) video.currentTime = ${initialProgress};
-                    video.volume = 1;
-                    video.muted = false;
-                  }
-              `
-          )
-          .catch((err: Error) => console.warn('[MaiWatch] Failed to initialize webview video state:', err));
-      };
-
-      const handleConsoleMessage = (e: { message: string }) => {
-        console.log(`[Webview Console] ${e.message}`);
-      };
-
-      const handleFailLoad = (e: { errorCode: number; errorDescription: string }) => {
-        console.warn(`[Webview Error] Failed to load: ${e.errorCode} ${e.errorDescription}`);
-      };
-
-      wv.addEventListener('dom-ready', handleDomReady);
-      wv.addEventListener('console-message', handleConsoleMessage as unknown as EventListener);
-      wv.addEventListener('did-fail-load', handleFailLoad as unknown as EventListener);
-      wv.addEventListener('ipc-message', handleIpcMessage as unknown as EventListener);
-    },
-    [initialProgress, handleIpcMessage]
-  );
-
-  useEffect(() => {
-    const updateInteraction = () => {
-      lastInteractionRef.current = Date.now();
-    };
-
-    window.addEventListener('mousemove', updateInteraction);
-    window.addEventListener('keydown', updateInteraction);
-    window.addEventListener('mousedown', updateInteraction);
-    window.addEventListener('touchstart', updateInteraction);
-
-    return () => {
-      window.removeEventListener('mousemove', updateInteraction);
-      window.removeEventListener('keydown', updateInteraction);
-      window.removeEventListener('mousedown', updateInteraction);
-      window.removeEventListener('touchstart', updateInteraction);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (showStillWatching || type === 'movie') return;
-
-    const checkStillWatching = () => {
-      const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
-      const thirtyMinsInMs = 30 * 60 * 1000;
-      const twoHoursInMs = 2 * 60 * 60 * 1000;
-
-      if (timeSinceLastInteraction > twoHoursInMs || (timeSinceLastInteraction > thirtyMinsInMs && consecutiveEpisodes >= 2)) {
-        setShowStillWatching(true);
-        if (webviewRef.current) {
-          webviewRef.current.executeJavaScript('document.querySelector("video")?.pause()');
-        }
-      }
-    };
-
-    const interval = setInterval(checkStillWatching, 60000);
-    return () => clearInterval(interval);
-  }, [showStillWatching, consecutiveEpisodes, type]);
-
-  const handleContinueWatching = () => {
-    setShowStillWatching(false);
-    setConsecutiveEpisodes(0);
-    lastInteractionRef.current = Date.now();
-    if (webviewRef.current) {
-      webviewRef.current.executeJavaScript('document.querySelector("video")?.play()');
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.invoke('get-player-preload-path').then((path: unknown) => {
-        if (typeof path === 'string') setPreloadPath(path);
-      });
-    }
-  }, []);
-
-  const handleNativeError = useCallback((error: unknown) => {
-    if (hasFailedNativeRef.current) return;
-    console.warn('[MaiWatch] Native failover triggered.', error);
-    hasFailedNativeRef.current = true;
-    setDirectResult(null);
-  }, []);
-
-  useEffect(() => {
-    if (type === 'anime' && content?.title && activeSource.id === 'vidlink') {
-      const fetchMalId = async () => {
-        try {
-          const cleanTitle = content.title.replace(/Season \d+/i, '').trim();
-          const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(cleanTitle)}&limit=1`);
-          const data = await res.json();
-
-          if (data?.data?.[0]?.mal_id) {
-            const malId = data.data[0].mal_id;
-            setAnimeEndpoint(`/anime/${malId}/${episode}/${playerPrefs.audioLanguage}`);
-          } else {
-            throw new Error('No MAL ID found');
-          }
-        } catch {
-          setAnimeEndpoint(`/tv/${tmdbId}/${season}/${episode}`);
-        } finally {
-          setIsFetchingMalId(false);
-        }
-      };
-      fetchMalId();
-    } else {
-      setIsFetchingMalId(false);
-    }
-  }, [type, content?.title, tmdbId, season, episode, activeSource.id, playerPrefs.audioLanguage]);
-
-  const getResumeData = useLocalDataStore(state => state.getResumeData);
+  const [dynamicResumeTime, setDynamicResumeTime] = useState(0);
 
   useEffect(() => {
     const resume = getResumeData(tmdbId);
-    if (resume && !resume.completed) {
-      if (type === 'movie' || (resume.season === Number(season) && resume.episode === Number(episode))) {
-        setInitialProgress(resume.currentTime);
-      } else {
-        setInitialProgress(0); // Reset for new episodes
-      }
-    } else {
-      setInitialProgress(0);
-    }
+    const time = (resume && !resume.completed) ? resume.currentTime : 0;
+    setDynamicResumeTime(time);
+    setInitialProgress(time);
   }, [tmdbId, season, episode, type, getResumeData]);
 
-  const memoizedUrl = useMemo(() => {
-    const baseUrl = activeSource.baseUrl;
-    if (activeSource.id === 'vidlink') {
-      let endpoint = '';
-      if (type === 'movie') endpoint = `/movie/${tmdbId}`;
-      else if (type === 'tv') endpoint = `/tv/${tmdbId}/${season}/${episode}`;
-      else if (type === 'anime') endpoint = animeEndpoint || `/tv/${tmdbId}/${season}/${episode}`;
-
-      const params: Record<string, string> = {
-        primaryColor: 'c0392b',
-        secondaryColor: '1a1a1a',
-        iconColor: 'ffffff',
-        autoplay: 'true',
-        nextbutton: 'true',
-      };
-      if (type === 'anime') params.fallback = 'true';
-      return endpoint ? `${baseUrl}${endpoint}?${new URLSearchParams(params).toString()}` : '';
-    }
-
-    if (activeSource.id === 'vidsrc-to' || activeSource.id === 'vidsrc-me' || activeSource.id === 'embed-su' || activeSource.id === 'autoembed') {
-      const path = type === 'movie' ? `/movie/${tmdbId}` : `/tv/${tmdbId}/${season}/${episode}`;
-      return `${baseUrl}/embed${path}?autoplay=1`;
-    }
-
-    if (activeSource.id === 'multiembed') {
-      const path = type === 'movie' ? `?video_id=${tmdbId}&tmdb=1&autoplay=1` : `?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&autoplay=1`;
-      return `${baseUrl}/${path}`;
-    }
-
-    return '';
-  }, [activeSource, animeEndpoint, episode, season, tmdbId, type]);
-
-  const src = activeSourceUrl || memoizedUrl;
-
+  // Update dynamicResumeTime when source changes to ensure the next source starts where we left off
   useEffect(() => {
-    const preloadContent = async () => {
-      const result = await streamingOptimizer.preloadSources(tmdbId, type, Number(season), Number(episode), content?.title || '', playerPrefs.audioLanguage);
-      if (result && result.sources.length > 0) {
-        setAllSources(result.sources as SourceItem[]);
-        const nativeSources = result.sources.filter(s => s.type === 'hls' || s.type === 'mp4');
-        if (nativeSources.length > 0) {
-          setPlayerReady(true);
-          setDirectResult(result as DirectSource);
-          setActiveSourceUrl(nativeSources[0].url);
-        }
+    if (src) {
+      const currentTime = usePlayerStore.getState().currentTime;
+      if (currentTime > 0) {
+        setDynamicResumeTime(currentTime);
       }
-    };
-
-    if (src) preloadContent();
-  }, [tmdbId, season, episode, type, activeSource.id, src, content?.title, playerPrefs.audioLanguage]);
-
-  useEffect(() => {
-    // SEAMLESS TRANSITION ENGINE (Feature 11)
-    // Instead of a destructive reset, we check if the next segment is already optimized.
-    const key = streamingOptimizer.getPreloadKey(tmdbId, type, Number(season), Number(episode));
-    const cached = streamingOptimizer.getPreloaded(key);
-
-    if (cached && cached.sources.length > 0) {
-      console.log('[MaiWatch] Seamless transition: Using preloaded direct source for', key);
-      setAllSources(cached.sources as SourceItem[]);
-      setDirectResult(cached as DirectSource);
-      const nativeSources = cached.sources.filter(s => s.type === 'hls' || s.type === 'mp4');
-      if (nativeSources.length > 0) {
-        setActiveSourceUrl(nativeSources[0].url);
-        setPlayerReady(true);
-      }
-    } else {
-      setPlayerReady(false);
-      setDirectResult(null);
-      setAllSources([]);
-      setActiveSourceUrl('');
     }
-
-    setShowSourceSwitcher(false);
-    transitionTriggeredRef.current = false;
-    hasFailedNativeRef.current = false;
-    setConsecutiveEpisodes(prev => prev + 1);
-    resetPlayer();
-  }, [activeSource.id, tmdbId, season, episode, type, resetPlayer]);
+  }, [src]);
 
   useEffect(() => {
     aegisShield.updateCurrentSource(activeSource.id);
   }, [activeSource.id]);
 
+  const handleNextEpisode = useCallback(() => {
+    setConsecutiveEpisodes(prev => prev + 1);
+    
+    // Check if we should show "Are you still watching?" before continuing
+    const shouldStop = checkStillWatching(() => {
+      window.dispatchEvent(new CustomEvent('AG_PLAYER_COMMAND', { detail: { action: 'pause' } }));
+    });
 
-  useEffect(() => {
-    const checkAndPrefetchNext = async () => {
-      const { currentTime, duration } = playbackRef.current;
-      if (type !== 'movie' && hasNext && duration > 0 && currentTime / duration > 0.8) {
-        streamingOptimizer.preloadSources(tmdbId, type, nextSeasonNumber, nextEpisodeNumber, content?.title || '', playerPrefs.audioLanguage);
-      }
-    };
-    const interval = setInterval(checkAndPrefetchNext, 10000);
-    return () => clearInterval(interval);
-  }, [type, hasNext, season, nextEpisodeNumber, tmdbId, content?.title, playerPrefs.audioLanguage]);
-
-  const handleSourceSelect = useCallback((source: SourceItem) => {
-    setActiveSourceUrl(source.url);
-    if (source.type === 'hls' || source.type === 'mp4') {
-      setDirectResult({ sources: [source], subtitles: directResult?.subtitles || [] });
-    } else {
-      setDirectResult(null);
+    if (!shouldStop && onNext) {
+      onNext();
     }
-    setShowSourceSwitcher(false);
-  }, [directResult?.subtitles]);
+  }, [onNext, checkStillWatching]);
 
   const handleToggleSource = useCallback((recommendedSourceId?: string) => {
     if (recommendedSourceId) {
-       // Find the source matching the recommendation (assuming source.url or source.provider might match, or fallback to cycle)
-       const rec = allSources.find(s => s.provider === recommendedSourceId || s.url.includes(recommendedSourceId));
+       const rec = allSources.find(s => s.provider === recommendedSourceId || s.url?.includes(recommendedSourceId));
        if (rec) {
          handleSourceSelect(rec);
          return;
@@ -461,44 +191,96 @@ export function VidlinkPlayer({
     else cycleToNextSource();
   }, [allSources, cycleToNextSource, handleSourceSelect]);
 
+  const lastHistoryUpdateRef = useRef<number>(0);
+
+  const updateHistory = useCallback((currentTime: number, duration: number, completed = false) => {
+    if (!content) return;
+    
+    // Throttle history updates to once every 10 seconds, unless completed
+    const now = Date.now();
+    if (!completed && now - lastHistoryUpdateRef.current < 10000) {
+      return;
+    }
+    lastHistoryUpdateRef.current = now;
+
+    addToHistory({
+      contentId: tmdbId,
+      type,
+      title: content.title || 'Untitled',
+      poster: content.poster || '',
+      backdrop: content.backdrop || '',
+      currentTime: completed ? duration : currentTime,
+      duration: duration || 100,
+      season: type !== 'movie' ? Number(season) : undefined,
+      episode: type !== 'movie' ? Number(episode) : undefined,
+      nextSeason: nextSeasonNumber,
+      nextEpisode: nextEpisodeNumber,
+    });
+  }, [content, tmdbId, type, season, episode, nextSeasonNumber, nextEpisodeNumber, addToHistory]);
+
+  const handleProgress = useCallback((progress: { currentTime: number; duration: number }) => {
+    updateHistory(progress.currentTime, progress.duration);
+  }, [updateHistory]);
+
+  const handleEnded = useCallback(() => {
+    // Force one final update on completion
+    lastHistoryUpdateRef.current = 0; 
+    updateHistory(playbackRef.current.duration, playbackRef.current.duration, true);
+    if (type !== 'movie' && hasNext) {
+      handleNextEpisode();
+    }
+  }, [updateHistory, type, hasNext, handleNextEpisode]);
+
+  const handleWebviewProgress = useCallback((currentTime: number, duration: number) => {
+    // Direct store updates bypass React state for smoother performance
+    const state = usePlayerStore.getState();
+    
+    // Only update store if values changed significantly (at least 0.5s)
+    if (Math.abs(state.currentTime - currentTime) > 0.5 || Math.abs(state.duration - duration) > 1) {
+      state.setCurrentTime(currentTime);
+      state.setDuration(duration);
+    }
+    
+    updateHistory(currentTime, duration);
+  }, [updateHistory]);
+
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (!event.origin.includes('vidlink.pro')) return;
-      if (event.data?.type === 'PLAYER_EVENT') {
-        const typedData = event.data as VidlinkEvent;
-        const { event: eventType, currentTime, duration } = typedData.data;
-        if (eventType === 'ready') setPlayerReady(true);
-        if (content && (eventType === 'timeupdate' || eventType === 'pause' || eventType === 'ended')) {
-          setCurrentTime(currentTime);
-          setDuration(duration);
-          setPlaying(eventType !== 'pause');
-          addToHistory({
-            contentId: tmdbId,
-            type,
-            title: content.title || 'Untitled',
-            poster: content.poster || '',
-            backdrop: content.backdrop || '',
-            currentTime,
-            duration,
-            season: type !== 'movie' ? Number(season) : undefined,
-            episode: type !== 'movie' ? Number(episode) : undefined,
-          });
-          if (eventType === 'ended' && type !== 'movie' && hasNext && !transitionTriggeredRef.current) {
-            transitionTriggeredRef.current = true;
-            handleNextEpisode();
-          }
-        }
-      } else if (event.data?.type === 'NEXT_EPISODE') {
-        console.log('[MaiWatch] VidLink Internal: Next Episode Triggered');
-        if (hasNext) handleNextEpisode();
-      } else if (event.data?.type === 'PREV_EPISODE') {
-        console.log('[MaiWatch] VidLink Internal: Prev Episode Triggered');
-        if (hasPrev && onPrevRef.current) onPrevRef.current();
-      }
+    const updateInteraction = () => { lastInteractionRef.current = Date.now(); };
+    window.addEventListener('mousemove', updateInteraction);
+    window.addEventListener('keydown', updateInteraction);
+    window.addEventListener('mousedown', updateInteraction);
+    window.addEventListener('touchstart', updateInteraction);
+    return () => {
+      window.removeEventListener('mousemove', updateInteraction);
+      window.removeEventListener('keydown', updateInteraction);
+      window.removeEventListener('mousedown', updateInteraction);
+      window.removeEventListener('touchstart', updateInteraction);
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [content, type, season, episode, addToHistory, tmdbId, setCurrentTime, setDuration, setPlaying, hasNext, handleNextEpisode]);
+  }, []);
+
+  const handleContinueWatching = () => {
+    originalHandleContinueWatching(() => {
+      setConsecutiveEpisodes(0);
+      lastInteractionRef.current = Date.now();
+      window.dispatchEvent(new CustomEvent('AG_PLAYER_COMMAND', { detail: { action: 'play' } }));
+    });
+  };
+
+  const handleSourceFound = useCallback((data: { url: string; type: string }) => {
+    console.log('[VidlinkPlayer] Source discovered by bridge:', data.type);
+    setDiscoveredSource(data);
+  }, []);
+
+  const handleSwitchToNative = useCallback(() => {
+    if (!discoveredSource) return;
+    console.log('[VidlinkPlayer] Switching to native player with discovered source');
+    handleSourceSelect({
+      url: discoveredSource.url,
+      type: discoveredSource.type,
+      provider: 'Native Fallback'
+    });
+    setDiscoveredSource(null);
+  }, [discoveredSource, handleSourceSelect]);
 
   const memoizedSubtitles = useMemo(() => 
     (directResult?.subtitles || []).map(sub => ({ 
@@ -519,161 +301,116 @@ export function VidlinkPlayer({
     [content?.cast]
   );
 
-  const handleProgress = useCallback((progress: { currentTime: number; duration: number }) => {
-    if (content) {
-      addToHistory({
-        contentId: tmdbId,
-        type,
-        title: content.title || 'Untitled',
-        poster: content.poster || '',
-        backdrop: content.backdrop || '',
-        currentTime: progress.currentTime,
-        duration: progress.duration,
-        season: type !== 'movie' ? Number(season) : undefined,
-        episode: type !== 'movie' ? Number(episode) : undefined,
-      });
-    }
-  }, [content, tmdbId, type, season, episode, addToHistory]);
-
-  useEffect(() => {
-    if (content) {
-      loadMedia({
-        id: tmdbId,
-        type,
-        title: content.title || 'Untitled',
-        poster: content.poster || '',
-        season: Number(season),
-        episode: Number(episode),
-        source: src,
-      });
-    }
-  }, [loadMedia, tmdbId, type, content, season, episode, src]);
-
-
-  if (!isHydrated) {
-    return (
-      <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center">
-        <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
-      </div>
-    );
-  }
+  const visualEnhancements = useMemo(() => {
+    if (typeof window !== 'undefined' && window.electron) return "";
+    let classes = "";
+    if (globalPrefs.ultraFluidPlayback) classes += " fluid-motion";
+    if (globalPrefs.aiUpscaling) classes += " cinematic-ai";
+    if (playerPrefs.visualBoost) classes += " visual-boost";
+    return classes;
+  }, [globalPrefs.ultraFluidPlayback, globalPrefs.aiUpscaling, visualBoost]);
 
   return (
     <div className="absolute inset-0 z-[100] bg-black flex flex-col group-player overflow-hidden max-h-screen">
-      <motion.div initial={{ opacity: 0, scale: 1 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 w-full relative flex flex-col overflow-hidden min-h-0">
-        {/* NATIVE PLAYER: Only render if we have a direct stream URL. If not, show hydrating state. */}
-        {(activeSourceUrl || directResult?.sources?.[0]?.url) ? (
-          <div className="w-full h-full relative z-10 flex items-center justify-center min-h-0">
-            <NativePlayer
-              src={activeSourceUrl || directResult?.sources?.[0]?.url || ''}
-              poster={content?.poster}
-              title={content?.title || 'Unknown'}
-              subTitle={type !== 'movie' ? `S${season} E${episode}` : undefined}
-              type={type}
-              season={String(season)}
-              episode={String(episode)}
-              initialTime={initialProgress}
-              tmdbId={tmdbId}
-              subtitles={memoizedSubtitles}
-              cast={memoizedCast}
-              provider={directResult?.provider || (activeSourceUrl ? 'Direct Stream' : undefined)}
-              onNext={onNext}
-              onPrev={onPrev}
-              onFatalError={handleNativeError}
-              onToggleSource={handleToggleSource}
-              onProgress={handleProgress}
-            />
-          </div>
-        ) : (
-          <div className="w-full h-full relative z-10">
-            {isFetchingMalId || !src ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-3xl z-20">
-                <Loader2 className="w-16 h-16 text-brand-primary animate-spin mb-6" />
-                <PretextHeadline text="PROCESSING STREAM" className="text-2xl font-bold tracking-tighter" />
-              </div>
-            ) : (
-              typeof window !== 'undefined' && window.electron ? (
-                <webview
-                  ref={onWebviewRef}
+      {!isHydrated ? (
+        <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+          <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 1, scale: 1 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 w-full relative flex flex-col overflow-hidden min-h-0">
+          {(isNativeSource && !hasFailedNative) ? (
+            <div className={`w-full h-full relative z-10 flex items-center justify-center min-h-0 ${visualEnhancements}`}>
+              <NativePlayer
+                src={activeSourceUrl || directResult?.sources?.[0]?.url || ''}
+                poster={content?.poster ?? undefined}
+                title={content?.title || 'Unknown'}
+                subTitle={type !== 'movie' ? `S${season} E${episode}` : undefined}
+                type={type}
+                season={String(season)}
+                key={`${tmdbId}-${season}-${episode}`}
+                seasons={content?.seasonsList}
+                initialTime={initialProgress}
+                tmdbId={tmdbId}
+                subtitles={memoizedSubtitles}
+                cast={memoizedCast}
+                provider={directResult?.provider || (activeSourceUrl ? 'Direct Stream' : undefined)}
+                onNext={onNext}
+                onPrev={onPrev}
+                onSeasonChange={onSeasonChange}
+                onEpisodeChange={onEpisodeChange}
+                onFatalError={handleNativeError}
+                onToggleSource={handleToggleSource}
+                onProgress={handleProgress}
+              />
+            </div>
+          ) : (
+            <div className={`w-full h-full relative z-10 ${!(typeof window !== 'undefined' && window.electron) ? visualEnhancements : ''}`}>
+              {/* Only show loading state when we have no src at all (e.g. anime MAL ID still resolving
+                   with no fallback URL yet). If src exists, render WebViewBridge immediately so the
+                   embed is visible — prevents the black screen / audio-only bug. */}
+              {(!src && isFetchingMalId) ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md z-20 transition-all duration-1000">
+                  <div className="relative">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-8 opacity-40" />
+                    <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse rounded-full" />
+                  </div>
+                  <PretextHeadline text="ARCHIVE SYNCHRONIZATION" className="text-[10px] font-black tracking-[0.6em] text-white/40 uppercase" />
+                </div>
+              ) : src ? (
+                <WebViewBridge
+                  key={`${tmdbId}-${season}-${episode}`}
                   src={src}
-                  preload={preloadPath || undefined}
-                  className="flex-1 w-full h-full"
-                  allowFullScreen
-                  webpreferences="contextIsolation=no, nodeIntegration=no"
-                  useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                  data-testid="video-player"
+                  tmdbId={tmdbId}
+                  season={season}
+                  episode={episode}
+                  initialProgress={dynamicResumeTime}
+                  visualBoost={playerPrefs.visualBoost}
+                  pipBoost={playerPrefs.pipVisualBoost}
+                  onEnded={handleEnded}
+                  onProgress={handleWebviewProgress}
+                  onSourceFound={handleSourceFound}
                 />
               ) : (
-                <iframe
-                  src={src}
-                  title="Video Player"
-                  className="flex-1 w-full h-full border-none"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  data-testid="video-player"
-                />
-              )
-            )}
-          </div>
-        )}
-      </motion.div>
-
-      {/* DIRECTORIAL NAVIGATION OVERLAY (Feature 6 Fix) */}
-      <AnimatePresence>
-        {showUI && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-y-0 inset-x-0 z-[150] pointer-events-none flex items-center justify-between px-8"
-          >
-            {hasPrev && (
-              <motion.button
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                onClick={() => onPrevRef.current?.()}
-                className="group pointer-events-auto p-6 bg-black/20 hover:bg-white/10 backdrop-blur-2xl rounded-full border border-white/5 transition-all active:scale-90"
-                aria-label="Previous Episode"
-              >
-                <ChevronLeft size={48} className="text-white/20 group-hover:text-white transition-colors" strokeWidth={1} />
-              </motion.button>
-            )}
-
-            <div className="flex-1" />
-
-            {hasNext && (
-              <motion.button
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                onClick={() => handleNextEpisode()}
-                className="group pointer-events-auto p-6 bg-black/20 hover:bg-white/10 backdrop-blur-2xl rounded-full border border-white/5 transition-all active:scale-90"
-                aria-label="Next Episode"
-              >
-                <ChevronRight size={48} className="text-white/20 group-hover:text-white transition-colors" strokeWidth={1} />
-              </motion.button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {type !== 'movie' && hasNext && (
-        <CinematicEndCredits
-          contentId={tmdbId}
-          type={type}
-          season={Number(season)}
-          nextEpisode={nextEpisodeNumber}
-          hasNext={hasNext}
-          onNext={handleNextEpisode}
-          onCancel={handleCancelTransition}
-        />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20">
+                  <div className="relative">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin mb-8 opacity-40" />
+                    <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse rounded-full" />
+                  </div>
+                  <PretextHeadline text="ARCHIVE SYNCHRONIZATION" className="text-[10px] font-black tracking-[0.6em] text-white/40 uppercase" />
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
       )}
 
-      <SourceSwitcher show={showSourceSwitcher} sources={allSources} activeSourceUrl={activeSourceUrl} onSelect={handleSourceSelect} onClose={() => setShowSourceSwitcher(false)} />
-      <StillWatchingOverlay show={showStillWatching} onContinue={handleContinueWatching} onExit={handleBack} />
-      
-
+      {isHydrated && (
+        <>
+          <OverlayContainer
+            showSourceSwitcher={showSourceSwitcher}
+            onCloseSourceSwitcher={() => setShowSourceSwitcher(false)}
+            allSources={allSources}
+            activeSourceUrl={activeSourceUrl}
+            onSourceSelect={(s) => {
+              handleSourceSelect(s);
+              setShowSourceSwitcher(false);
+            }}
+            showStillWatching={showStillWatching}
+            onContinueWatching={handleContinueWatching}
+            onExitStillWatching={() => onBack?.()}
+            showEndCredits={type !== 'movie' && (hasNext ?? false)}
+            onNextEpisode={handleNextEpisode}
+            onCancelTransition={() => {}}
+            contentId={tmdbId}
+            type={type === 'series' ? 'tv' : type}
+            season={Number(season)}
+            nextEpisode={nextEpisodeNumber}
+            hasNext={hasNext || false}
+            discoveredSource={discoveredSource}
+            onSwitchToNative={handleSwitchToNative}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export async function getSmartCollections(historyIds: string[], preferences?: { 
 
   try {
     const results = await Promise.all(
-      themes.map(async (theme) => {
+      themes.map(async (theme): Promise<SmartCollection | null> => {
         try {
           const items = await contentApi.search(theme.query);
           if (items.length >= 2) {

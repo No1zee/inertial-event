@@ -1,5 +1,5 @@
 /**
- * MaiWatch State Migration Utility (Simplified)
+ * NovaStream State Migration Utility (Simplified)
  *
  * This utility helps migrate from old scattered state management
  * to new consolidated architecture while maintaining backward compatibility.
@@ -42,7 +42,26 @@ export const migrateState = async (): Promise<MigrationResult> => {
   };
 
   try {
-    console.log('🔄 Starting MaiWatch state migration...');
+    console.log('🔄 Starting NovaStream state migration...');
+
+    // 0. Brand Migration (MaiWatch -> NovaStream)
+    const brandMappings = {
+      'MaiWatch-player': 'NovaStream-player',
+      'MaiWatch-ui': 'NovaStream-ui',
+      'MaiWatch-preferences': 'NovaStream-preferences',
+      'MaiWatch-local-data': 'NovaStream-local-data',
+      'MaiWatch-auth': 'NovaStream-auth',
+      'MaiWatch-theme': 'NovaStream-theme',
+    };
+
+    Object.entries(brandMappings).forEach(([oldKey, newKey]) => {
+      const data = localStorage.getItem(oldKey);
+      if (data && !localStorage.getItem(newKey)) {
+        localStorage.setItem(newKey, data);
+        result.migrated.push(`Brand migration: ${oldKey} -> ${newKey}`);
+        console.log(`✅ Migrated brand key: ${oldKey} -> ${newKey}`);
+      }
+    });
 
     // 1. Migrate Player State
     try {
@@ -317,6 +336,11 @@ export const clearOldStores = (): void => {
       'MaiWatch-settings',
       'MaiWatch-auth-storage',
       'MaiWatch-content-storage',
+      'MaiWatch-player',
+      'MaiWatch-ui',
+      'MaiWatch-preferences',
+      'MaiWatch-local-data',
+      'MaiWatch-auth',
     ];
 
     oldKeys.forEach(key => {
@@ -345,7 +369,7 @@ export const needsMigration = (): boolean => {
     'MaiWatch-content-storage',
   ];
 
-  const newKeys = ['MaiWatch-player', 'MaiWatch-ui', 'MaiWatch-preferences', 'MaiWatch-local-data', 'MaiWatch-auth'];
+  const newKeys = ['NovaStream-player', 'NovaStream-ui', 'NovaStream-preferences', 'NovaStream-local-data', 'NovaStream-auth'];
 
   const hasOldData = oldKeys.some(key => localStorage.getItem(key) !== null);
   const hasNewData = newKeys.some(key => localStorage.getItem(key) !== null);

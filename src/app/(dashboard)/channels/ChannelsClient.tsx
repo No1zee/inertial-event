@@ -57,7 +57,7 @@ export default function ChannelsClient({ initialBroadcasts }: ChannelsClientProp
               src="" 
               type="tv"
               tmdbId={activeBroadcast.currentContent.id}
-              poster={activeBroadcast.currentContent.poster}
+              poster={activeBroadcast.currentContent.poster ?? undefined}
               title={activeBroadcast.currentContent.title}
               subTitle={activeBroadcast.channel.name}
               initialTime={activeBroadcast.elapsed / 1000}
@@ -105,12 +105,13 @@ export default function ChannelsClient({ initialBroadcasts }: ChannelsClientProp
               )}
             >
               <div className="flex items-center justify-between">
-<span
-                    className="text-[10px] font-black uppercase tracking-widest text-[var(--channel-color)]"
-                    style={{ '--channel-color': b.channel.color } as React.CSSProperties}
-                  >
-                    {b.channel.name}
-                  </span>
+                                <motion.span
+                  className="text-[10px] font-black uppercase tracking-widest"
+                  initial={false}
+                  animate={{ color: b.channel.color }}
+                >
+                  {b.channel.name}
+                </motion.span>
                 {activeChannelId === b.channel.id && (
                   <motion.div layoutId="playing" className="flex items-end gap-0.5 h-3">
                     <motion.div animate={{ height: [4, 12, 4] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-0.5 bg-primary" />

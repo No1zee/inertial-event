@@ -3,17 +3,28 @@
 import * as React from 'react';
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Settings, Info, ChevronRight, ChevronLeft, Play } from 'lucide-react';
 import PostPlayOverlay from '@/components/player/overlay/PostPlayOverlay';
 
-import { VidlinkPlayer } from '@/components/player/VidlinkPlayer';
-import { DirectorBar } from '@/components/player/DirectorBar';
+import dynamic from 'next/dynamic';
+import { PlaybackHeader } from '@/components/player/PlaybackHeader';
+
+const VidlinkPlayer = dynamic(() => import('@/components/player/VidlinkPlayer').then(mod => mod.VidlinkPlayer), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 w-full flex items-center justify-center bg-black">
+      <div className="w-10 h-10 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+    </div>
+  )
+});
 import { Button } from '@/components/ui/button';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { useContentDetails, useSeasonDetails } from '@/hooks/queries/useContent';
+import { Content, SeasonDetails } from '@/lib/types/content';
 import { EpisodeNavigator } from '@/components/content/EpisodeNavigator';
 import { LoungeOverlay } from '@/components/social/LoungeOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUserPreferencesStore } from '@/lib/stores/preferencesStore';
+
 
 function WatchContent() {
   const router = useRouter();
@@ -21,7 +32,7 @@ function WatchContent() {
 
   // Get ID and Type from Query Params
   const id = searchParams.get('id');
-  const type = (searchParams.get('type') as 'movie' | 'tv' | 'anime') || 'movie';
+  const type = (searchParams.get('type') as 'movie' | 'tv' | 'anime' | 'series') || 'movie';
   const initialSeason = Number(searchParams.get('season')) || 1;
   const initialEpisode = Number(searchParams.get('episode')) || 1;
 
@@ -31,7 +42,7 @@ function WatchContent() {
   const [showUI, setShowUI] = useState(true);
   const [showEpisodeNavigator, setShowEpisodeNavigator] = useState(false);
   const [showLounge, setShowLounge] = useState(false);
-  const { activeSourceId } = useUserPreferencesStore();
+
 
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -77,7 +88,7 @@ function WatchContent() {
   useEffect(() => {
     const handleMouseMove = (e?: Event | CustomEvent) => {
       if (e?.type === 'AG_WAKE') {
-        // console.log('[MaiWatch] Activity detected via Aegis Relay');
+        // console.log('[NovaStream] Activity detected via Aegis Relay');
       }
 
       setShowUI(true);
@@ -110,10 +121,12 @@ function WatchContent() {
   }, [handleBack]);
 
   // 1. Fetch Content Details
-  const { data: content, isLoading: contentLoading, error: contentError } = useContentDetails(id || '', type);
+  const { data: contentData, isLoading: contentLoading, error: contentError } = useContentDetails(id || '', type);
+  const content = contentData as Content | null;
 
   // 2. Fetch Season Details
-  const { data: seasonDetails } = useSeasonDetails(id || '', currentSeason, type, type !== 'movie');
+  const { data: seasonData } = useSeasonDetails(id || '', currentSeason, type, type !== 'movie');
+  const seasonDetails = seasonData as SeasonDetails | null;
 
   const handleNext = React.useCallback(async () => {
     if (type === 'movie') return;
@@ -125,18 +138,16 @@ function WatchContent() {
     const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
     
     // 1. Primary Check: Precise Season Details (Full Episode List)
-    if (seasonDetails && seasonDetails.episodes && seasonDetails.episodes.length > 0) {
+    if (seasonDetails?.episodes?.length) {
       const episodesInThisSeason = seasonDetails.episodes.length;
       
       if (nextEpisode > episodesInThisSeason) {
-        // Season boundary detected via precise episode list
         if (currentSeason < totalSeasons) {
-          console.log(`[MaiWatch] Season boundary reached. Jumping from S${currentSeason}:E${currentEpisode} to S${currentSeason + 1}:E1`);
           nextSeason = currentSeason + 1;
           nextEpisode = 1;
         } else {
-          console.log('[MaiWatch] Final episode of the series reached.');
-          return; // Termination point
+          setShowPostPlay(true); // Series completed
+          return;
         }
       }
     } 
@@ -145,13 +156,20 @@ function WatchContent() {
       const currentSeasonMeta = content.seasonsList.find(s => s.season_number === currentSeason);
       if (currentSeasonMeta && nextEpisode > currentSeasonMeta.episode_count) {
         if (currentSeason < totalSeasons) {
-          console.log(`[MaiWatch] Season boundary detected via seasonsList metadata fallback.`);
           nextSeason = currentSeason + 1;
           nextEpisode = 1;
         } else {
+          setShowPostPlay(true);
           return;
         }
       }
+    }
+    // 3. Last Resort: If we know a next season exists, allow jumping to it even if current season length is unknown
+    else if (currentSeason < totalSeasons) {
+       // We don't know the episode count, but we know there's another season.
+       // We'll let the user continue incrementing episodes until they hit a known boundary.
+       // But if they are at some high number, we might want to offer the next season.
+       // For now, just allow the increment.
     }
 
     navigateToEpisode(nextSeason, nextEpisode);
@@ -170,7 +188,7 @@ function WatchContent() {
         nextSeason = prevSeasonNum;
         nextEpisode = prevSeason?.episode_count || 1; 
       } else {
-        console.log('[MaiWatch] Boundary reached: Start of series');
+        console.log('[NovaStream] Boundary reached: Start of series');
         return;
       }
     }
@@ -193,7 +211,7 @@ function WatchContent() {
     const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
     if (currentSeason < totalSeasons) return true;
 
-    // 3. Fallback: Loading state
+    // 3. Last Resort: Optimistic leap (if we are in a TV show and don't have metadata, assume next exists)
     if (!seasonDetails && !content) return true;
 
     return false;
@@ -203,15 +221,42 @@ function WatchContent() {
 
   if (contentLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-black">
-        <div className="flex flex-col items-center gap-12">
-          <div className="w-16 h-16 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-primary font-bold tracking-[0.4em] text-[10px] uppercase animate-pulse">
-              Preparing Sanctuary
-            </span>
-            <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest opacity-60">
-              Retrieving Secure Stream Keys
+      <div className="relative h-screen w-full flex items-center justify-center bg-black overflow-hidden">
+        {/* Cinematic Backdrop during loading */}
+        {content?.backdrop && (
+          <div className="absolute inset-0 opacity-40">
+            <OptimizedImage
+              src={content.backdrop}
+              alt="Loading backdrop"
+              fill
+              className="object-cover blur-[50px] scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+          </div>
+        )}
+        
+        <div className="relative z-10 flex flex-col items-center gap-10">
+          <div className="relative">
+            <div className="w-24 h-24 border-2 border-primary/10 border-t-primary rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-16 h-16 border border-white/5 rounded-full animate-pulse flex items-center justify-center">
+                <Play size={24} className="text-white opacity-40 fill-white" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="space-y-1">
+              <span className="text-primary font-black tracking-[0.6em] text-[12px] uppercase block">
+                Establishing Link
+              </span>
+              <h2 className="text-white/40 text-xl font-display uppercase tracking-widest italic">
+                {content?.title || 'Initializing'}
+              </h2>
+            </div>
+            
+            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em] opacity-60">
+              Synchronizing Buffers
             </p>
           </div>
         </div>
@@ -225,9 +270,9 @@ function WatchContent() {
         <div className="text-center space-y-8 max-w-md px-6">
           <AlertCircle className="h-16 w-16 text-red-500/20 mx-auto" strokeWidth={1} />
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-white tracking-tighter">Stream Interrupted</h2>
+            <h2 className="text-3xl font-bold text-white tracking-tighter">Playback Interrupted</h2>
             <p className="text-zinc-400 text-sm font-medium">
-              The sanctuary could not establish a stable connection to this broadcast.
+              The platform could not establish a stable connection to this content.
             </p>
           </div>
           <Button
@@ -236,7 +281,7 @@ function WatchContent() {
             className="h-14 px-10 rounded-2xl border-white/10 hover:bg-white hover:text-black transition-all"
           >
             <ArrowLeft className="mr-3 h-5 w-5" />
-            Return to Hub
+            Return to Home
           </Button>
         </div>
       </div>
@@ -247,20 +292,20 @@ function WatchContent() {
   const cleanTmdbId = id!.replace('tmdb_', '');
 
   return (
-    <div className="relative h-screen w-full bg-black overflow-hidden flex flex-col group/sanctum">
-      {/* The Director Bar Overlay */}
-      <DirectorBar
+    <div className="relative h-screen w-full bg-black overflow-hidden flex flex-col group/player">
+      {/* The Playback Header Overlay */}
+      <PlaybackHeader
         show={showUI}
-        title={content.title}
+        title={content?.title || 'Loading...'}
         subTitle={type !== 'movie' ? `Season ${currentSeason} • Episode ${currentEpisode}` : undefined}
-        type={type}
+        type={type as any}
         season={currentSeason}
         episode={currentEpisode}
+        hasNext={!!hasNext}
+        hasPrev={!!hasPrev}
+        onNext={handleNext}
+        onPrev={handlePrev}
         onBack={handleBack}
-        onNext={type !== 'movie' ? handleNext : undefined}
-        onPrev={type !== 'movie' ? handlePrev : undefined}
-        hasNext={hasNext}
-        hasPrev={hasPrev}
         onLogClick={() => setShowEpisodeNavigator(true)}
         onLoungeClick={() => setShowLounge(true)}
       />
@@ -278,6 +323,8 @@ function WatchContent() {
           onBack={handleBack}
           hasNext={!!hasNext}
           hasPrev={!!hasPrev}
+          onSeasonChange={(s) => navigateToEpisode(s, 1)}
+          onEpisodeChange={(e) => navigateToEpisode(currentSeason, Number(e))}
           showUI={showUI}
         />
       </main>
@@ -302,7 +349,7 @@ function WatchContent() {
         )}
       </AnimatePresence>
 
-      {(type === 'tv' || type === 'anime') && content?.seasonsList && (
+      {(type === 'tv' || type === 'anime' || type === 'series') && content?.seasonsList && (
         <EpisodeNavigator 
           show={showEpisodeNavigator}
           onClose={() => setShowEpisodeNavigator(false)}
@@ -320,7 +367,7 @@ function WatchContent() {
 
       <LoungeOverlay show={showLounge} onClose={() => setShowLounge(false)} roomUrl={typeof window !== 'undefined' ? window.location.href : ''} />
 
-      {/* Custom Cursor Overlay (Directorial Touch) */}
+      {/* Custom Cursor Overlay */}
       <motion.div
         animate={{ opacity: showUI ? 0 : 1 }}
         className="absolute inset-0 z-[300] cursor-none pointer-events-none"

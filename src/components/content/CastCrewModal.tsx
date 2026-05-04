@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Film, Loader2, Calendar, MapPin } from 'lucide-react';
 import { useUIStore } from '@/lib/stores/uiStore';
 import { contentApi } from '@/lib/api/content';
-import { Content } from '@/lib/types/content';
+import { Content, PersonDetails } from '@/lib/types/content';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { ContentCard } from './ContentCard';
@@ -18,7 +18,7 @@ export const CastCrewModal: React.FC = () => {
     openContentModal: state.openContentModal,
   }));
 
-  const [details, setDetails] = useState<any>(null);
+  const [details, setDetails] = useState<PersonDetails | null>(null);
   const [credits, setCredits] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +27,7 @@ export const CastCrewModal: React.FC = () => {
       setIsLoading(true);
       Promise.all([contentApi.getPersonDetails(castModal.personId), contentApi.getPersonCredits(castModal.personId)]).then(
         ([detailsData, creditsData]) => {
-          setDetails(detailsData);
+          setDetails(detailsData as any);
           setCredits(creditsData);
           setIsLoading(false);
         }
@@ -67,7 +67,7 @@ export const CastCrewModal: React.FC = () => {
               <div className="flex-1 flex flex-col items-center justify-center gap-6">
                 <Loader2 className="animate-spin text-red-600" size={64} />
                 <span className="text-zinc-500 text-sm font-black uppercase tracking-[0.3em] animate-pulse">
-                  Scanning Archive...
+                  Loading Details...
                 </span>
               </div>
             ) : (
@@ -95,7 +95,7 @@ export const CastCrewModal: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <div className="h-[1px] w-8 bg-red-600" />
                           <span className="text-[10px] font-black text-red-600 uppercase tracking-[0.4em]">
-                            Cinematic Individual
+                            Artist Profile
                           </span>
                         </div>
                         <h2 className="text-5xl lg:text-7xl font-black text-white tracking-tighter uppercase italic">
@@ -107,7 +107,7 @@ export const CastCrewModal: React.FC = () => {
                         {details?.birthday && (
                           <div className="flex flex-col gap-1">
                             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
-                              Date of Origin
+                              Born
                             </span>
                             <div className="flex items-center gap-2 text-zinc-300 font-bold">
                               <Calendar size={14} className="text-red-500/60" />
@@ -133,7 +133,7 @@ export const CastCrewModal: React.FC = () => {
                         {details?.known_for_department && (
                           <div className="flex flex-col gap-1">
                             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
-                              Discipline
+                              Known For
                             </span>
                             <div className="flex items-center gap-2 text-zinc-300 font-bold uppercase tracking-tight">
                               <Film size={14} className="text-red-500/60" />
@@ -144,7 +144,7 @@ export const CastCrewModal: React.FC = () => {
                       </div>
 
                       <p className="text-xl text-zinc-400 leading-relaxed font-light line-clamp-4 lg:line-clamp-none">
-                        {details?.biography || 'Personnel biography currently undergoing classified encryption.'}
+                        {details?.biography || 'Biography not available.'}
                       </p>
                     </div>
                   </div>
@@ -155,11 +155,11 @@ export const CastCrewModal: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <Film size={24} className="text-red-600" />
                         <h3 className="text-2xl font-black text-white uppercase tracking-tighter">
-                          Cinematic <span className="text-red-600">Archive</span>
+                          Filmography
                         </h3>
                       </div>
                       <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
-                        {credits.length} Contributions
+                        {credits.length} Titles
                       </span>
                     </div>
 

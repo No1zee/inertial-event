@@ -2,7 +2,11 @@ import axios from 'axios';
 import { ISourceResult, ISubtitleResult, IResolveResult } from './VidsrcResolver.js';
 
 export class EmbedSuResolver {
-    private static BASE_URL = 'https://embed.su';
+    private static MIRRORS = [
+        'https://embed.su',
+        'https://vidsrc.stream',
+        'https://autoembed.cc'
+    ];
 
     /**
      * Resolves direct HLS links from Embed.su.
@@ -14,19 +18,24 @@ export class EmbedSuResolver {
         try {
             console.log(`[EmbedSuResolver] Attempting resolution for ${type}/${tmdbId}`);
 
-            const embedUrl = type === 'movie'
-                ? `${this.BASE_URL}/embed/movie/${tmdbId}`
-                : `${this.BASE_URL}/embed/tv/${tmdbId}/${season}/${episode}`;
+            for (const mirror of this.MIRRORS) {
+                try {
+                    const embedUrl = type === 'movie'
+                        ? `${mirror}/embed/movie/${tmdbId}`
+                        : `${mirror}/embed/tv/${tmdbId}/${season}/${episode}`;
 
-            const response = await axios.get(embedUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                    'Referer': this.BASE_URL
-                },
-                timeout: 5000
-            });
+                    console.log(`[EmbedSuResolver] Scraping Mirror: ${embedUrl}`);
 
-            const html = response.data as string;
+                    const response = await axios.get(embedUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                            'Referer': mirror
+                        },
+                        timeout: 8000
+                    });
+
+                    const html = response.data as string;
+                    const initialSourcesCount = sources.length;
 
             // Embed.su often has a JSON.parse(atob(...)) pattern or similar.
             // We search for base64-like strings that look like encoded source data.
@@ -63,10 +72,18 @@ export class EmbedSuResolver {
                     }
                 });
             }
+                    if (sources.length > initialSourcesCount) {
+                        console.log(`[EmbedSuResolver] Successfully found ${sources.length - initialSourcesCount} sources on ${mirror}`);
+                        break; // Stop if we found something
+                    }
+                } catch (err: any) {
+                    console.warn(`[EmbedSuResolver] Mirror ${mirror} failed: ${err.message}`);
+                }
+            }
 
             return { sources, subtitles };
         } catch (error: any) {
-            console.warn(`[EmbedSuResolver] Failed: ${error.message}`);
+            console.warn(`[EmbedSuResolver] Critical failure: ${error.message}`);
             return { sources, subtitles };
         }
     }

@@ -15,24 +15,23 @@ interface ArchiveModalProps {
 
 export function ArchiveModal({ collection, onClose }: ArchiveModalProps) {
   const createCollection = useLocalDataStore(state => state.createCollection);
-  const addToCollection = useLocalDataStore(state => state.addToCollection);
 
   if (!collection) return null;
 
   const handleFreeze = () => {
     // Create a permanent collection from this smart archive
-    const newId = `frozen_${collection.id}_${Date.now()}`;
     createCollection({
       name: collection.title,
       description: collection.description,
       poster: collection.items[0]?.poster || '',
       isDefault: false,
       isPublic: false,
+      pinned: false,
     });
     
     // We need to wait for the ID or use a different strategy.
     // For now, let's just alert the user.
-    alert('Archive Frozen: Added to your permanent collections.');
+    alert('Collection Saved: Added to your library.');
   };
 
   return (
@@ -58,7 +57,7 @@ export function ArchiveModal({ collection, onClose }: ArchiveModalProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] font-black text-purple-400 uppercase tracking-widest">
-                  Archive Synthesis: {collection.matchScore}% Match
+                  Curated Collection: {collection.matchScore}% Match
                 </div>
               </div>
               <PretextHeadline
@@ -79,9 +78,11 @@ export function ArchiveModal({ collection, onClose }: ArchiveModalProps) {
                 className="h-14 px-8 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-white/10 hover:border-amber-500/30 transition-all"
               >
                 <Snowflake size={18} className="text-amber-500" />
-                Freeze Archive
+                Save Collection
               </button>
               <button
+                title="Close"
+                aria-label="Close"
                 onClick={onClose}
                 className="h-14 w-14 rounded-full bg-white/5 border border-white/10 text-zinc-500 hover:text-white flex items-center justify-center transition-all"
               >
@@ -119,7 +120,7 @@ export function ArchiveModal({ collection, onClose }: ArchiveModalProps) {
                       </p>
                       <div className="flex items-center gap-2">
                          <Play size={10} className="text-amber-500 fill-amber-500" />
-                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Load Stream</span>
+                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Watch Now</span>
                       </div>
                     </div>
                   </div>

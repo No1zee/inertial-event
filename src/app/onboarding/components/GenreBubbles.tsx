@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus } from 'lucide-react';
+import { Minus } from 'lucide-react';
 
 interface Genre {
   id: string;
@@ -37,7 +37,7 @@ export function GenreBubbles({ genres, weights, onWeightChange }: GenreBubblesPr
 
       {/* Bubbles Container */}
       <div className="relative w-full h-full flex flex-wrap items-center justify-center gap-4 p-8">
-        {genres.map((genre, index) => {
+        {genres.map((genre, _index) => {
           const weight = weights[genre.id] || 0;
           const size = 60 + weight * 25; // Base 60px + 25px per weight level
           
@@ -81,17 +81,22 @@ export function GenreBubbles({ genres, weights, onWeightChange }: GenreBubblesPr
                   <div className="absolute inset-0 bg-white/20 animate-pulse" />
                 )}
 
-                <span className="text-xl md:text-2xl" style={{ fontSize: `${14 + weight * 4}px` }}>
+                <motion.span 
+                  className="text-xl md:text-2xl" 
+                  initial={false}
+                  animate={{ fontSize: 14 + weight * 4 }}
+                >
                   {genre.icon}
-                </span>
-                <span 
+                </motion.span>
+                <motion.span 
                   className={`font-black uppercase tracking-tighter text-center leading-none px-2 ${
                     weight > 0 ? 'text-black' : 'text-zinc-500'
                   }`}
-                  style={{ fontSize: `${Math.max(6, 8 + weight * 1)}px` }}
+                  initial={false}
+                  animate={{ fontSize: Math.max(6, 8 + weight * 1) }}
                 >
                   {genre.name}
-                </span>
+                </motion.span>
 
                 {/* Minus Indicator on Hover */}
                 {weight > 0 && (
@@ -108,13 +113,14 @@ export function GenreBubbles({ genres, weights, onWeightChange }: GenreBubblesPr
                 {weight > 0 && Array.from({ length: weight }).map((_, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border border-primary z-10"
-                    style={{ 
-                      transform: `rotate(${i * 45}deg) translateY(-${size/2}px)` 
+                    initial={{ opacity: 0, scale: 0, rotate: i * 45, y: 0 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      y: -size/2
                     }}
+                    exit={{ opacity: 0, scale: 0, y: 0 }}
+                    className="absolute top-1/2 left-1/2 -ml-1.5 -mt-1.5 w-3 h-3 bg-white rounded-full border border-primary z-10"
                   />
                 ))}
               </AnimatePresence>

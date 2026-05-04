@@ -8,7 +8,7 @@ import { NotificationDropdown } from '@/components/layout/NotificationDropdown';
 import { MagneticButton } from '@/components/Common/MagneticButton';
 
 export function Navbar() {
-  const { setCommandCenterOpen } = useLayoutActions();
+  const { setSearchOpen } = useLayoutActions();
   const { user } = useAuthStore();
   const activeProfile = useActiveProfile();
 
@@ -23,9 +23,9 @@ export function Navbar() {
         {/* Subtle Search Trigger with Magnetic Effect */}
         <MagneticButton distance={0.3}>
           <button
-            onClick={() => setCommandCenterOpen(true)}
+            onClick={() => setSearchOpen(true)}
             className="p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-all"
-            aria-label="Open Command Center"
+            aria-label="Search"
             data-testid="search-button"
           >
             <Search size={22} className="stroke-[1.5px]" />
@@ -37,7 +37,7 @@ export function Navbar() {
         <Link href="/profile" className="flex items-center gap-3 pl-4 group">
           <div className="flex flex-col items-end">
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] leading-none mb-1">
-              Vault Status
+              Active Profile
             </span>
             <span className="text-xs font-semibold text-zinc-400 group-hover:text-white transition-colors">
               {displayName}

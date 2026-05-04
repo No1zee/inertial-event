@@ -207,7 +207,7 @@ export const useLibraryStore = createWithEqualityFn<LibraryState>()(
       setPreferTorrents: enabled => set(state => ({ settings: { ...state.settings, preferTorrents: enabled } })),
     }),
     {
-      name: 'MaiWatch-library',
+      name: 'NovaStream-library',
     }
   )
 );

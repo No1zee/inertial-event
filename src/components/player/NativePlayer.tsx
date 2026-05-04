@@ -9,7 +9,7 @@ import SettingsOverlay from './overlay/SettingsOverlay';
 import CastModal, { CastDevice } from './overlay/CastModal';
 import { Season } from '@/lib/types/content';
 import { useContentStore } from '@/store/contentStore';
-import { usePlayerActions } from '@/lib/stores/playerStore';
+import { usePlayerActions, usePlayerStore } from '@/lib/stores/playerStore';
 import { aegisShield, type ShieldStatus } from '@/services/AegisShield';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -37,7 +37,7 @@ interface NativePlayerProps {
   poster?: string;
   title: string;
   subTitle?: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   season?: string;
   episode?: string;
   seasons?: Season[];
@@ -48,6 +48,8 @@ interface NativePlayerProps {
   onFatalError?: (error: unknown) => void;
   onProgress?: (progress: { currentTime: number; duration: number }) => void;
   onToggleSource?: (recommendedSourceId?: string) => void;
+  onSeasonChange?: (s: number) => void;
+  onEpisodeChange?: (e: string) => void;
   initialTime?: number;
   tmdbId?: string;
   cast?: { id: number; name: string; character: string; profile_path: string | null }[];
@@ -70,6 +72,8 @@ export default function NativePlayer({
   onFatalError: _onFatalError,
   onProgress,
   onToggleSource,
+  onSeasonChange,
+  onEpisodeChange,
   initialTime = 0,
   tmdbId: _tmdbId,
   cast = [],
@@ -111,28 +115,38 @@ export default function NativePlayer({
   const isSaved = isInLibrary(title); // Simple check for now, can be improved to use complex ID
 
   const {
-    subtitleSize,
-    subtitleColor,
     subtitleFont,
     subtitleOpacity,
+    subtitleSize,
+    subtitleColor,
+    pipVisualBoost,
   } = useUserPreferencesStore();
+
+  const [canPlay, setCanPlay] = useState(false);
 
   // Media Lifecycle Synchronization
   useEffect(() => {
-    loadMedia({
-      id: _tmdbId || '',
-      type,
-      title,
-      poster,
-      season: Number(season),
-      episode: Number(episode),
-      source: src,
-    });
+    const { currentMedia, updateMediaSource } = usePlayerStore.getState();
+    const isSameMedia = currentMedia && 
+                       currentMedia.id === (_tmdbId || '') && 
+                       currentMedia.season === Number(season) && 
+                       currentMedia.episode === Number(episode);
 
-    return () => {
-      unloadMedia();
-    };
-  }, [loadMedia, unloadMedia, _tmdbId, type, title, poster, season, episode, src]);
+    if (!isSameMedia) {
+      loadMedia({
+        id: _tmdbId || '',
+        type,
+        title,
+        poster,
+        season: Number(season),
+        episode: Number(episode),
+        source: src,
+      });
+    } else if (currentMedia?.source !== src) {
+      // If same media but different source, just update the source in store
+      updateMediaSource(src);
+    }
+  }, [loadMedia, _tmdbId, type, title, poster, season, episode, src]);
 
   // Progress Synchronization
   useEffect(() => {
@@ -218,6 +232,70 @@ export default function NativePlayer({
       console.log(`[NativePlayer] Slow network detected (${connection.effectiveType}). Optimization active.`);
     }
   }, []);
+  
+  const onCanPlay = () => {
+    if (playerRef.current) {
+      console.log('[NativePlayer] Content can play. Initializing volume guard...');
+      
+      // Immediate sync
+      remote.unmute();
+      remote.changeVolume(1);
+      
+      setCanPlay(true);
+      window.dispatchEvent(new CustomEvent('AG_LOADED', { detail: { provider, tmdbId: _tmdbId } }));
+
+      // Force play state immediately
+      remote.play();
+
+      // TASK: "after a second of playing, volume should automatically become 100%"
+      // This ensures that even if user/system muted it during load, it's forced back.
+      setTimeout(() => {
+        if (playerRef.current) {
+          console.log('[NativePlayer] Volume Guard (1s): Enforcing 100% volume');
+          remote.unmute();
+          remote.changeVolume(1);
+        }
+      }, 1000);
+
+      // Persistent Volume Guard: Force unmute/100% volume for the first 30 seconds
+      let attempts = 0;
+      const guardInterval = setInterval(() => {
+        attempts++;
+        if (attempts > 60) {
+          clearInterval(guardInterval);
+          return;
+        }
+        remote.unmute();
+        remote.changeVolume(1);
+      }, 500);
+
+      // Store interval for cleanup
+      (playerRef.current as any)._volumeGuard = guardInterval;
+    }
+  };
+
+  const onPlaying = () => {
+    if (playerRef.current) {
+      remote.unmute();
+      remote.changeVolume(1);
+    }
+  };
+
+  useEffect(() => {
+    if (canPlay && remote && src) {
+      if (initialTime > 0) {
+        remote.seek(initialTime);
+      }
+      
+      // Direct enforcement on mount if already ready
+      onCanPlay();
+    }
+    return () => {
+      if (playerRef.current && (playerRef.current as any)._volumeGuard) {
+        clearInterval((playerRef.current as any)._volumeGuard);
+      }
+    };
+  }, [canPlay, remote, src, initialTime]);
 
   return (
     <div
@@ -238,18 +316,18 @@ export default function NativePlayer({
         crossOrigin="anonymous"
         autoPlay
         muted={false}
+        onCanPlay={onCanPlay}
+        onPlaying={onPlaying}
         onEnded={() => {
           setShowEndCredits(true);
           onEnded?.();
         }}
-        onCanPlay={() => {
-          remote.unmute();
-          remote.changeVolume(1);
-          if (initialTime > 0) {
-            remote.seek(initialTime);
+        onPause={() => console.log('[NativePlayer] Paused')}
+        onPlay={() => console.log('[NativePlayer] Playing')}
+        onVolumeChange={(e) => {
+          if (e.volume < 1 || e.muted) {
+            // Keep at 100% volume
           }
-          remote.play();
-          window.dispatchEvent(new CustomEvent('AG_LOADED', { detail: { provider, tmdbId: _tmdbId } }));
         }}
         onError={(event: unknown) => {
           setHasFatalError(true);
@@ -340,6 +418,8 @@ export default function NativePlayer({
           onToggleFullscreen={toggleFullscreen}
           onNext={onNext}
           onPrev={onPrev}
+          onSeasonChange={onSeasonChange}
+          onEpisodeChange={onEpisodeChange}
           onToggleLibrary={handleLibraryToggle}
           onDownload={() => window.open(src, '_blank')}
           onTogglePiP={() => remote.enterPictureInPicture()}

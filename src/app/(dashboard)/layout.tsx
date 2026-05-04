@@ -1,48 +1,49 @@
-import { Suspense, lazy } from 'react';
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { CinematicRail } from '@/components/layout/CinematicRail';
-import { cn } from '@/lib/utils';
 import { DashboardClientInit } from '@/components/layout/DashboardClientInit';
 import { CinematicReveal } from '@/components/layout/CinematicReveal';
 import { GlobalPlayerBar } from '@/components/player/GlobalPlayerBar';
-import { DashboardChassis } from '@/components/layout/DashboardChassis';
+import { DashboardLayout as BaseDashboardLayout } from '@/components/layout/DashboardLayout';
 
-const CommandCenter = lazy(() =>
-  import('@/components/layout/CommandCenter').then(mod => ({ default: mod.CommandCenter }))
+const SearchModal = dynamic(() =>
+  import('@/components/layout/SearchModal').then(mod => mod.SearchModal), { ssr: false }
 );
-const SettingsModal = lazy(() =>
-  import('@/components/layout/SettingsModal').then(mod => ({ default: mod.SettingsModal }))
+const SettingsModal = dynamic(() =>
+  import('@/components/layout/SettingsModal').then(mod => mod.SettingsModal), { ssr: false }
 );
-const CastCrewModal = lazy(() =>
-  import('@/components/content/CastCrewModal').then(mod => ({ default: mod.CastCrewModal }))
+const CastCrewModal = dynamic(() =>
+  import('@/components/content/CastCrewModal').then(mod => mod.CastCrewModal), { ssr: false }
 );
-const DirectorialControls = lazy(() =>
-  import('@/components/layout/DirectorialControls').then(mod => ({ default: mod.DirectorialControls }))
+const PlaybackHUD = dynamic(() =>
+  import('@/components/layout/PlaybackHUD').then(mod => mod.StreamHealthHUD), { ssr: false }
 );
 
 export default function DashboardLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   return (
-    <CinematicReveal>
-      <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
-        <DashboardClientInit />
-        <CinematicRail />
-        <Suspense fallback={null}>
-          <CommandCenter />
-          <SettingsModal />
-          <CastCrewModal />
-          <DirectorialControls />
-        </Suspense>
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
+      <DashboardClientInit />
+      <Suspense fallback={null}>
+        <SearchModal />
+        <SettingsModal />
+        <CastCrewModal />
+        <PlaybackHUD />
+      </Suspense>
 
-        <DashboardChassis>
+      <CinematicRail />
+      
+      <CinematicReveal>
+        <BaseDashboardLayout>
           <Navbar />
-          <main className="flex-1 w-full transition-all duration-500 pb-20">
+          <main className="flex-1 w-full pb-20">
             <Suspense
               fallback={
-                <div className="min-h-screen flex items-center justify-center bg-background/50 backdrop-blur-3xl">
+                <div className="min-h-screen flex items-center justify-center bg-background/50 backdrop-blur-xl">
                   <div className="flex flex-col items-center gap-6">
                     <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                     <div className="text-zinc-500 font-bold tracking-[0.3em] text-xs uppercase animate-pulse">
-                      Initializing MaiWatch
+                      Initializing NovaStream
                     </div>
                   </div>
                 </div>
@@ -51,10 +52,11 @@ export default function DashboardLayout({ children, modal }: { children: React.R
               {children}
             </Suspense>
           </main>
-        </DashboardChassis>
-        <GlobalPlayerBar />
+        </BaseDashboardLayout>
         {modal}
-      </div>
-    </CinematicReveal>
+      </CinematicReveal>
+
+      <GlobalPlayerBar />
+    </div>
   );
 }

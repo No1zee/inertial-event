@@ -19,64 +19,64 @@ const MOVIE_RAILS = [
   // Fresh & New
   { id: 'day1', title: 'Day 1 Drops', fetcher: () => contentApi.getDayOneDrops('movie') },
   { id: 'fresh', title: 'Freshly Baked', fetcher: () => contentApi.getFresh('movie') },
-  { id: 'trending', title: 'Trending Movies', fetcher: () => contentApi.getTrending() },
+  { id: 'trending', title: 'Trending Movies', fetcher: () => contentApi.getTrending(Math.floor(Math.random() * 3) + 1) },
   // Curated Collections
-  { id: 'bangers', title: 'Certified Bangers', fetcher: () => contentApi.getBangers('movie') },
-  { id: 'underrated', title: 'Hidden Gems', fetcher: () => contentApi.getUnderrated('movie') },
-  { id: 'classics', title: 'Timeless Classics', fetcher: () => contentApi.getClassics('movie') },
+  { id: 'bangers', title: 'Certified Bangers', fetcher: () => contentApi.getBangers('movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'underrated', title: 'Hidden Gems', fetcher: () => contentApi.getUnderrated('movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'classics', title: 'Timeless Classics', fetcher: () => contentApi.getClassics('movie', Math.floor(Math.random() * 5) + 1) },
   {
     id: 'acclaimed',
     title: 'Critically Acclaimed',
-    fetcher: () => contentApi.discover({ sort_by: 'vote_average.desc', 'vote_count.gte': '3000' }, 'movie'),
+    fetcher: () => contentApi.discover({ sort_by: 'vote_average.desc', 'vote_count.gte': '3000', page: Math.floor(Math.random() * 3) + 1 }, 'movie'),
   },
   // Action & Adventure
-  { id: 'adrenaline', title: 'High Octane Action', fetcher: () => contentApi.getByGenre(28, 'movie') },
-  { id: 'adventure', title: 'Epic Adventures', fetcher: () => contentApi.getByGenre(12, 'movie') },
-  { id: 'thriller', title: 'Edge of Your Seat', fetcher: () => contentApi.getByGenre(53, 'movie') },
+  { id: 'adrenaline', title: 'High Octane Action', fetcher: () => contentApi.getByGenre(28, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'adventure', title: 'Epic Adventures', fetcher: () => contentApi.getByGenre(12, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'thriller', title: 'Edge of Your Seat', fetcher: () => contentApi.getByGenre(53, 'movie', Math.floor(Math.random() * 5) + 1) },
   {
     id: 'cbm',
     title: 'Superheroes & Villains',
-    fetcher: () => contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc' }, 'movie'),
+    fetcher: () => contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc', page: Math.floor(Math.random() * 5) + 1 }, 'movie'),
   },
   // Sci-Fi & Fantasy
-  { id: 'scifi', title: 'Sci-Fi & Fantasy', fetcher: () => contentApi.getByGenre(878, 'movie') },
-  { id: 'fantasy', title: 'Fantasy Worlds', fetcher: () => contentApi.getByGenre(14, 'movie') },
+  { id: 'scifi', title: 'Sci-Fi & Fantasy', fetcher: () => contentApi.getByGenre(878, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'fantasy', title: 'Fantasy Worlds', fetcher: () => contentApi.getByGenre(14, 'movie', Math.floor(Math.random() * 5) + 1) },
   // Horror & Mystery
-  { id: 'horror', title: 'Late Night Horror', fetcher: () => contentApi.getByGenre(27, 'movie') },
-  { id: 'mystery', title: 'Mystery & Suspense', fetcher: () => contentApi.getByGenre(9648, 'movie') },
+  { id: 'horror', title: 'Late Night Horror', fetcher: () => contentApi.getByGenre(27, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'mystery', title: 'Mystery & Suspense', fetcher: () => contentApi.getByGenre(9648, 'movie', Math.floor(Math.random() * 5) + 1) },
   // Comedy & Romance
-  { id: 'comedy', title: 'Comedy Hits', fetcher: () => contentApi.getByGenre(35, 'movie') },
+  { id: 'comedy', title: 'Comedy Hits', fetcher: () => contentApi.getByGenre(35, 'movie', Math.floor(Math.random() * 5) + 1) },
   {
     id: 'romcom',
     title: 'Rom-Com Favorites',
-    fetcher: () => contentApi.discover({ with_genres: '10749,35', sort_by: 'popularity.desc' }, 'movie'),
+    fetcher: () => contentApi.discover({ with_genres: '10749,35', sort_by: 'popularity.desc', page: Math.floor(Math.random() * 5) + 1 }, 'movie'),
   },
-  { id: 'romance', title: 'Romantic Picks', fetcher: () => contentApi.getByGenre(10749, 'movie') },
+  { id: 'romance', title: 'Romantic Picks', fetcher: () => contentApi.getByGenre(10749, 'movie', Math.floor(Math.random() * 5) + 1) },
   // Drama & Prestige
-  { id: 'drama', title: 'Award-Winning Drama', fetcher: () => contentApi.getByGenre(18, 'movie') },
+  { id: 'drama', title: 'Award-Winning Drama', fetcher: () => contentApi.getByGenre(18, 'movie', Math.floor(Math.random() * 5) + 1) },
   {
     id: 'a24',
     title: 'A24 Indie Gems',
-    fetcher: () => contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc' }, 'movie'),
+    fetcher: () => contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc', page: Math.floor(Math.random() * 3) + 1 }, 'movie'),
   },
   {
     id: 'biography',
     title: 'True Stories',
-    fetcher: () => contentApi.discover({ with_genres: '99,36', sort_by: 'vote_average.desc' }, 'movie'),
+    fetcher: () => contentApi.discover({ with_genres: '99,36', sort_by: 'vote_average.desc', page: Math.floor(Math.random() * 3) + 1 }, 'movie'),
   },
   // Animation & Family
-  { id: 'animation', title: 'Animated Classics', fetcher: () => contentApi.getByGenre(16, 'movie') },
-  { id: 'family', title: 'Family Movie Night', fetcher: () => contentApi.getByGenre(10751, 'movie') },
+  { id: 'animation', title: 'Animated Classics', fetcher: () => contentApi.getByGenre(16, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'family', title: 'Family Movie Night', fetcher: () => contentApi.getByGenre(10751, 'movie', Math.floor(Math.random() * 5) + 1) },
   // Documentary
-  { id: 'docu', title: 'Mind-Blowing Docs', fetcher: () => contentApi.getByGenre(99, 'movie') },
+  { id: 'docu', title: 'Mind-Blowing Docs', fetcher: () => contentApi.getByGenre(99, 'movie', Math.floor(Math.random() * 5) + 1) },
   // Additional Genres
-  { id: 'crime', title: 'Crime & Gangs', fetcher: () => contentApi.getByGenre(80, 'movie') },
-  { id: 'war', title: 'War & History', fetcher: () => contentApi.getByGenre(10752, 'movie') },
-  { id: 'western', title: 'Wild West', fetcher: () => contentApi.getByGenre(37, 'movie') },
-  { id: 'music', title: 'Music & Performance', fetcher: () => contentApi.getByGenre(10402, 'movie') },
+  { id: 'crime', title: 'Crime & Gangs', fetcher: () => contentApi.getByGenre(80, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'war', title: 'War & History', fetcher: () => contentApi.getByGenre(10752, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'western', title: 'Wild West', fetcher: () => contentApi.getByGenre(37, 'movie', Math.floor(Math.random() * 5) + 1) },
+  { id: 'music', title: 'Music & Performance', fetcher: () => contentApi.getByGenre(10402, 'movie', Math.floor(Math.random() * 5) + 1) },
   // Mood & Length
-  { id: 'short', title: 'Quick Watch (<100m)', fetcher: contentApi.getShortAndSweet },
-  { id: 'feelgood', title: 'Feel Good Movies', fetcher: contentApi.getFeelGood },
+  { id: 'short', title: 'Quick Watch (<100m)', fetcher: () => contentApi.getShortAndSweet() },
+  { id: 'feelgood', title: 'Feel Good Movies', fetcher: () => contentApi.getFeelGood() },
 ];
 
 export default function MoviesPage() {
@@ -99,7 +99,7 @@ export default function MoviesPage() {
     setRails([first, ...shuffled]);
   }, []);
 
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(2);
   const { ref: sentinelRef, inView: isSentinelInView } = useInView({
     rootMargin: '600px 0px',
     threshold: 0.1,
@@ -108,10 +108,10 @@ export default function MoviesPage() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isSentinelInView && visibleCount < rails.length) {
-      // Directorial Pacing: stagger the loading of new rails
+      // Directorial Pacing: stagger the loading of new rails to prevent DOM thrashing
       timer = setTimeout(() => {
-        setVisibleCount(prev => Math.min(prev + 3, rails.length));
-      }, 400);
+        setVisibleCount(prev => Math.min(prev + 2, rails.length));
+      }, 500);
     }
     return () => {
       if (timer) clearTimeout(timer);
@@ -125,7 +125,7 @@ export default function MoviesPage() {
       {/* Cinematic Texture Overlay */}
       <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/dynamic-style.png')] mix-blend-overlay" />
 
-      {/* Vault Status Header (Aurelian Glass) */}
+      {/* Page Header (Aurelian Glass) */}
       <div className="relative z-20 pt-32 px-10 lg:px-24 mb-12 pointer-events-none">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -137,7 +137,7 @@ export default function MoviesPage() {
             <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-2">
               <Clapperboard size={12} className="text-zinc-500" />
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
-                Cinematic Archive / {activeProfile?.name || 'Guest'}
+                Movies / {activeProfile?.name || 'Guest'}
               </span>
             </div>
             <div className="h-[1px] w-20 bg-zinc-800/50" />
@@ -224,10 +224,10 @@ export default function MoviesPage() {
               </div>
               <div className="flex flex-col items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-500 animate-pulse">
-                  Synchronizing Archives
+                  Loading More
                 </span>
                 <span className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">
-                  Loading {visibleCount} / {rails.length} Sections
+                  Section {visibleCount} / {rails.length}
                 </span>
               </div>
             </div>

@@ -20,7 +20,7 @@ export const SOURCES: StreamingSource[] = [
   },
   {
     id: 'embed-su',
-    codename: 'Aegis Core',
+    codename: 'Nova Stream (Main)',
     technicalName: 'Embed.su',
     baseUrl: 'https://embed.su',
     stability: 'stable',
@@ -29,7 +29,7 @@ export const SOURCES: StreamingSource[] = [
   },
   {
     id: 'autoembed',
-    codename: 'Aegis Sentinel',
+    codename: 'Nova Stream (Alternate)',
     technicalName: 'AutoEmbed.cc',
     baseUrl: 'https://player.autoembed.cc',
     stability: 'stable',
@@ -38,7 +38,7 @@ export const SOURCES: StreamingSource[] = [
   },
   {
     id: 'vidsrc-to',
-    codename: 'Foundation Prime',
+    codename: 'Global Stream',
     technicalName: 'VidSrc TO',
     baseUrl: 'https://vidsrc.to',
     stability: 'backup',
@@ -47,7 +47,7 @@ export const SOURCES: StreamingSource[] = [
   },
   {
     id: 'vidsrc-me',
-    codename: 'Sanctum Index',
+    codename: 'Media Archive',
     technicalName: 'VidSrc ME',
     baseUrl: 'https://vidsrc.me',
     stability: 'backup',

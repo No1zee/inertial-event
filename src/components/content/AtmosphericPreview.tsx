@@ -14,6 +14,7 @@ interface AtmosphericPreviewProps {
 }
 
 export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) {
+  // Use a staleTime of Infinity to ensure we don't refetch if already prefetched by ContentCard
   const { data: details, isLoading } = useContentDetails(id, type === 'anime' ? 'tv' : type);
   const [isReady, setIsReady] = useState(false);
   const videoRef = useRef<HTMLIFrameElement>(null);
@@ -25,6 +26,37 @@ export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) 
       setIsReady(false);
     }
   }, [show]);
+
+  // NovaStream Volume Guard: Force 100% volume and Playback via YouTube API
+  useEffect(() => {
+    if (!show || !isReady || !videoRef.current) return;
+
+    const enforceAudio = () => {
+      if (!videoRef.current?.contentWindow) return;
+      
+      try {
+        // Send YouTube Player API commands to force 100% volume and unmute
+        const commands = [
+          { event: 'command', func: 'unMute' },
+          { event: 'command', func: 'setVolume', args: [100] },
+          { event: 'command', func: 'playVideo' }
+        ];
+
+        commands.forEach(cmd => {
+          videoRef.current?.contentWindow?.postMessage(JSON.stringify(cmd), '*');
+        });
+      } catch (err) {
+        console.warn('NovaStream: Atmospheric Volume Guard failed', err);
+      }
+    };
+
+    // Immediate enforcement
+    enforceAudio();
+
+    // Persistent guard (every 2 seconds while showing)
+    const interval = setInterval(enforceAudio, 2000);
+    return () => clearInterval(interval);
+  }, [show, isReady]);
 
   if (!show || !trailerKey) return null;
 
@@ -40,7 +72,7 @@ export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) 
         <iframe
           title="Trailer"
           ref={videoRef}
-          src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&rel=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}`}
+          src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=0&controls=0&loop=1&playlist=${trailerKey}&rel=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}`}
           className={cn(
             "w-full h-full object-cover transition-opacity duration-1000",
             isReady ? "opacity-100" : "opacity-0"
@@ -58,7 +90,7 @@ export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) 
         {isLoading && (
           <motion.div 
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm"
+            className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           >
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
           </motion.div>

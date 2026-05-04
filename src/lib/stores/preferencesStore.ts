@@ -8,9 +8,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { SOURCES } from '@/lib/config/sources';
+import { createIDBStorage } from '@/lib/utils/storage';
 
 // Types
-export type Theme = 'Mai' | 'ocean' | 'cyberpunk' | 'oled';
+export type Theme = 'Nova' | 'ocean' | 'cyberpunk' | 'oled';
 export type Language = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ko' | 'zh';
 export type Quality = 'auto' | '4k' | '1080p' | '720p' | '480p' | '360p';
 export type SortOrder = 'recent' | 'az' | 'za' | 'rating' | 'year';
@@ -26,6 +27,9 @@ export interface PlayerPreferences {
   playbackSpeed: number;
   skipIntro: boolean;
   skipCredits: boolean;
+  pipVisualBoost: boolean;
+  visualBoost: boolean;
+  stillWatchingEnabled: boolean;
 }
 
 export interface SubtitlePreferences {
@@ -116,6 +120,9 @@ interface UserPreferencesStore
   setPlaybackSpeed: (speed: number) => void;
   setSkipIntro: (enabled: boolean) => void;
   setSkipCredits: (enabled: boolean) => void;
+  setPipVisualBoost: (enabled: boolean) => void;
+  setVisualBoost: (enabled: boolean) => void;
+  setStillWatchingEnabled: (enabled: boolean) => void;
 
   // Actions - UI Preferences
   setTheme: (theme: Theme) => void;
@@ -200,10 +207,13 @@ const defaultPlayerPreferences: PlayerPreferences = {
   playbackSpeed: 1,
   skipIntro: true,
   skipCredits: false,
+  pipVisualBoost: true,
+  visualBoost: false,
+  stillWatchingEnabled: true,
 };
 
 const defaultUIPreferences: UIPreferences = {
-  theme: 'Mai',
+  theme: 'Nova',
   language: 'en',
   compactMode: false,
   showThumbnails: true,
@@ -294,6 +304,9 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
         setPlaybackSpeed: playbackSpeed => set({ playbackSpeed }),
         setSkipIntro: skipIntro => set({ skipIntro }),
         setSkipCredits: skipCredits => set({ skipCredits }),
+        setPipVisualBoost: pipVisualBoost => set({ pipVisualBoost }),
+        setVisualBoost: visualBoost => set({ visualBoost }),
+        setStillWatchingEnabled: stillWatchingEnabled => set({ stillWatchingEnabled }),
 
         // UI Preferences Actions
         setTheme: theme => {
@@ -302,8 +315,8 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           // Apply theme to DOM immediately
           if (typeof document !== 'undefined') {
             const root = document.documentElement;
-            root.classList.remove('theme-Mai', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
-            if (theme !== 'Mai') {
+            root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+            if (theme !== 'Nova') {
               root.classList.add(`theme-${theme}`);
             }
           }
@@ -343,33 +356,33 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
         setGenreWeights: genreWeights => set({ genreWeights }),
         addPreferredGenre: genre =>
           set(state => ({
-            preferredGenres: state.preferredGenres.includes(genre)
+            preferredGenres: (state.preferredGenres || []).includes(genre)
               ? state.preferredGenres
-              : [...state.preferredGenres, genre],
+              : [...(state.preferredGenres || []), genre],
           })),
         removePreferredGenre: genre =>
           set(state => ({
-            preferredGenres: state.preferredGenres.filter(g => g !== genre),
+            preferredGenres: (state.preferredGenres || []).filter(g => g !== genre),
           })),
         setPreferredVibes: preferredVibes => set({ preferredVibes }),
         addPreferredVibe: vibe =>
           set(state => ({
-            preferredVibes: state.preferredVibes.includes(vibe)
+            preferredVibes: (state.preferredVibes || []).includes(vibe)
               ? state.preferredVibes
-              : [...state.preferredVibes, vibe],
+              : [...(state.preferredVibes || []), vibe],
           })),
         removePreferredVibe: vibe =>
           set(state => ({
-            preferredVibes: state.preferredVibes.filter(v => v !== vibe),
+            preferredVibes: (state.preferredVibes || []).filter(v => v !== vibe),
           })),
         setBlockedGenres: blockedGenres => set({ blockedGenres }),
         addBlockedGenre: genre =>
           set(state => ({
-            blockedGenres: state.blockedGenres.includes(genre) ? state.blockedGenres : [...state.blockedGenres, genre],
+            blockedGenres: (state.blockedGenres || []).includes(genre) ? state.blockedGenres || [] : [...(state.blockedGenres || []), genre],
           })),
         removeBlockedGenre: genre =>
           set(state => ({
-            blockedGenres: state.blockedGenres.filter(g => g !== genre),
+            blockedGenres: (state.blockedGenres || []).filter(g => g !== genre),
           })),
         setPreferredLanguages: preferredLanguages => set({ preferredLanguages }),
         setAdultContent: adultContent => set({ adultContent }),
@@ -423,7 +436,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           // Apply theme to DOM
           if (typeof document !== 'undefined') {
             const root = document.documentElement;
-            root.classList.remove('theme-Mai', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+            root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
           }
         },
 
@@ -434,7 +447,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               // Apply theme to DOM
               if (typeof document !== 'undefined') {
                 const root = document.documentElement;
-                root.classList.remove('theme-Mai', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+                root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
               }
               break;
             case 'defaultQuality':
@@ -470,6 +483,9 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               playbackSpeed: state.playbackSpeed,
               skipIntro: state.skipIntro,
               skipCredits: state.skipCredits,
+              pipVisualBoost: state.pipVisualBoost,
+              visualBoost: state.visualBoost,
+              stillWatchingEnabled: state.stillWatchingEnabled,
             },
             ui: {
               theme: state.theme,
@@ -539,8 +555,8 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               // Apply theme to DOM
               if (preferences.ui.theme && typeof document !== 'undefined') {
                 const root = document.documentElement;
-                root.classList.remove('theme-Mai', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
-                if (preferences.ui.theme !== 'Mai') {
+                root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+                if (preferences.ui.theme !== 'Nova') {
                   root.classList.add(`theme-${preferences.ui.theme}`);
                 }
               }
@@ -555,8 +571,8 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
         },
       }),
       {
-        name: 'MaiWatch-preferences',
-        storage: createJSONStorage(() => localStorage),
+        name: 'NovaStream-preferences',
+        storage: createJSONStorage(() => createIDBStorage('NovaStream-preferences') as any),
         partialize: state => ({
           // Persist all preferences except volatile ones
           autoPlay: state.autoPlay,
@@ -569,6 +585,9 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           playbackSpeed: state.playbackSpeed,
           skipIntro: state.skipIntro,
           skipCredits: state.skipCredits,
+          pipVisualBoost: state.pipVisualBoost,
+          visualBoost: state.visualBoost,
+          stillWatchingEnabled: state.stillWatchingEnabled,
 
           theme: state.theme,
           language: state.language,
@@ -637,6 +656,8 @@ export const usePreferencesActions = () =>
       setPlaybackSpeed: state.setPlaybackSpeed,
       setSkipIntro: state.setSkipIntro,
       setSkipCredits: state.setSkipCredits,
+      setVisualBoost: state.setVisualBoost,
+      setStillWatchingEnabled: state.setStillWatchingEnabled,
       setTheme: state.setTheme,
       setLanguage: state.setLanguage,
       setCompactMode: state.setCompactMode,
@@ -705,6 +726,9 @@ export const usePlayerPreferences = () =>
       playbackSpeed: state.playbackSpeed,
       skipIntro: state.skipIntro,
       skipCredits: state.skipCredits,
+      pipVisualBoost: state.pipVisualBoost,
+      visualBoost: state.visualBoost,
+      stillWatchingEnabled: state.stillWatchingEnabled,
     }),
     shallow
   );
@@ -765,3 +789,14 @@ if (process.env.NODE_ENV === 'development') {
 
 // Backward compatibility alias
 export const useUserPreferencesStore = usePreferencesStore;
+
+// Migration helper to move data from localStorage to IndexedDB if it exists
+if (typeof window !== 'undefined') {
+  const legacyData = localStorage.getItem('NovaStream-preferences');
+  if (legacyData) {
+    const storage = createIDBStorage('NovaStream-preferences');
+    storage.setItem('NovaStream-preferences', legacyData).then(() => {
+      console.log('⚙️ Migrated preferencesStore to IndexedDB');
+    });
+  }
+}

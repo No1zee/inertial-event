@@ -52,7 +52,7 @@ export const useHistoryStore = createWithEqualityFn<HistoryState>()(
       },
     }),
     {
-      name: 'MaiWatch-history-storage',
+      name: 'NovaStream-history-storage',
     }
   )
 );

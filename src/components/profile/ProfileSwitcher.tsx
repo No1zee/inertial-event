@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Plus, Lock, Check, Trash2 } from 'lucide-react';
-import { useProfiles, useActiveProfile, useProfileActions } from '@/lib/stores/localDataStore';
-import { VaultAuthModal } from '@/components/auth/VaultAuthModal';
+import { useProfiles, useActiveProfile, useProfileActions, UserProfile } from '@/lib/stores/localDataStore';
+import { ProfileAuthModal } from '@/components/auth/ProfileAuthModal';
 import { cn } from '@/lib/utils';
 import { useUISounds } from '@/hooks/useUISounds';
 
@@ -18,7 +18,7 @@ export const ProfileSwitcher: React.FC = () => {
   const [pendingProfile, setPendingProfile] = useState<{ id: string; name: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleProfileSelect = (profile: any) => {
+  const handleProfileSelect = (profile: UserProfile) => {
     if (profile.id === activeProfile?.id) return;
 
     if (profile.isLocked) {
@@ -41,8 +41,8 @@ export const ProfileSwitcher: React.FC = () => {
     <div className="w-full">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Identity Selection</h4>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Select an active neural link</p>
+          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Switch Profile</h4>
+          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Select a profile to start watching</p>
         </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
@@ -97,7 +97,7 @@ export const ProfileSwitcher: React.FC = () => {
                   {profile.name}
                 </span>
                 {profile.id === activeProfile?.id && (
-                  <span className="text-[8px] font-black text-primary/60 uppercase tracking-[0.2em] mt-1">Active Link</span>
+                  <span className="text-[8px] font-black text-primary/60 uppercase tracking-[0.2em] mt-1">Active</span>
                 )}
               </div>
 
@@ -146,11 +146,11 @@ export const ProfileSwitcher: React.FC = () => {
           <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-500 group-hover:text-white group-hover:scale-110 transition-all">
             <Plus size={24} />
           </div>
-          <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-widest">New Identity</span>
+          <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-widest">Add Profile</span>
         </motion.button>
       </div>
 
-      <VaultAuthModal
+      <ProfileAuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}

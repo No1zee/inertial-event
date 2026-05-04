@@ -57,7 +57,7 @@ export function SidebarItem({
       {isActive && !isApp && (
         <motion.div
           layoutId="activeNeedle"
-          className="absolute left-0 w-1 h-3/5 bg-primary rounded-r-full shadow-[0_0_15px_hsla(var(--brand-primary),0.2)]"
+          className="absolute left-0 w-1 h-3/5 bg-primary rounded-r-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
       )}
@@ -101,7 +101,7 @@ export function SidebarItem({
             strokeWidth={isActive ? 2.5 : 1.5}
             className={cn(
               'w-5 h-5 transition-colors duration-500',
-              isActive ? 'text-primary filter drop-shadow-[0_0_8px_hsla(var(--brand-primary),0.3)]' : 'text-inherit',
+              isActive ? 'text-primary filter drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.3)]' : 'text-inherit',
               hoverColor && 'group-hover/item:text-[var(--item-hover-color)]'
             )}
           />

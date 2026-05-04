@@ -7,12 +7,13 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
+import { createIDBStorage } from '@/lib/utils/storage';
 
 // Types
 export interface WatchHistoryItem {
   id: string; // `${contentId}-${type}-${season}-${episode}`
   contentId: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   title: string;
   poster?: string;
   backdrop?: string;
@@ -28,6 +29,8 @@ export interface WatchHistoryItem {
   season?: number;
   episode?: number;
   episodeTitle?: string;
+  nextSeason?: number;
+  nextEpisode?: number;
 
   // Metadata
   lastWatched: number; // timestamp
@@ -38,12 +41,14 @@ export interface WatchHistoryItem {
   source?: string;
   quality?: string;
   providerId?: string;
+  genres?: string[];
+  vibeLabel?: string;
 }
 
 export interface LibraryItem {
   id: string;
   contentId: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   title: string;
   poster?: string;
   backdrop?: string;
@@ -54,6 +59,7 @@ export interface LibraryItem {
   year?: number;
   genres?: string[];
   runtime?: number;
+  vibeLabel?: string;
 
   // User data
   userRating?: number;
@@ -64,7 +70,7 @@ export interface LibraryItem {
 
 export interface ContentState {
   contentId: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   title: string;
   poster?: string;
   backdrop?: string;
@@ -97,7 +103,7 @@ export interface Collection {
 export interface DownloadItem {
   id: string; // unique download identifier
   contentId: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   title: string;
   poster?: string;
 
@@ -127,7 +133,7 @@ export interface DownloadItem {
 export interface ContinueWatchingItem {
   id: string;
   contentId: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   title: string;
   poster?: string;
   backdrop?: string;
@@ -155,6 +161,10 @@ export interface UserPreferences {
   adaptiveColorSpace: boolean;
   interfaceSounds: boolean;
   theme: string;
+  // Experimental
+  av1MasterStream: boolean;
+  ultraFluidPlayback: boolean;
+  aiUpscaling: boolean;
 }
 
 export interface UserProfile {
@@ -170,6 +180,9 @@ export interface UserProfile {
     genres: string[];
     genreWeights?: Record<string, number>;
     vibes: string[];
+    cinematicWeights?: Record<string, number>;
+    heritage?: string[]; // ISO country codes
+    theme?: string;
   };
 }
 
@@ -218,6 +231,7 @@ interface LocalDataStore {
   clearWatchHistory: () => void;
   markAsCompleted: (id: string) => void;
   incrementWatchCount: (id: string) => void;
+  adjustRecommendationWeights: (contentId: string, delta: number) => void;
 
   // Library Actions
   addToLibrary: (item: Omit<LibraryItem, 'id' | 'addedAt'>) => void;
@@ -280,7 +294,10 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
             createdAt: Date.now(),
             preferences: {
               genres: [],
+              genreWeights: {},
               vibes: [],
+              cinematicWeights: {},
+              heritage: [],
             },
           },
         ],
@@ -299,7 +316,10 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           oledOptimization: true,
           adaptiveColorSpace: true,
           interfaceSounds: true,
-          theme: 'default',
+          theme: 'Nova',
+          av1MasterStream: false,
+          ultraFluidPlayback: false,
+          aiUpscaling: false,
         },
         watchHistory: [],
         contentState: {},
@@ -366,58 +386,68 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           })),
 
         // Watch History Actions
-        addToWatchHistory: item => {
+        addToWatchHistory: (item) => {
+          // Global Sanitization Guard: Block the literal string 'NaN' or empty IDs, but allow alphanumeric ones
+          if (!item.contentId || String(item.contentId).includes('NaN')) {
+            return;
+          }
+
           const id = `${item.contentId}-${item.type}-${item.season || 'movie'}-${item.episode || '1'}`;
           const lastWatched = Date.now();
-          const progress = item.duration > 0 ? (item.currentTime / item.duration) * 100 : 0;
-          const completed = progress > 90;
+          
+          // Safety check: Prevent corruption from invalid numbers
+          const currentTime = isNaN(Number(item.currentTime)) ? 0 : Math.max(0, Number(item.currentTime));
+          const duration = isNaN(Number(item.duration)) || Number(item.duration) <= 0 ? 100 : Number(item.duration);
+          const progress = (currentTime / duration) * 100;
+          
+          // Tightened Completion Logic: 95% threshold OR within 60 seconds of end
+          const isNearEnd = duration > 0 && (duration - currentTime) < 60;
+          const completed = progress > 95 || isNearEnd;
 
-          set(state => {
-            const existingIndex = state.watchHistory.findIndex(h => h.id === id);
+          set((state) => {
+            const existingIndex = state.watchHistory.findIndex((h) => h.id === id);
             let updatedHistory = [...state.watchHistory];
 
+            const newItem: WatchHistoryItem = {
+              ...item,
+              id,
+              currentTime,
+              duration,
+              progress,
+              completed,
+              lastWatched,
+              watchCount: 0, // Will be incremented if completed
+              // Sanitize season/episode to ensure they are numbers
+              season: item.season ? Number(item.season) : undefined,
+              episode: item.episode ? Number(item.episode) : undefined,
+              nextSeason: item.nextSeason ? Number(item.nextSeason) : undefined,
+              nextEpisode: item.nextEpisode ? Number(item.nextEpisode) : undefined,
+            };
+
             if (existingIndex >= 0) {
-              // Update existing item and MOVE TO TOP
               const existingItem = updatedHistory[existingIndex];
-              const finalCurrentTime = (item.currentTime && item.currentTime > 0) ? item.currentTime : existingItem.currentTime;
-              const finalDuration = (item.duration && item.duration > 0) ? item.duration : existingItem.duration;
-              const finalProgress = finalDuration > 0 ? (finalCurrentTime / finalDuration) * 100 : 0;
-              const finalCompleted = finalProgress > 90;
+              const isNewlyCompleted = completed && !existingItem.completed;
+              
+              newItem.watchCount = isNewlyCompleted 
+                ? (existingItem.watchCount || 0) + 1 
+                : (existingItem.watchCount || 0);
+              
+              if (isNewlyCompleted) {
+                // Background weight boost for completion
+                setTimeout(() => get().adjustRecommendationWeights(item.contentId, 1), 0);
+              }
 
-              const updatedItem = {
-                ...existingItem,
-                ...item,
-                currentTime: finalCurrentTime,
-                duration: finalDuration,
-                id,
-                title: item.title || existingItem.title,
-                poster: item.poster || existingItem.poster,
-                backdrop: item.backdrop || existingItem.backdrop,
-                lastWatched,
-                progress: finalProgress,
-                completed: finalCompleted,
-                watchCount:
-                  finalCompleted && !existingItem.completed ? existingItem.watchCount + 1 : existingItem.watchCount,
-              };
-
-              // Remove from old position and prepend to top
               updatedHistory.splice(existingIndex, 1);
-              updatedHistory = [updatedItem, ...updatedHistory];
+              updatedHistory = [newItem, ...updatedHistory];
             } else {
-              // Add new item
-              const newItem: WatchHistoryItem = {
-                ...item,
-                id,
-                lastWatched,
-                progress,
-                completed,
-                watchCount: completed ? 1 : 0,
-              };
-              updatedHistory = [newItem, ...updatedHistory].slice(0, 1000);
+              newItem.watchCount = completed ? 1 : 0;
+              if (completed) {
+                setTimeout(() => get().adjustRecommendationWeights(item.contentId, 1), 0);
+              }
+              updatedHistory = [newItem, ...updatedHistory].slice(0, 500);
             }
 
-            // Update Content State mapping
-            const existingContentState = state.contentState[item.contentId];
+            // Update Content State mapping (for "Continue Watching" suggestions)
             const updatedContentState = {
               ...state.contentState,
               [item.contentId]: {
@@ -429,9 +459,11 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
                 lastWatchedId: id,
                 lastWatchedSeason: item.season,
                 lastWatchedEpisode: item.episode,
-                lastWatchedTime: item.currentTime,
-                lastWatchedDuration: item.duration,
-                isCompleted: (completed && item.type === 'movie') || (existingContentState?.isCompleted ?? false),
+                lastWatchedTime: completed ? 0 : currentTime,
+                lastWatchedDuration: duration,
+                nextSeason: item.nextSeason,
+                nextEpisode: item.nextEpisode,
+                isCompleted: (completed && item.type === 'movie') || (state.contentState[item.contentId]?.isCompleted ?? false),
                 updatedAt: lastWatched,
               },
             };
@@ -451,8 +483,12 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
             const item = state.watchHistory[index];
             const itemDuration = duration || item.duration;
             const progress = itemDuration > 0 ? (currentTime / itemDuration) * 100 : 0;
-            const completed = progress > 90;
-
+            
+            // Tightened Completion Logic: 95% or 60s remaining
+            const isNearEnd = itemDuration > 0 && (itemDuration - currentTime) < 60;
+            const completed = progress > 95 || isNearEnd;
+            
+            const isNewlyCompleted = completed && !item.completed;
             const updatedItem = {
               ...item,
               currentTime,
@@ -460,8 +496,12 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
               progress,
               lastWatched: Date.now(),
               completed,
-              watchCount: completed && !item.completed ? item.watchCount + 1 : item.watchCount,
+              watchCount: isNewlyCompleted ? item.watchCount + 1 : item.watchCount,
             };
+
+            if (isNewlyCompleted) {
+              setTimeout(() => get().adjustRecommendationWeights(updatedItem.contentId, 1), 0);
+            }
 
             // Move to top of history
             const updatedHistory = [updatedItem, ...state.watchHistory.filter(h => h.id !== id)];
@@ -527,6 +567,48 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
             ),
           })),
 
+        adjustRecommendationWeights: (contentId, delta) => {
+          const state = get();
+          const activeProfileId = state.activeProfileId;
+          if (!activeProfileId) return;
+
+          // Find content in library or history to get metadata
+          const historyItem = state.watchHistory.find(h => h.contentId === contentId);
+          const libraryItem = state.library.find(l => l.contentId === contentId);
+          
+          const genres = historyItem?.genres || libraryItem?.genres || [];
+          const vibe = historyItem?.vibeLabel || libraryItem?.vibeLabel;
+
+          if (genres.length === 0 && !vibe) return;
+
+          set(state => ({
+            profiles: state.profiles.map(p => {
+              if (p.id !== activeProfileId) return p;
+              
+              const prefs = p.preferences || { genres: [], vibes: [], genreWeights: {}, cinematicWeights: {}, heritage: [] };
+              const genreWeights = { ...(prefs.genreWeights || {}) };
+              const cinematicWeights = { ...(prefs.cinematicWeights || {}) };
+
+              genres.forEach(g => {
+                genreWeights[g] = (genreWeights[g] || 0) + delta;
+              });
+
+              if (vibe) {
+                cinematicWeights[vibe] = (cinematicWeights[vibe] || 0) + delta;
+              }
+
+              return {
+                ...p,
+                preferences: {
+                  ...prefs,
+                  genreWeights,
+                  cinematicWeights
+                }
+              };
+            })
+          }));
+        },
+
         // Library Actions
         addToLibrary: item => {
           const id = Date.now().toString();
@@ -581,7 +663,10 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
 
         setTags: (contentId, tags) => get().updateLibraryItem(contentId, { tags }),
 
-        isInLibrary: contentId => get().library.some(item => item.contentId === contentId),
+        isInLibrary: contentId => {
+          const library = get().library;
+          return Array.isArray(library) && library.some(item => item.contentId === contentId);
+        },
 
         getLibraryItem: contentId => get().library.find(item => item.contentId === contentId),
 
@@ -718,7 +803,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
 
         migrateLegacyData: () => {
           try {
-            const historyStr = localStorage.getItem('MaiWatch-history-storage');
+            const historyStr = localStorage.getItem('NovaStream-history-storage');
             const trackingStr = localStorage.getItem('series-tracking-storage');
 
             if (historyStr) {
@@ -782,7 +867,7 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
               }
             }
 
-            const watchlistStr = localStorage.getItem('MaiWatch-watchlist-storage');
+            const watchlistStr = localStorage.getItem('NovaStream-watchlist-storage');
             if (watchlistStr) {
               const watchlistData = JSON.parse(watchlistStr);
               if (watchlistData?.state?.watchlist) {
@@ -840,20 +925,39 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           });
 
           return Array.from(contentMap.values())
-            .filter(item => !item.completed && item.progress > 2)
+            .filter(item => item.progress > 2)
             .sort((a, b) => b.lastWatched - a.lastWatched)
             .slice(0, 20)
-            .map(item => ({
-              id: item.id,
-              contentId: item.contentId,
-              type: item.type,
-              title: item.title,
-              poster: item.poster,
-              progress: item.progress,
-              lastWatched: item.lastWatched,
-              season: item.season,
-              episode: item.episode,
-            }));
+            .map(item => {
+              // If the item is completed and it's a TV show, show the "Next Episode" in the list
+              const isCompleted = item.completed || item.progress > 95;
+              
+              if (isCompleted && item.type !== 'movie') {
+                return {
+                  id: item.id,
+                  contentId: item.contentId,
+                  type: item.type,
+                  title: item.title,
+                  poster: item.poster,
+                  progress: 0, // Reset progress for the next one
+                  lastWatched: item.lastWatched,
+                  season: item.nextSeason || item.season,
+                  episode: item.nextEpisode || (item.episode || 1) + 1, // Use explicit next or fallback to increment
+                };
+              }
+              
+              return {
+                id: item.id,
+                contentId: item.contentId,
+                type: item.type,
+                title: item.title,
+                poster: item.poster,
+                progress: item.progress,
+                lastWatched: item.lastWatched,
+                season: item.season,
+                episode: item.episode,
+              };
+            });
         },
 
         getLastWatched: () => {
@@ -873,7 +977,8 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
           if (isCompleted && historyItem.type !== 'movie') {
             return {
               ...historyItem,
-              episode: (historyItem.episode || 1) + 1,
+              season: historyItem.nextSeason || historyItem.season,
+              episode: historyItem.nextEpisode || (historyItem.episode || 1) + 1,
               currentTime: 0,
               progress: 0,
               completed: true,
@@ -894,8 +999,8 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
             .slice(0, limit),
       }),
       {
-        name: 'MaiWatch-local-data',
-        storage: createJSONStorage(() => localStorage),
+        name: 'NovaStream-local-data',
+        storage: createJSONStorage(() => createIDBStorage('NovaStream-local-data') as any),
         // No partialize - store all local data
         onRehydrateStorage: () => (state) => {
           state?.setHasHydrated(true);
@@ -904,6 +1009,18 @@ export const useLocalDataStore = createWithEqualityFn<LocalDataStore>()(
     )
   )
 );
+
+// Migration helper to move data from localStorage to IndexedDB if it exists
+if (typeof window !== 'undefined') {
+  const legacyData = localStorage.getItem('NovaStream-local-data');
+  if (legacyData) {
+    const storage = createIDBStorage('NovaStream-local-data');
+    storage.setItem('NovaStream-local-data', legacyData).then(() => {
+      // Keep in localStorage for one session as safety, then we could remove
+      console.log('📦 Migrated localDataStore to IndexedDB');
+    });
+  }
+}
 
 // Selectors for optimized subscriptions
 export const useWatchHistory = () => useLocalDataStore(state => state.watchHistory, shallow);

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { memo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Play, Plus, Check, Clock } from 'lucide-react';
 import { Content } from '@/lib/types/content';
 import { cn } from '@/lib/utils';
@@ -15,7 +16,7 @@ import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { getProviderById, getProviderBySlug } from '@/lib/constants/providers';
 import { useUISounds } from '@/hooks/useUISounds';
-import { usePreferencesStore } from '@/lib/stores/preferencesStore';
+
 
 interface ContentCardProps {
   item: Content;
@@ -24,6 +25,7 @@ interface ContentCardProps {
   className?: string;
   priority?: boolean;
   providerId?: string;
+  playTrailerOnClick?: boolean;
 }
 
 const ContentCard = memo(function ContentCard({
@@ -32,15 +34,16 @@ const ContentCard = memo(function ContentCard({
   className,
   priority = false,
   providerId,
+  playTrailerOnClick = false,
 }: ContentCardProps) {
   const router = useRouter();
   const { addToLibrary, removeFromLibrary, isInLibrary } = useLibraryActions();
   const openContentModal = useUIStore(state => state.openContentModal);
+  const openTrailerModal = useUIStore(state => state.openTrailerModal);
   const queryClient = useQueryClient();
   const isHydrated = useHydrated();
   const getResumeData = useLocalDataStore(state => state.getResumeData);
   const { playSound } = useUISounds();
-  const autoPlayPreviews = usePreferencesStore(state => state.autoPlay);
 
   const [showPreview, setShowPreview] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -49,7 +52,9 @@ const ContentCard = memo(function ContentCard({
   if (!item || !item.id) return null;
 
   const inLibrary = isInLibrary(String(item.id));
-  const contentType = item.type || (item.seasonsList && item.seasonsList.length > 0 ? 'tv' : 'movie');
+  const contentType = item.type || 
+    (item.media_type === 'tv' || item.media_type === 'anime' ? item.media_type : 
+     (item.seasonsList && item.seasonsList.length > 0) || item.seasons ? 'tv' : 'movie');
 
   const toggleWatchlist = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,25 +73,41 @@ const ContentCard = memo(function ContentCard({
   };
 
   const handleClick = () => {
+    if (playTrailerOnClick && item.trailer) {
+      console.log(`[ContentCard] Playing trailer for ${item.title} (${item.trailer})`);
+      playSound('click');
+      openTrailerModal(item.trailer, item.title);
+      return;
+    }
     console.log(`[ContentCard] Triggering modal for ${item.title} (${item.id})`);
     playSound('click');
     openContentModal(item, providerId);
   };
 
+  const handlePrewarm = () => {
+    // Source preloading on hover was causing spurious backend calls for every
+    // card moused over while browsing. Sources are now only fetched when the
+    // player is actually opened. The queryClient prefetch below is sufficient
+    // for fast content-detail loading.
+  };
+
   const handleMouseEnter = () => {
     playSound('hover');
+    handlePrewarm();
     if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
 
     prefetchTimeout.current = setTimeout(() => {
-      queryClient.prefetchQuery({
-        queryKey: ['content', 'details', item.id, contentType],
-        queryFn: () => {
-          const apiType = contentType === 'anime' ? 'tv' : contentType;
-          return contentApi.getDetails(item.id, apiType as 'movie' | 'tv');
-        },
-      });
+      if (!String(item.id).startsWith('mock-')) {
+        queryClient.prefetchQuery({
+          queryKey: ['content', 'details', item.id, contentType],
+          queryFn: () => {
+            const apiType = contentType === 'anime' ? 'tv' : contentType;
+            return contentApi.getDetails(item.id, apiType as 'movie' | 'tv');
+          },
+        });
+      }
       router.prefetch(`/watch?id=${item.id}&type=${contentType}`);
-    }, 200);
+    }, 150); // Reduced from 200ms to 150ms for faster prefetch
   };
 
   const runOnMouseLeave = () => {
@@ -182,20 +203,29 @@ const ContentCard = memo(function ContentCard({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.05 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true, margin: "100px" }}
+      whileHover={{ 
+        scale: 1.05,
+        y: -5,
+        transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+      }}
       animate={isNavigating ? { scale: [1, 1.02, 1], opacity: [1, 0.8, 1] } : {}}
-      transition={isNavigating ? { repeat: Infinity, duration: 0.8, ease: "easeInOut" } : { duration: 0.2 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       tabIndex={0}
       data-testid="content-card"
+      aria-label={`${item.title} (${contentType === 'tv' ? 'Series' : contentType === 'anime' ? 'Anime' : 'Movie'})`}
+      role="button"
       className={cn(
-        'relative rounded-sm overflow-hidden bg-zinc-900/50 cursor-pointer group shrink-0 border border-white/5 outline-none transition-all duration-300',
-        'hover:z-30',
+        'relative rounded-2xl overflow-hidden bg-zinc-900/50 cursor-pointer group shrink-0 border border-white/5 outline-none transition-all duration-500',
+        'hover:z-30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)]',
         provider?.slug === 'netflix'
-          ? 'hover:border-red-600 hover:shadow-[0_0_20px_rgba(229,9,20,0.3)]'
+          ? 'hover:border-red-600 hover:shadow-[0_0_30px_rgba(229,9,20,0.3)]'
           : provider?.slug === 'hulu'
-            ? 'hover:border-[#1ce783] hover:shadow-[0_0_20px_rgba(28,231,131,0.2)] rounded-xl'
+            ? 'hover:border-[#1ce783] hover:shadow-[0_0_30px_rgba(28,231,131,0.2)]'
             : provider?.slug === 'disney'
-              ? 'hover:border-[#113ccf] hover:shadow-[0_0_20px_rgba(17,60,207,0.3)] rounded-lg'
+              ? 'hover:border-[#113ccf] hover:shadow-[0_0_30px_rgba(17,60,207,0.3)]'
               : 'hover:border-white/20',
         'focus:border-red-600 focus:ring-4 focus:ring-red-600/20',
         (aspectRatio === 'portrait' || aspectRatio === 'poster') && 'aspect-[2/3] w-[160px] md:w-[200px]',
@@ -217,10 +247,8 @@ const ContentCard = memo(function ContentCard({
       }}
     >
       <div className="absolute inset-0 w-full h-full overflow-hidden">
-        {/* Shimmer Background Layer */}
-        <div className="absolute inset-0 bg-zinc-900">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
-        </div>
+        {/* Base Layer for transition stability */}
+        <div className="absolute inset-0 bg-[#09090b]" />
 
         {(() => {
           const isLandscape =
@@ -229,16 +257,16 @@ const ContentCard = memo(function ContentCard({
             aspectRatio === '21:9' ||
             aspectRatio === 'ultrawide';
             
-          // Triple-waterfall fallback strategy
-          const rawSource = isLandscape 
-            ? (item.backdrop || item.backdrop_path || item.poster || item.poster_path)
-            : (item.poster || item.poster_path || item.backdrop || item.backdrop_path);
+          // Dual-source fallback strategy
+          const primarySource = isLandscape 
+            ? (item.backdrop || item.backdrop_path)
+            : (item.poster || item.poster_path);
+            
+          const secondarySource = isLandscape
+            ? (item.poster || item.poster_path)
+            : (item.backdrop || item.backdrop_path);
 
-          const sourceUrl = getOptimizedImageUrl(rawSource, isLandscape ? 'w780' : 'w500');
-
-          if (!rawSource && isHydrated) {
-            console.warn(`[ContentCard] No asset found for "${item.title}" (ID: ${item.id}). Displaying fallback.`);
-          }
+          const sourceUrl = getOptimizedImageUrl(primarySource || secondarySource, isLandscape ? 'w780' : 'w500');
 
           return (
             <OptimizedImage
@@ -246,13 +274,19 @@ const ContentCard = memo(function ContentCard({
               alt={item.title}
               fill
               priority={priority}
-              className="object-cover transition-all duration-700 ease-out group-hover:scale-110"
+              className="object-cover transition-all duration-1000 ease-out group-hover:scale-110 group-hover:blur-[2px] group-hover:opacity-60"
               sizes={isLandscape ? '(max-width: 768px) 350px, 420px' : '(max-width: 768px) 200px, 250px'}
             />
           );
         })()}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 group-hover:via-black/60 transition-all duration-700" />
+        {/* Holographic Shimmer Overlay */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-reflection-slow" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/0 via-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+        </div>
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 group-hover:via-black/70 transition-all duration-700" />
         
         {/* Cinematic Reflection */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none">
@@ -280,9 +314,11 @@ const ContentCard = memo(function ContentCard({
             )}
           >
             {provider?.logo ? (
-              <img 
+              <Image 
                 src={provider.logo} 
-                alt={provider.name} 
+                alt={provider.name}
+                width={60}
+                height={20}
                 className={cn(
                   "h-3 w-auto object-contain",
                   provider.slug === 'netflix' && "h-3.5",
@@ -330,12 +366,14 @@ const ContentCard = memo(function ContentCard({
         );
       })()}
 
-      <div data-testid="content-overlay" className="absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-3 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-[0.16,1,0.3,1] transform translate-y-4 group-hover:translate-y-0">
-        <motion.div 
-          initial={false}
-          animate={showPreview ? { y: 0, opacity: 1 } : {}}
-          className="flex gap-2"
-        >
+      <div 
+        data-testid="content-overlay" 
+        className={cn(
+          "absolute inset-x-4 bottom-4 z-20 flex flex-col space-y-3 transition-all duration-700 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] transform",
+          "opacity-40 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+        )}
+      >
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
           <button
             className={cn(
               'w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-2xl active:scale-95',
@@ -345,8 +383,8 @@ const ContentCard = memo(function ContentCard({
                   ? 'bg-red-600 text-white hover:bg-red-700'
                   : 'bg-white text-black hover:bg-neutral-200'
             )}
-            aria-label="Play"
-            title="Play"
+            aria-label={`Play ${item.title}`}
+            title={`Play ${item.title}`}
             onClick={handlePlay}
             data-testid="play-button"
           >
@@ -357,36 +395,48 @@ const ContentCard = memo(function ContentCard({
               'w-9 h-9 rounded-md flex items-center justify-center glass-card border border-white/10 shadow-2xl active:scale-95 transition-all text-white',
               inLibrary ? provider?.color || 'bg-red-600 border-red-500' : 'bg-black/60'
             )}
-            aria-label={inLibrary ? 'Remove from library' : 'Add to library'}
-            title={inLibrary ? 'Remove from library' : 'Add to library'}
+            aria-label={inLibrary ? `Remove ${item.title} from Watchlist` : `Add ${item.title} to Watchlist`}
+            title={inLibrary ? 'Remove from Watchlist' : 'Add to Watchlist'}
             onClick={toggleWatchlist}
             data-testid="watchlist-button"
           >
             {inLibrary ? <Check size={16} /> : <Plus size={16} />}
           </button>
-        </motion.div>
+        </div>
 
         <div className="space-y-1">
-          <motion.h3 
-            initial={{ opacity: 0, x: -10 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-            className="font-black text-white text-sm md:text-base tracking-tight leading-tight drop-shadow-2xl truncate uppercase"
-          >
+          <h3 className="font-black text-white text-sm md:text-base tracking-tight leading-tight drop-shadow-2xl truncate uppercase">
             {item.title}
-          </motion.h3>
-          <motion.div 
-            initial={{ opacity: 0, y: 5 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]"
-          >
+          </h3>
+          <div className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+            <span className="bg-white/10 text-white/80 px-1.5 py-0.5 rounded-[2px] tracking-widest text-[8px]">
+              {contentType === 'tv' ? 'Series' : contentType === 'anime' ? 'Anime' : 'Movie'}
+            </span>
             {matchScore >= 55 && (
               <span className={cn(matchScore >= 95 ? 'text-amber-500' : 'text-red-500/80')}>{matchScore}% Match</span>
             )}
-            {matchScore >= 55 && <span className="opacity-30">•</span>}
+            <span className="opacity-30">•</span>
             <span>{item.releaseDate?.substring(0, 4) || 'Archived'}</span>
-          </motion.div>
+          </div>
+
+          {(item.genres || item.genre_names) && (item.genres?.length || 0) > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {(item.genres || item.genre_names || []).slice(0, 2).map((genre, i) => (
+                <span 
+                  key={genre} 
+                  className="text-[7px] font-black text-zinc-400/80 group-hover:text-zinc-200 border border-white/5 px-1.5 py-0.5 rounded-[2px] uppercase tracking-[0.15em] bg-white/[0.02] transition-colors"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {item.editorialReason && (
+            <p className="hidden group-hover:block text-[9px] leading-relaxed text-zinc-500 font-medium line-clamp-1 pt-1 border-t border-white/5">
+              {item.editorialReason}
+            </p>
+          )}
         </div>
       </div>
 
@@ -415,14 +465,18 @@ function CardProgressBar({ item, providerColor }: { item: Content; providerColor
     return `${mins}:${String(secs).padStart(2, '0')}`;
   };
 
+  const MotionClock = motion(Clock);
+
   return (
     <>
       <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5 z-30">
         <motion.div
           className="h-full relative overflow-hidden"
-          style={{ backgroundColor: providerColor || '#E50914' }}
           initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
+          animate={{ 
+            width: `${progress}%`,
+            backgroundColor: providerColor || '#E50914'
+          }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" />
@@ -431,7 +485,11 @@ function CardProgressBar({ item, providerColor }: { item: Content; providerColor
       {resumeData && resumeData.currentTime > 30 && (
         <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-1.5 px-2 py-1 bg-black/70 backdrop-blur-md rounded-full border border-white/10 shadow-2xl">
-            <Clock size={10} style={{ color: providerColor || '#E50914' }} />
+            <MotionClock 
+              size={10} 
+              initial={false}
+              animate={{ color: providerColor || '#E50914' }} 
+            />
             <span className="text-[9px] font-bold text-white tabular-nums">{formatTime(resumeData.currentTime)}</span>
           </div>
           {resumeData.season && (

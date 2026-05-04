@@ -27,7 +27,7 @@ export function FileExplorer() {
       // Detect if we are in production (Vercel) vs local development
       const isProd = typeof window !== 'undefined' && 
                     (window.location.hostname.includes('vercel.app') || 
-                     window.location.hostname.includes('maiwatches.com'));
+                     window.location.hostname.includes('novastream.media'));
 
       const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
       
@@ -65,9 +65,9 @@ export function FileExplorer() {
           throw fetchErr;
         }
         if (isProd) {
-          throw new Error('LAN Tunnel Unavailable in Cloud. Ensure the MaiWatch bridge is running and reachable.');
+          throw new Error('LAN Tunnel Unavailable in Cloud. Ensure the NovaStream bridge is running and reachable.');
         } else {
-          throw new Error('Local Bridge Not Found. Ensure the MaiWatch background process is running on port 5000.');
+          throw new Error('Local Bridge Not Found. Ensure the NovaStream background process is running on port 5000.');
         }
       }
     } catch (err: unknown) {
@@ -112,6 +112,8 @@ export function FileExplorer() {
         <button
           onClick={handleUp}
           disabled={isLoading}
+          aria-label="Go up one level"
+          title="Go up one level"
           className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
         >
           <ArrowLeft size={20} />

@@ -6,7 +6,7 @@ test.describe('NovaStream Application', () => {
   })
 
   test('home page loads correctly', async ({ page }) => {
-    await expect(page).toHaveTitle(/MaiWatch/)
+    await expect(page).toHaveTitle(/NovaStream/)
     await expect(page.locator('h1')).toBeVisible()
   })
 

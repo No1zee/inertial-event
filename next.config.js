@@ -5,7 +5,8 @@ const nextConfig = {
   output: process.env.NEXT_PUBLIC_ELECTRON === 'true' ? 'export' : undefined, // Enabled for Electron static build
   reactStrictMode: false,
   compress: true,
-  productionBrowserSourceMaps: false, // Re-enable only for deep production debugging
+  productionBrowserSourceMaps: false,
+  optimizeFonts: false, // Prevents socket hang up errors during build in restricted networks
 
   images: {
     loader: 'custom',
@@ -70,7 +71,7 @@ const nextConfig = {
   },
 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
     ignoreDuringBuilds: true,

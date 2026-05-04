@@ -194,8 +194,8 @@ function SettingsOverlay({
             <button
               key={font}
               onClick={() => setSubtitleFont(font)}
-              className={`p-2 rounded text-xs border transition-all ${subtitleFont === font ? 'bg-[hsl(var(--brand-primary))]/20 border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))]' : 'bg-[hsl(var(--surface-muted))] border-transparent text-[hsl(var(--foreground))]/60 hover:bg-[hsl(var(--surface-muted))]/80'}`}
-              style={{ fontFamily: font === 'system-ui' ? 'sans-serif' : font }}
+              className={`p-2 rounded text-xs border transition-all dynamic-font ${subtitleFont === font ? 'bg-[hsl(var(--brand-primary))]/20 border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary))]' : 'bg-[hsl(var(--surface-muted))] border-transparent text-[hsl(var(--foreground))]/60 hover:bg-[hsl(var(--surface-muted))]/80'}`}
+              ref={el => el?.style.setProperty('--font-family', font === 'system-ui' ? 'sans-serif' : font)}
             >
               {font}
             </button>
@@ -211,8 +211,8 @@ function SettingsOverlay({
             <button
               key={color}
               onClick={() => setSubtitleColor(color)}
-              className={`w-8 h-8 rounded-full border-2 transition-transform active:scale-90 ${subtitleColor === color ? 'border-[hsl(var(--brand-primary))] scale-110' : 'border-transparent'}`}
-              style={{ backgroundColor: color }}
+              className={`w-8 h-8 rounded-full border-2 transition-transform dynamic-bg-color active:scale-90 ${subtitleColor === color ? 'border-[hsl(var(--brand-primary))] scale-110' : 'border-transparent'}`}
+              ref={el => el?.style.setProperty('--dynamic-color', color)}
               title={color}
             />
           ))}
@@ -242,14 +242,13 @@ function SettingsOverlay({
       <div className="mt-4 p-6 rounded-lg bg-black relative flex items-center justify-center overflow-hidden border border-[hsl(var(--foreground))]/10">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 opacity-50" />
         <span 
-          className="relative z-10 font-bold drop-shadow-lg text-center"
-          style={{ 
-            fontSize: `${subtitleSize}px`, 
-            color: subtitleColor, 
-            fontFamily: subtitleFont === 'system-ui' ? 'sans-serif' : subtitleFont,
-            backgroundColor: `rgba(0,0,0,${subtitleOpacity * 0.8})`,
-            padding: '2px 8px',
-            borderRadius: '4px'
+          className="relative z-10 font-bold drop-shadow-lg text-center px-2 py-0.5 rounded dynamic-font dynamic-color dynamic-size dynamic-bg"
+          ref={el => {
+            if (!el) return;
+            el.style.setProperty('--dynamic-size', `${subtitleSize}px`);
+            el.style.setProperty('--dynamic-color', subtitleColor);
+            el.style.setProperty('--font-family', subtitleFont === 'system-ui' ? 'sans-serif' : subtitleFont);
+            el.style.setProperty('--dynamic-bg', `rgba(0,0,0,${subtitleOpacity * 0.8})`);
           }}
         >
           Cinematic Experience

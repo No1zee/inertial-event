@@ -49,7 +49,7 @@ export const useSettingsStore = createWithEqualityFn<SettingsState>()(
       resetSettings: () => set(defaultSettings),
     }),
     {
-      name: 'MaiWatch-settings',
+      name: 'NovaStream-settings',
     }
   )
 );

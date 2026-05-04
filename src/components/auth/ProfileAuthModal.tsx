@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Fingerprint } from 'lucide-react';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { useUISounds } from '@/hooks/useUISounds';
 import { cn } from '@/lib/utils';
 
-interface VaultAuthModalProps {
+interface ProfileAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -15,7 +15,7 @@ interface VaultAuthModalProps {
   profileId: string;
 }
 
-export const VaultAuthModal: React.FC<VaultAuthModalProps> = ({
+export const ProfileAuthModal: React.FC<ProfileAuthModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
@@ -31,21 +31,21 @@ export const VaultAuthModal: React.FC<VaultAuthModalProps> = ({
 
   const PIN_LENGTH = 4;
 
-  const handleKeyPress = (num: string) => {
+  const handleKeyPress = useCallback((num: string) => {
     if (pin.length < PIN_LENGTH) {
       playSound('click');
       setPin(prev => [...prev, num]);
       setError(false);
     }
-  };
+  }, [pin.length, playSound, PIN_LENGTH]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     if (pin.length > 0) {
       playSound('click');
       setPin(prev => prev.slice(0, -1));
       setError(false);
     }
-  };
+  }, [pin.length, playSound]);
 
   useEffect(() => {
     if (pin.length === PIN_LENGTH) {
@@ -112,14 +112,14 @@ export const VaultAuthModal: React.FC<VaultAuthModalProps> = ({
                 <Shield size={20} />
               </div>
               <div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">Neural Vault</h2>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Biometric Encryption Active</p>
+                <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">Profile Access</h2>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Enter Your PIN</p>
               </div>
             </div>
             <button 
               onClick={onClose}
               title="Close"
-              aria-label="Close Vault"
+              aria-label="Close Access"
               className="p-2 text-zinc-500 hover:text-white transition-colors"
             >
               <X size={20} />
@@ -137,7 +137,7 @@ export const VaultAuthModal: React.FC<VaultAuthModalProps> = ({
               </div>
             </motion.div>
             <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic mb-1">{profileName}</h3>
-            <p className="text-sm text-zinc-500 font-medium tracking-tight">Identity verification required for archive access.</p>
+            <p className="text-sm text-zinc-500 font-medium tracking-tight">Enter your PIN to access this profile.</p>
           </div>
 
           {/* PIN Display */}
@@ -193,8 +193,8 @@ export const VaultAuthModal: React.FC<VaultAuthModalProps> = ({
 
           {/* Biometric Hint */}
           <div className="mt-12 flex items-center gap-2 text-zinc-600 font-bold text-[9px] uppercase tracking-widest animate-pulse">
-            <Fingerprint size={12} />
-            Neural Signature Pending
+            <Shield size={12} />
+            Security PIN Required
           </div>
 
           {/* Background Glow */}

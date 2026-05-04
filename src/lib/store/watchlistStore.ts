@@ -26,7 +26,7 @@ export const useWatchlistStore = createWithEqualityFn<WatchlistState>()(
       isInWatchlist: id => get().watchlist.some(i => i.id === id),
     }),
     {
-      name: 'MaiWatch-watchlist-storage',
+      name: 'NovaStream-watchlist-storage',
     }
   )
 );

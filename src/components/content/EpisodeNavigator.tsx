@@ -9,16 +9,17 @@ import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { cn } from '@/lib/utils';
 import { PretextHeadline } from '../Common/PretextHeadline';
+import { Season, SeasonEpisode, SeasonDetails } from '@/lib/types/content';
 
 interface EpisodeNavigatorProps {
   show: boolean;
   onClose: () => void;
   tmdbId: string;
-  type: 'tv' | 'anime';
+  type: 'tv' | 'anime' | 'series';
   currentSeason: number;
   currentEpisode: number;
   onSelect: (season: number, episode: number) => void;
-  seasons: any[];
+  seasons: Season[];
 }
 
 export function EpisodeNavigator({
@@ -32,7 +33,7 @@ export function EpisodeNavigator({
   seasons
 }: EpisodeNavigatorProps) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
-  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [episodes, setEpisodes] = useState<SeasonEpisode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,8 +42,14 @@ export function EpisodeNavigator({
 
   useEffect(() => {
     if (show) {
+      if (String(tmdbId).startsWith('mock-')) {
+        setEpisodes([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
-      contentApi.getSeasonDetails(tmdbId, selectedSeason).then((data: any) => {
+      contentApi.getSeasonDetails(tmdbId, selectedSeason).then((data) => {
         if (data && data.episodes) {
           setEpisodes(data.episodes);
         }
@@ -69,7 +76,7 @@ export function EpisodeNavigator({
           <div className="flex items-center justify-between p-8 border-b border-white/5">
             <div className="flex items-center gap-12">
               <PretextHeadline
-                text="Reel Index"
+                text="Episodes"
                 fontSize={32}
                 fontWeight={900}
                 letterSpacing="-0.04em"
@@ -123,7 +130,7 @@ export function EpisodeNavigator({
             {/* Season Sidebar */}
             <div className="w-64 border-r border-white/5 p-6 overflow-y-auto no-scrollbar">
               <PretextHeadline
-                text="Production Arcs"
+                text="Seasons"
                 fontSize={10}
                 fontWeight={900}
                 letterSpacing="0.4em"
@@ -159,7 +166,7 @@ export function EpisodeNavigator({
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                     className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"
                   />
-                  <span className="text-zinc-500 font-bold uppercase tracking-widest text-sm animate-pulse">Syncing Playback Data...</span>
+                  <span className="text-zinc-500 font-bold uppercase tracking-widest text-sm animate-pulse">Loading Episodes...</span>
                 </div>
               ) : (
                 <div className={cn(
@@ -203,7 +210,11 @@ export function EpisodeNavigator({
                           {/* Progress Bar */}
                           {progress > 0 && (
                             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20">
-                              <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
+                              <motion.div 
+                                className="h-full bg-primary" 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }} 
+                              />
                             </div>
                           )}
 
@@ -234,7 +245,7 @@ export function EpisodeNavigator({
                             {ep.name}
                           </h4>
                           <p className="text-zinc-500 text-xs line-clamp-2 mt-2 leading-relaxed font-medium">
-                            {ep.overview || 'Synopsis unavailable for this sequence.'}
+                            {ep.overview || 'No description available for this episode.'}
                           </p>
                         </div>
                       </motion.div>

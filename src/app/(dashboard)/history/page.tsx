@@ -53,7 +53,7 @@ export default function HistoryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="group relative flex gap-4 bg-zinc-900/40 p-4 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-zinc-900/60 transition-all duration-300"
+              className="group relative flex gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 hover:border-white/10 hover:bg-zinc-900/60 transition-all duration-300"
             >
               <div className="relative aspect-video w-32 md:w-40 shrink-0 rounded-lg overflow-hidden border border-white/5">
                 <OptimizedImage
@@ -68,7 +68,11 @@ export default function HistoryPage() {
                   </div>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
-                  <div className="h-full bg-red-600" style={{ width: `${item.progress}%` }} />
+                  <motion.div 
+                    className="h-full bg-red-600" 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${item.progress}%` }} 
+                  />
                 </div>
               </div>
 

@@ -1,9 +1,9 @@
 const { ipcRenderer } = require('electron');
 
 // --- PRELOAD SCRIPT FOR VIDEO PLAYER ---
-// Version 11: Aggressive Ad-Blocking & Aegis Source Interceptor
+// Version 12: Frame-Aware Autoplay & Aggressive Video Discovery
 
-const AG_VERSION = 11;
+const AG_VERSION = 12;
 console.log(`[NovaSync] Aegis Preload Hardening (v${AG_VERSION})...`);
 
 // 1. Critical: Disable window.open immediately
@@ -27,8 +27,10 @@ document.addEventListener('click', (e) => {
 window.AG_VIDEO = null;
 window.AG_CTX = null;
 window.LAST_AG_SOURCE = null;
+window.AG_PLAYED = false;
+window.AG_VISUAL_BOOST = false;
 
-// 4. Video Discovery (Shazam)
+// 4. Video Discovery (Shazam) - Enhanced
 const findVideo = (root, depth = 0) => {
     if (!root || depth > 5) return null;
     let v = root.querySelector('video');
@@ -44,7 +46,8 @@ const findVideo = (root, depth = 0) => {
             } 
         }
     }
-    // Check local IFrames
+    
+    // Check local IFrames (Recursion into same-origin iframes)
     const fs = root.querySelectorAll('iframe');
     for(let f of fs) { 
         try { 
@@ -65,12 +68,49 @@ const updateState = () => {
             if (!window.AG_VIDEO.hasAGListeners) {
                 window.AG_VIDEO.hasAGListeners = true;
                 window.AG_VIDEO.addEventListener('ended', () => ipcRenderer.sendToHost('AG_ENDED'));
-                window.AG_VIDEO.addEventListener('play', () => { window.AG_VIDEO.muted = false; });
+                window.AG_VIDEO.addEventListener('play', () => { 
+                    if (!window.AG_PLAYED) {
+                        window.AG_PLAYED = true;
+                        ipcRenderer.sendToHost('AG_PLAYBACK_STARTED');
+                    }
+                    window.AG_VIDEO.muted = false; 
+                    window.AG_VIDEO.volume = 1.0;
+                });
+                
+                // Initial check for play state
+                if (!window.AG_VIDEO.paused && !window.AG_PLAYED) {
+                    window.AG_PLAYED = true;
+                    ipcRenderer.sendToHost('AG_PLAYBACK_STARTED');
+                }
             }
         }
     }
 
     if (window.AG_VIDEO) {
+        // Aggressive Autoplay Fallback
+        if (window.AG_VIDEO.paused && !window.AG_VIDEO.ended) {
+            // Attempt muted playback first (bypasses most policies)
+            window.AG_VIDEO.muted = true;
+            window.AG_VIDEO.play().then(() => {
+                // Success! Now try to unmute after a short delay
+                setTimeout(() => { if (window.AG_VIDEO) window.AG_VIDEO.muted = false; }, 1000);
+            }).catch(e => {
+                // Truly blocked. We'll wait for user interaction.
+            });
+        } else if (!window.AG_VIDEO.paused && window.AG_VIDEO.muted) {
+            // If playing but muted, try to unmute
+            window.AG_VIDEO.muted = false;
+            window.AG_VIDEO.volume = 1.0;
+        }
+
+        // Apply Visual Boost
+        if (window.AG_VISUAL_BOOST) {
+            window.AG_VIDEO.style.filter = 'contrast(1.08) saturate(1.12) brightness(1.05)';
+        } else {
+            window.AG_VIDEO.style.filter = 'none';
+        }
+        window.AG_VIDEO.style.transition = 'filter 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+
         // Aegis Source Interceptor
         const currentSrc = window.AG_VIDEO.currentSrc || window.AG_VIDEO.src;
         if (currentSrc && (currentSrc.includes('.m3u8') || currentSrc.includes('.mp4')) && !currentSrc.startsWith('blob:')) {
@@ -93,6 +133,23 @@ const updateState = () => {
     }
 };
 setInterval(updateState, 500);
+
+// Listen for Commands from Host
+ipcRenderer.on('AG_SET_VISUAL_BOOST', (event, enabled) => {
+    window.AG_VISUAL_BOOST = enabled;
+});
+
+ipcRenderer.on('AG_SET_TIME', (event, time) => {
+    if (window.AG_VIDEO) window.AG_VIDEO.currentTime = time;
+});
+
+ipcRenderer.on('AG_PLAY', () => {
+    if (window.AG_VIDEO) window.AG_VIDEO.play().catch(() => {});
+});
+
+ipcRenderer.on('AG_PAUSE', () => {
+    if (window.AG_VIDEO) window.AG_VIDEO.pause();
+});
 
 // 6. Aggressive Ad Sanitization
 const adCss = `
@@ -131,7 +188,12 @@ if (document.readyState === 'loading') {
     injectAdBlock();
 }
 
-const relayActivity = () => { ipcRenderer.sendToHost('AG_WAKE'); };
+const relayActivity = () => { 
+    ipcRenderer.sendToHost('AG_WAKE'); 
+    if (window.AG_VIDEO && window.AG_VIDEO.paused) {
+        window.AG_VIDEO.play().catch(() => {});
+    }
+};
 document.addEventListener('mousemove', relayActivity, { passive: true });
 document.addEventListener('mousedown', relayActivity, { passive: true });
 document.addEventListener('keydown', relayActivity, { passive: true });

@@ -37,15 +37,15 @@ export function Logo({ className, size = 'md', showText = true, animated = true 
         )}
       >
         <div className="relative flex items-center justify-center">
-          <Palmtree className="w-[70%] h-[70%] text-[hsl(var(--brand-primary))] -rotate-12 absolute -translate-x-1" />
-          <Palmtree className="w-[70%] h-[70%] text-[hsl(var(--brand-primary))] rotate-12 absolute translate-x-1" />
+          <Palmtree className="w-[70%] h-[70%] text-primary -rotate-12 absolute -translate-x-1" />
+          <Palmtree className="w-[70%] h-[70%] text-primary rotate-12 absolute translate-x-1" />
         </div>
       </motion.div>
 
       {showText && (
-        <div className={cn('flex flex-col leading-none font-playfair', textSizes[size])}>
-          <span className="font-black text-[hsl(var(--brand-primary))] uppercase tracking-tight">
-            Mai<span className="text-white">Watch</span>
+        <div className={cn('flex flex-col leading-none font-display', textSizes[size])}>
+          <span className="font-black text-primary uppercase tracking-tight">
+            Nova<span className="text-white">Stream</span>
           </span>
         </div>
       )}

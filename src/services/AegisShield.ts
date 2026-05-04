@@ -67,8 +67,8 @@ class AegisShield {
   private async audit() {
     if (!this.state.active) return;
 
-    // Warmup period: allow 8 seconds before triggering critical alerts
-    const isWarmingUp = Date.now() - this.monitorStartTime < 8000;
+    // Warmup period: allow 12 seconds before triggering critical alerts
+    const isWarmingUp = Date.now() - this.monitorStartTime < 12000;
     const { bufferedDuration } = this.state;
     let newHealth: ShieldStatus['health'] = 'optimal';
 

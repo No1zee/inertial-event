@@ -30,17 +30,23 @@ export const MoodGrid: React.FC = () => {
             className="group relative flex flex-col items-center gap-4 p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] hover:border-white/20 transition-all overflow-hidden h-full"
           >
              {/* Dynamic Glow */}
-             <div 
+             <motion.div 
                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity blur-[50px]"
-               style={{ backgroundColor: mood.color }}
+               initial={false}
+               animate={{ backgroundColor: mood.color }}
              />
              
-             <div 
+             <motion.div 
                className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-6"
-               style={{ backgroundColor: `${mood.color}15`, color: mood.color, border: `1px solid ${mood.color}30` }}
+               initial={false}
+               animate={{ 
+                 backgroundColor: `${mood.color}15`, 
+                 color: mood.color, 
+                 border: `1px solid ${mood.color}30` 
+               }}
              >
                 <mood.icon size={32} />
-             </div>
+             </motion.div>
 
              <div className="flex flex-col items-center gap-1">
                 <span className="text-sm font-black text-white uppercase tracking-tighter italic">{mood.name}</span>

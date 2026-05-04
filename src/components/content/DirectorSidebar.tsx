@@ -50,7 +50,7 @@ const DirectorSidebar = memo(function DirectorSidebar({ isOpen, onClose, item }:
               <div className="space-y-2 pt-8">
                 <div className="flex items-center gap-2 text-brand-primary">
                   <Sparkles size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Curator&apos;s Spotlight</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Overview</span>
                 </div>
                 <h2 className="font-display text-3xl font-black text-white leading-none uppercase italic tracking-tighter">
                   {item.title}
@@ -68,7 +68,7 @@ const DirectorSidebar = memo(function DirectorSidebar({ isOpen, onClose, item }:
               <div className="relative p-6 rounded-sm bg-brand-primary/5 border border-brand-primary/10">
                 <Quote className="absolute -top-3 -left-3 text-brand-primary opacity-20" size={40} />
                 <h3 className="text-xs font-black uppercase text-brand-primary tracking-widest mb-3">
-                  The Director&apos;s Lens
+                  Editor's Note
                 </h3>
                 <p className="text-sm md:text-base text-amber-50/80 leading-relaxed font-medium italic">
                   &ldquo;
@@ -82,15 +82,14 @@ const DirectorSidebar = memo(function DirectorSidebar({ isOpen, onClose, item }:
               <div className="space-y-4">
                 <h3 className="text-xs font-black uppercase text-white/60 tracking-widest flex items-center gap-2">
                   <div className="w-1 h-1 rounded-full bg-brand-primary" />
-                  Cultural Documentation
+                  Context & Description
                 </h3>
                 <div className="text-sm text-white/70 leading-relaxed space-y-4">
                   {item.heritage?.culturalContext ? (
                     item.heritage.culturalContext.split('\n').map((para, i) => <p key={i}>{para}</p>)
                   ) : (
                     <p>
-                      Documentation is currently being verified by the ACU Historical Society. Check back soon for
-                      deeper cultural insights.
+                      Historical context and background information are currently being verified.
                     </p>
                   )}
                 </div>
@@ -104,7 +103,7 @@ const DirectorSidebar = memo(function DirectorSidebar({ isOpen, onClose, item }:
                   </div>
                   <div>
                     <span className="block text-[10px] font-black text-green-500 uppercase tracking-widest">
-                      Verified Accurate
+                      Verified Info
                     </span>
                     <span className="text-[10px] text-white/40 font-medium">
                       Historical context cross-referenced by local experts.
@@ -120,7 +119,7 @@ const DirectorSidebar = memo(function DirectorSidebar({ isOpen, onClose, item }:
                 Watch Now
               </button>
               <button className="px-6 py-4 rounded-sm bg-white/5 border border-white/10 text-white font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all">
-                Add to Vault
+                Add to Watchlist
               </button>
             </div>
           </motion.div>

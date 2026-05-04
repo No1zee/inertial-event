@@ -8,8 +8,15 @@ class TorrentService {
     private config = ProviderConfig.torrent;
     // Base URL for Torrentio (a public Stremio addon API)
     private readonly TORRENTIO_URL = 'https://torrentio.strem.fun/stream';
-    // Base URL for YTS
-    private readonly YTS_API_URL = 'https://yts.mx/api/v2/list_movies.json';
+    
+    // YTS Mirror List (Sequential fallback for DNS/ISP blocks)
+    private readonly YTS_MIRRORS = [
+        'https://yts.mx',
+        'https://yts.rs',
+        'https://yts.pm',
+        'https://yts.lt',
+        'https://yify-movies.net'
+    ];
 
     // Debug Helper (Safely logs to stdout in serverless)
     private log(msg: string) {
@@ -34,52 +41,59 @@ class TorrentService {
 
     // Helper: Fetch from YTS (Movies Only)
     private async fetchYTSTorrents(imdbId: string): Promise<any[]> {
-        try {
-            // YTS uses IMDB ID for precise filtering
-            // usage: ?query_term=<imdb_id>
-            const url = `${this.YTS_API_URL}?query_term=${imdbId}&limit=1`;
-            console.log(`[TorrentService] Querying YTS: ${url}`);
-            
-            const res = await axios.get(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-                }
-            });
-            if (!res.data || !res.data.data || !res.data.data.movies) return [];
+        // Try each mirror until one works
+        for (const mirror of this.YTS_MIRRORS) {
+            try {
+                const url = `${mirror}/api/v2/list_movies.json?query_term=${imdbId}&limit=1`;
+                this.log(`Querying YTS Mirror: ${url}`);
+                
+                const res = await axios.get(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                    },
+                    timeout: 4000 // Short timeout to rotate mirrors quickly
+                });
 
-            const movie = res.data.data.movies[0];
-            if (!movie || !movie.torrents) return [];
+                if (!res.data || !res.data.data || !res.data.data.movies) continue;
 
-            return movie.torrents.map((t: any) => {
-                // Construct magnet link from hash (more reliable/blocking-resistant than .torrent file URL)
-                const trackers = [
-                    'udp://open.demonii.com:1337/announce',
-                    'udp://tracker.openbittorrent.com:80',
-                    'udp://tracker.coppersurfer.tk:6969',
-                    'udp://glotorrents.pw:6969/announce',
-                    'udp://tracker.opentrackr.org:1337/announce',
-                    'udp://torrent.gresille.org:80/announce',
-                    'udp://p4p.arenabg.com:1337',
-                    'udp://tracker.leechers-paradise.org:6969'
-                ];
-                const trackerStr = trackers.map(tr => `&tr=${encodeURIComponent(tr)}`).join('');
-                const magnetUri = `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(movie.title)}${trackerStr}`;
+                const movie = res.data.data.movies[0];
+                if (!movie || !movie.torrents) continue;
 
-                return {
-                    url: magnetUri,
-                    quality: t.quality,
-                    type: 'torrent',
-                    provider: 'YTS',
-                    size: t.size,
-                    seeders: t.seeds,
-                    peers: t.peers,
-                    infoHash: t.hash
-                };
-            });
-        } catch (error) {
-            console.warn('[TorrentService] YTS Fetch Error:', error);
-            return [];
+                this.log(`Successfully fetched from YTS mirror: ${mirror}`);
+
+                return movie.torrents.map((t: any) => {
+                    const trackers = [
+                        'udp://open.demonii.com:1337/announce',
+                        'udp://tracker.openbittorrent.com:80',
+                        'udp://tracker.coppersurfer.tk:6969',
+                        'udp://glotorrents.pw:6969/announce',
+                        'udp://tracker.opentrackr.org:1337/announce',
+                        'udp://torrent.gresille.org:80/announce',
+                        'udp://p4p.arenabg.com:1337',
+                        'udp://tracker.leechers-paradise.org:6969'
+                    ];
+                    const trackerStr = trackers.map(tr => `&tr=${encodeURIComponent(tr)}`).join('');
+                    const magnetUri = `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(movie.title)}${trackerStr}`;
+
+                    return {
+                        url: magnetUri,
+                        quality: t.quality,
+                        type: 'torrent',
+                        provider: 'YTS',
+                        size: t.size,
+                        seeders: t.seeds,
+                        peers: t.peers,
+                        infoHash: t.hash
+                    };
+                });
+            } catch (error: any) {
+                this.log(`YTS Mirror failed (${mirror}): ${error.code || error.message}`);
+                // Continue to next mirror
+            }
         }
+        
+        this.log('All YTS mirrors failed or returned no results.');
+        return [];
     }
 
     // MAIN METHOD: Scrape sources
@@ -187,6 +201,17 @@ class TorrentService {
                 if (isYts) return 1;
                 if (title.includes('.mp4') || url.includes('.mp4')) return 1;
 
+                // Tier 3: High Fidelity (HEVC/HDR/4K)
+                // We check this BEFORE Tier 2 to ensure 4K MKVs aren't caught by the generic MKV check
+                if (
+                    title.includes('uhd') ||
+                    title.includes('10bit') ||
+                    title.includes('dv') ||
+                    title.includes('dovi') ||
+                    title.includes('remux') ||
+                    title.includes('vpp')
+                ) return 3;
+
                 // Tier 2: Standard compatible (MKV h264, or any HD)
                 const isHD = title.includes('1080p') || title.includes('720p') || title.includes('480p') || title.includes('hd') || title.includes('high.definition');
                 const isH264 = title.includes('x264') || title.includes('h264') || title.includes('avc');
@@ -196,9 +221,6 @@ class TorrentService {
                 if ((title.includes('.mkv') || url.includes('.mkv')) && isH264) return 2;
                 if (!title.includes('hevc') && !title.includes('x265') && !title.includes('hdr') && (title.includes('.mkv') || url.includes('.mkv'))) return 2;
                 if (isHD || isWeb || isBluray) return 2;
-
-                // Tier 3: Heavy Transcode (HEVC/HDR/4K)
-                if (title.includes('x265') || title.includes('hevc') || title.includes('hdr') || title.includes('2160p') || title.includes('4k') || title.includes('uhd')) return 3;
 
                 // Tier 4: Unknown — still keep them, just sort them last
                 return 4;

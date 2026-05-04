@@ -18,7 +18,7 @@ export default function WatchlistPage() {
     const watchLaterCollection = collections.find(c => c.id === 'watch-later');
     if (!watchLaterCollection) return [];
 
-    return library.filter(item => watchLaterCollection.items.includes(item.contentId));
+    return library.filter(item => (watchLaterCollection.items || []).includes(item.contentId));
   }, [library, collections]);
 
   // Sorted watchlist

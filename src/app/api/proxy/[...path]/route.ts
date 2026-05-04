@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { path: string[] } }
@@ -60,7 +64,7 @@ export async function GET(
   } catch (error) {
     console.error('Proxy Error:', error);
     return NextResponse.json(
-      { error: 'Local Bridge Unreachable. Ensure the MaiWatch bridge is running locally.' },
+      { error: 'Local Bridge Unreachable. Ensure the NovaStream bridge is running locally.' },
       { status: 502 }
     );
   }

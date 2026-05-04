@@ -59,12 +59,12 @@ export default function PavilionEntrance({ isActive, onComplete }: PavilionEntra
       {isActive && (
         <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
           {/* Top Shutter */}
-          <div ref={topShutterRef} className="absolute top-0 left-0 w-full bg-[#1a0f05] border-b border-amber-500/20" />
+          <div ref={topShutterRef} className="absolute top-0 left-0 w-full bg-[hsl(24,25%,4%)] border-b border-amber-500/20" />
 
           {/* Bottom Shutter */}
           <div
             ref={bottomShutterRef}
-            className="absolute bottom-0 left-0 w-full bg-[#1a0f05] border-t border-amber-500/20"
+            className="absolute bottom-0 left-0 w-full bg-[hsl(24,25%,4%)] border-t border-amber-500/20"
           />
 
           {/* Logo/Text Overlay */}

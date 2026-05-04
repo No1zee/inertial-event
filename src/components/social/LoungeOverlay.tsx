@@ -55,8 +55,8 @@ export const LoungeOverlay: React.FC<LoungeOverlayProps> = ({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                   <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Cinematic Lounge</h2>
-                   <p className="text-zinc-500 font-medium uppercase tracking-[0.2em] text-[10px]">High-Fidelity Synchronized Watch Party</p>
+                   <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Watch Party</h2>
+                   <p className="text-zinc-500 font-medium uppercase tracking-[0.2em] text-[10px]">Synchronized Viewing Experience</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
@@ -68,7 +68,7 @@ export const LoungeOverlay: React.FC<LoungeOverlayProps> = ({
                    <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center gap-3">
                       <Shield size={20} className="text-amber-500" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Protection</span>
-                      <span className="text-sm font-bold text-white">Aegis Sync Active</span>
+                      <span className="text-sm font-bold text-white">Sync Protection Active</span>
                    </div>
                 </div>
 
@@ -96,7 +96,7 @@ export const LoungeOverlay: React.FC<LoungeOverlayProps> = ({
                       Broadcast Invitation
                    </button>
                    <p className="text-[9px] text-zinc-700 font-medium leading-relaxed uppercase tracking-[0.1em]">
-                      By initiating a lounge, you establish a real-time Aegis synchronization tunnel. <br/> All participants will be frame-locked to your master timeline.
+                      By initiating a party, you establish a real-time playback synchronization. <br/> All participants will be frame-locked to your timeline.
                    </p>
                 </div>
              </div>

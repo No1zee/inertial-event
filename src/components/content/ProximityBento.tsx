@@ -77,12 +77,12 @@ export function ProximityBento() {
             src={getOptimizedImageUrl(spotlight.backdrop || spotlight.backdrop_path, 'original')}
             alt={spotlight.title}
             fill
-            className="object-cover opacity-40 group-hover/spotlight:scale-105 transition-transform duration-[2s] ease-out"
+            className="object-cover opacity-40 group-hover/spotlight:scale-105 transition-transform [transition-duration:2s] ease-out"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
           
-          {/* Neural Scan Line */}
+          {/* Cinematic Scan Line */}
           <motion.div 
             className="absolute inset-y-0 w-[1px] bg-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.5)] z-10"
             animate={{ left: ['0%', '100%', '0%'] }}
@@ -100,7 +100,7 @@ export function ProximityBento() {
           >
             <div className="flex items-center gap-3">
               <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-black text-amber-500 uppercase tracking-widest">
-                Director's Spotlight / 9.8 Rating
+                Director&apos;s Spotlight / 9.8 Rating
               </div>
               <div className="h-[1px] w-12 bg-white/10" />
             </div>
@@ -115,7 +115,7 @@ export function ProximityBento() {
 
             <div className="space-y-4">
               <p className="text-xl text-zinc-400 font-medium leading-relaxed italic max-w-2xl">
-                "{suggestion}"
+                &quot;{suggestion}&quot;
               </p>
               <p className="text-sm text-zinc-500 font-medium leading-relaxed max-w-xl line-clamp-2">
                 {spotlight.description || spotlight.overview}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
@@ -16,6 +16,8 @@ export default function ViewAllPage() {
   const railId = searchParams.get('id');
   const title = searchParams.get('title') || 'Explore';
   const [scrolled, setScrolled] = useState(false);
+
+  const router = useRouter();
 
   // Scroll listener for glassmorphic header
   useEffect(() => {
@@ -39,7 +41,8 @@ export default function ViewAllPage() {
       case 'action':
         return contentApi.getByGenre(28, 'movie', pageParam);
       case 'cbm':
-        return contentApi.discover({ with_keywords: '9715', sort_by: 'revenue.desc', page: pageParam }, 'movie');
+      case 'marvel_universe':
+        return contentApi.discover({ with_keywords: '180547', sort_by: 'revenue.desc', page: pageParam }, 'movie');
       case 'a24':
         return contentApi.discover({ with_companies: '41077', sort_by: 'popularity.desc', page: pageParam }, 'movie');
       case 'romcom':
@@ -117,13 +120,21 @@ export default function ViewAllPage() {
     show: { opacity: 1, y: 0 },
   };
 
+  const _handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
+
   return (
     <div className="min-h-screen relative bg-black selection:bg-red-500/30 selection:text-white">
       {/* AMBIENT CINEMATIC BACKDROP */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[180px] opacity-40 mix-blend-screen animate-pulse [animation-duration:10s]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-red-900/10 rounded-full blur-[200px] opacity-30 mix-blend-screen" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#0a0a0a]/90 to-black" />
       </div>
 
@@ -136,12 +147,14 @@ export default function ViewAllPage() {
         }`}
       >
         <div className="px-6 md:px-16 flex items-center gap-6 max-w-[2400px] mx-auto">
-          <Link
-            href="/browse"
+          <button
+            onClick={_handleBack}
+            title="Go Back"
+            aria-label="Go Back"
             className="group relative p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all duration-300"
           >
             <ChevronLeft size={20} className="text-zinc-400 group-hover:text-white transition-colors" />
-          </Link>
+          </button>
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-medium mb-0.5">Browsing</span>
             <motion.h1

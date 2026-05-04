@@ -17,7 +17,7 @@ export function SourceSwitcher() {
     <div className="relative">
       <Menu as="div" className="relative inline-block text-left">
         <div>
-          <Menu.Button className="group p-3 rounded-2xl bg-zinc-900/40 backdrop-blur-3xl border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center gap-3 pr-5 shadow-2xl">
+          <Menu.Button className="group p-3 rounded-2xl bg-black/40 backdrop-blur-3xl border border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center gap-3 pr-5 shadow-2xl">
             <Layers
               size={20}
               className={cn(

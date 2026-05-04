@@ -1,7 +1,7 @@
 /**
- * MaiWatch State Management Architecture
+ * NovaStream State Management Architecture
  * 
- * This document outlines the refactored state management strategy for MaiWatch,
+ * This document outlines the refactored state management strategy for NovaStream,
  * providing clear separation of concerns and consistent patterns.
  * 
  * STATE MANAGEMENT LAYERS:

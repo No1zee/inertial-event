@@ -25,14 +25,16 @@ const ALLOWED_CHANNELS = {
         'app-close',
         'CAST_SCAN_START',
         'CAST_SCAN_STOP',
-        'stop-status-updates'
+        'stop-status-updates',
+        'OPEN_IN_SHELL'
     ],
     ON: [
         'update-available',
         'update-downloaded',
         'license-status',
         'CAST_DEVICE_LIST',
-        'torrent:status'
+        'torrent:status',
+        'OPEN_EXTERNAL_LINK'
     ]
 };
 

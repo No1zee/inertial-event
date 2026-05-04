@@ -150,20 +150,36 @@ class LicenseManager {
 
     getLicenseKey() {
         // Path to license file
-        const PROD_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
+        const PROD_LICENSE_PATH = 'C:\\ProgramData\\NovaStream\\license.dat';
+        const LEGACY_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
         const USER_LICENSE_PATH = path.join(app.getPath('userData'), 'license.dat');
 
-        logger(`[LicenseManager] Checking for license at: "${USER_LICENSE_PATH}" and "${PROD_LICENSE_PATH}"`);
+        logger(`[LicenseManager] Checking for license at: "${USER_LICENSE_PATH}", "${PROD_LICENSE_PATH}", and legacy "${LEGACY_LICENSE_PATH}"`);
 
-        // Try UserData path first (more reliable permissions)
+        // 1. Try UserData path first (more reliable permissions)
         if (fs.existsSync(USER_LICENSE_PATH)) {
             logger('[LicenseManager] Found license in UserData');
             return fs.readFileSync(USER_LICENSE_PATH, 'utf8').trim();
         }
-        // Try Prod/ProgramData path as secondary
+        // 2. Try Prod/ProgramData NovaStream path
         if (fs.existsSync(PROD_LICENSE_PATH)) {
-            logger('[LicenseManager] Found license in ProgramData');
+            logger('[LicenseManager] Found license in ProgramData (NovaStream)');
             return fs.readFileSync(PROD_LICENSE_PATH, 'utf8').trim();
+        }
+        // 3. Try Legacy/ProgramData MaiWatch path (Migration Fallback)
+        if (fs.existsSync(LEGACY_LICENSE_PATH)) {
+            logger('[LicenseManager] Migrating license from legacy ProgramData (MaiWatch)');
+            const key = fs.readFileSync(LEGACY_LICENSE_PATH, 'utf8').trim();
+            // Automatically move/save it to the new NovaStream location if possible
+            try {
+                const nsDir = path.dirname(PROD_LICENSE_PATH);
+                if (!fs.existsSync(nsDir)) fs.mkdirSync(nsDir, { recursive: true });
+                fs.writeFileSync(PROD_LICENSE_PATH, key, 'utf8');
+                logger('[LicenseManager] Successfully migrated license to NovaStream folder.');
+            } catch (e) {
+                logger(`[LicenseManager Warning] Migration write failed: ${e.message}`);
+            }
+            return key;
         }
         
         logger('[LicenseManager] No license file found in any standard location.');
@@ -196,7 +212,7 @@ class LicenseManager {
                 gpu: 'Disabled for Speed',
                 hostname: os.hostname
             };
-        try {
+
             // Online Validation
             const baseUrl = getBaseUrl();
             const validationUrl = `${baseUrl}/validate`.replace(/([^:])\/\//g, '$1/');
@@ -340,7 +356,7 @@ class LicenseManager {
     getLicensePath() {
         // ALWAYS prioritize UserData for writing to ensure we have permissions
         const USER_LICENSE_PATH = require('path').join(app.getPath('userData'), 'license.dat');
-        const PROD_LICENSE_PATH = 'C:\\ProgramData\\MaiWatch\\license.dat';
+        const PROD_LICENSE_PATH = 'C:\\ProgramData\\NovaStream\\license.dat';
         
         // If we're packaged and running as admin, we could use ProgramData, 
         // but UserData is safer and guaranteed writable.

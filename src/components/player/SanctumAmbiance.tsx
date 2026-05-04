@@ -44,10 +44,7 @@ export function SanctumAmbiance({ src }: SanctumAmbianceProps) {
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute inset-0 blur-[150px] saturate-[2] pointer-events-none"
-        style={{
-          backgroundColor: 'rgb(var(--ambient-rgb, var(--brand-primary-rgb, 192, 57, 43)))',
-        }}
+        className="absolute inset-0 blur-[150px] saturate-[2] pointer-events-none dynamic-ambient-bg"
       />
 
       {/* Pulsing Gradient Overlays */}

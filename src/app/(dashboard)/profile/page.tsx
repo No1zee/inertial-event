@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 import { LoginForm } from '@/components/auth/LoginForm';
 import { useHydrated } from '@/lib/hooks/useHydrated';
-import { Loader2 } from 'lucide-react';
+
 
 export default function ProfilePage() {
   const isHydrated = useHydrated();
@@ -34,7 +34,7 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center gap-6">
           <div className="w-12 h-12 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
           <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-zinc-500 animate-pulse">
-            Synchronizing Neural Profile...
+            Synchronizing Profile...
           </span>
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function ProfilePage() {
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-white">Subscription</h2>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                You are currently on the <span className="text-white font-bold">Mai Premium</span> plan. Enjoy 4K
+                You are currently on the <span className="text-white font-bold">Nova Premium</span> plan. Enjoy 4K
                 streaming, offline downloads, and multi-device support.
               </p>
               <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">

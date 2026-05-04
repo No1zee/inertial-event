@@ -11,6 +11,9 @@ import { useEffect } from 'react';
 import { CloudSyncService } from '@/services/cloudSyncService';
 import { useAuthStore } from '@/lib/stores/authStore';
 
+import { TrailerModal } from '@/components/player/TrailerModal';
+import { ExternalBrowserModal } from '@/components/Common/ExternalBrowserModal';
+
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
 
@@ -38,6 +41,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           <ShortcutProvider>
             {children}
             <ContentModal />
+            <TrailerModal />
+            <ExternalBrowserModal />
           </ShortcutProvider>
         </ExperimentProvider>
       </QueryProvider>

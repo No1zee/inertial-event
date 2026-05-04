@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Content, SeasonDetails } from '@/lib/types/content';
 import { contentApi } from '@/lib/api/content';
 
 export function useTrending() {
@@ -25,24 +26,31 @@ export function useUpcoming() {
   });
 }
 
-export function useContentDetails(id: string | number, type: 'movie' | 'tv' | 'anime' = 'movie') {
-  return useQuery({
+export function useContentDetails(id: string | number, type: 'movie' | 'tv' | 'anime' | 'series' = 'movie') {
+  return useQuery<Content | null>({
     queryKey: ['content', 'details', id, type],
     queryFn: () => {
       // Map anime to tv for API call if necessary, or cast if API handles it internally (API signature says movie|tv)
       const apiType = type === 'anime' ? 'tv' : type;
       return contentApi.getDetails(id, apiType);
     },
-    enabled: !!id,
+    enabled: !!id && !String(id).startsWith('mock-'),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
-export function useSeasonDetails(id: string | number, seasonNumber: number, type: string = 'tv', enabledOverride: boolean = true) {
-  return useQuery({
+export function useSeasonDetails(id: string | number, seasonNumber: number, type: 'movie' | 'tv' | 'anime' | 'series' = 'tv', enabledOverride: boolean = true) {
+  const isValidType = type === 'tv' || type === 'anime' || type === 'series';
+  return useQuery<SeasonDetails | null>({
     queryKey: ['season', id, seasonNumber],
-    queryFn: () => contentApi.getSeasonDetails(id, seasonNumber),
-    enabled: !!id && !!seasonNumber && enabledOverride && type !== 'movie',
+    queryFn: () => contentApi.getSeasonDetails(id, seasonNumber, type as 'tv' | 'anime' | 'series'),
+    enabled: 
+      !!id && 
+      !!seasonNumber && 
+      seasonNumber > 0 &&
+      enabledOverride && 
+      isValidType && 
+      !String(id).startsWith('mock-'),
     staleTime: 60 * 60 * 1000, // 1 hour
   });
 }
@@ -213,10 +221,26 @@ export function useKoreanDramas() {
   });
 }
 
-export function useAfricanMovies() {
+export function useAfricanMovies(region?: 'west' | 'east' | 'southern' | 'north') {
   return useQuery({
-    queryKey: ['content', 'african-movies'],
-    queryFn: () => contentApi.getAfricanMovies(),
+    queryKey: ['content', 'african-movies', region],
+    queryFn: () => contentApi.getAfricanMovies(region),
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useNollywoodExcellence() {
+  return useQuery({
+    queryKey: ['content', 'nollywood-excellence'],
+    queryFn: () => contentApi.getNollywoodExcellence(),
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useAfrofuturism() {
+  return useQuery({
+    queryKey: ['content', 'afrofuturism'],
+    queryFn: () => contentApi.getAfrofuturism(),
     staleTime: 60 * 60 * 1000,
   });
 }
@@ -293,11 +317,11 @@ export function useDayOneDrops(type: 'movie' | 'tv' = 'movie') {
   });
 }
 
-export function useSimilar(id: string, type: 'movie' | 'tv' | 'anime' = 'movie') {
+export function useSimilar(id: string, type: 'movie' | 'tv' | 'anime' | 'series' = 'movie') {
   return useQuery({
     queryKey: ['content', 'similar', id, type],
     queryFn: () => contentApi.getSimilar(id, type),
-    enabled: !!id,
+    enabled: !!id && !String(id).startsWith('mock-'),
     staleTime: 60 * 60 * 1000,
   });
 }

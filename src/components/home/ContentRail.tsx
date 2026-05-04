@@ -1,6 +1,6 @@
 import ContentCard from './ContentCard';
 import { ChevronRight } from 'lucide-react';
-import { type Content } from '../../store/contentStore';
+import { type Content } from '@/lib/types/content';
 
 interface ContentRailProps {
   title: string;

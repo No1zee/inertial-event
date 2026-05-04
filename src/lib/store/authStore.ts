@@ -35,7 +35,7 @@ export const useAuthStore = createWithEqualityFn<AuthState>()(
         })),
     }),
     {
-      name: 'MaiWatch-auth-storage',
+      name: 'NovaStream-auth-storage',
     }
   )
 );

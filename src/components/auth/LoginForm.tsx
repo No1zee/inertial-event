@@ -23,7 +23,7 @@ export function LoginForm() {
         {
           id: 'user_123',
           username: 'NovaExplorer',
-          email: email || 'demo@MaiWatch.ai',
+          email: email || 'demo@novastream.media',
           role: 'user',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NovaExplorer',
         },

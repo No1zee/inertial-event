@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { X, Wifi, Globe, Zap, Server, CheckCircle2, Signal } from 'lucide-react';
+import { X, Wifi, Globe, Zap, Server, CheckCircle2, Signal, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SourceItem {
@@ -26,6 +26,10 @@ const getSourceIcon = (type: string) => {
       return <Zap size={16} className="text-emerald-400" />;
     case 'mp4':
       return <Signal size={16} className="text-blue-400" />;
+    case 'torrent':
+    case 'yts':
+    case 'webtorrent':
+      return <Shield size={16} className="text-purple-400" />;
     case 'embed':
       return <Globe size={16} className="text-amber-400" />;
     default:
@@ -39,6 +43,10 @@ const getTypeBadge = (type: string) => {
       return { label: 'NATIVE HLS', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' };
     case 'mp4':
       return { label: 'DIRECT MP4', color: 'bg-blue-500/15 text-blue-400 border-blue-500/20' };
+    case 'torrent':
+    case 'yts':
+    case 'webtorrent':
+      return { label: 'SWARM STREAM', color: 'bg-purple-500/15 text-purple-400 border-purple-500/20' };
     case 'embed':
       return { label: 'EMBED', color: 'bg-amber-500/15 text-amber-400 border-amber-500/20' };
     default:
@@ -54,7 +62,13 @@ const SourceSwitcher = memo(function SourceSwitcher({
   onClose,
 }: SourceSwitcherProps) {
   // Categorize sources
-  const nativeSources = sources.filter(s => s.type === 'hls' || s.type === 'mp4');
+  const nativeSources = sources.filter(s => 
+    s.type === 'hls' || 
+    s.type === 'mp4' || 
+    s.type === 'torrent' || 
+    s.type === 'yts' || 
+    s.type === 'webtorrent'
+  );
   const embedSources = sources.filter(s => s.type === 'embed');
 
   return (

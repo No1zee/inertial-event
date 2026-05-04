@@ -1,26 +1,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
-
-export interface Content {
-  id: string;
-  title: string;
-  slug: string;
-  type: 'movie' | 'series' | 'anime';
-  posterUrl: string;
-  backdropUrl: string;
-  description: string;
-  genres: string[];
-  rating?: number;
-  year: number;
-  heritage?: {
-    culturalContext?: string;
-    regionalOrigins?: string[];
-    accuracyVerified?: boolean;
-    curatorNote?: string;
-    didYouKnow?: string;
-  };
-}
+import { type Content } from '@/lib/types/content';
 
 interface ContentState {
   trending: Content[];
@@ -122,12 +103,14 @@ export const useContentStore = createWithEqualityFn<ContentState>()(
         }
       },
 
-      isInLibrary: contentId => {
-        return get().library.includes(contentId);
+      isInLibrary: (contentId: string) => {
+        const state = get();
+        const library = state?.library;
+        return Array.isArray(library) && library.includes(contentId);
       },
     }),
     {
-      name: 'MaiWatch-content-storage',
+      name: 'NovaStream-content-storage',
       partialize: state => ({ library: state.library }),
     }
   )

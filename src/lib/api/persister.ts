@@ -9,7 +9,7 @@ import { PersistedClient, Persister } from '@tanstack/react-query-persist-client
 export function createIndexedDBPersister(idbValidKey: string = 'react-query-cache'): Persister {
   return {
     persistClient: async (client: PersistedClient) => {
-      const db = await openDB('maiwatch-cache', 1, {
+      const db = await openDB('novastream-cache', 1, {
         upgrade(db) {
           db.createObjectStore('queries');
         },
@@ -17,7 +17,7 @@ export function createIndexedDBPersister(idbValidKey: string = 'react-query-cach
       await db.put('queries', client, idbValidKey);
     },
     restoreClient: async () => {
-      const db = await openDB('maiwatch-cache', 1, {
+      const db = await openDB('novastream-cache', 1, {
         upgrade(db) {
           db.createObjectStore('queries');
         },
@@ -25,7 +25,7 @@ export function createIndexedDBPersister(idbValidKey: string = 'react-query-cach
       return await db.get('queries', idbValidKey);
     },
     removeClient: async () => {
-      const db = await openDB('maiwatch-cache', 1, {
+      const db = await openDB('novastream-cache', 1, {
         upgrade(db) {
           db.createObjectStore('queries');
         },

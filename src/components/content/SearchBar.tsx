@@ -25,7 +25,7 @@ export function SearchBar({
   onChange,
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [isAi, setIsAi] = useState(initialAi);
+  const [isAi] = useState(initialAi);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e?: React.FormEvent) => {

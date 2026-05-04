@@ -33,13 +33,11 @@ try {
     htmlFiles.forEach(file => {
         let content = fs.readFileSync(file, 'utf8');
         
-        const relativePath = path.relative(path.dirname(file), outDir);
-        const prefix = relativePath ? relativePath.replace(/\\/g, '/') + '/' : './';
-
-        // Replace /_next with relative path
-        content = content.replace(/"\/_next\//g, `"${prefix}_next/`);
-        content = content.replace(/"\/images\//g, `"${prefix}images/`);
-        content = content.replace(/"\/favicon.ico"/g, `"${prefix}favicon.ico"`);
+        // Ensure paths are absolute (starting with /) for the local Express server
+        // This fixes 404 errors during SPA navigation and deep-links
+        content = content.replace(/"\/_next\//g, '"/_next/');
+        content = content.replace(/"\/images\//g, '"/images/');
+        content = content.replace(/"\/favicon.ico"/g, '"/favicon.ico"');
         
         fs.writeFileSync(file, content);
         console.log(`Fixed paths in ${file}`);

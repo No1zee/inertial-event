@@ -29,6 +29,16 @@ export interface ModalState {
     isOpen: boolean;
     initialQuery?: string;
   };
+  trailerModal: {
+    isOpen: boolean;
+    trailerKey: string | null;
+    title: string | null;
+  };
+  browserModal: {
+    isOpen: boolean;
+    url: string | null;
+    title: string | null;
+  };
 }
 
 export interface NavigationState {
@@ -44,8 +54,12 @@ export interface LayoutState {
   screenHeight: number;
   screenWidth: number;
   isRailExpanded: boolean;
-  isCommandCenterOpen: boolean;
+  isSearchOpen: boolean;
   isSettingsOpen: boolean;
+  atmosphereIntensity: number;
+  visualBoost: boolean;
+  playerBarDismissed: boolean;
+  hasInitialized: boolean;
 }
 
 export interface NotificationState {
@@ -75,6 +89,10 @@ interface UIStore extends ModalState, NavigationState, LayoutState, Notification
   closeCastModal: () => void;
   openSearchModal: (query?: string) => void;
   closeSearchModal: () => void;
+  openTrailerModal: (trailerKey: string, title: string) => void;
+  closeTrailerModal: () => void;
+  openBrowserModal: (url: string, title?: string) => void;
+  closeBrowserModal: () => void;
   closeAllModals: () => void;
 
   // Navigation actions
@@ -86,8 +104,8 @@ interface UIStore extends ModalState, NavigationState, LayoutState, Notification
 
   // Layout actions
   updateLayout: (layout: Partial<LayoutState>) => void;
-  setCommandCenterOpen: (open: boolean) => void;
-  toggleCommandCenter: () => void;
+  setSearchOpen: (open: boolean) => void;
+  toggleSearch: () => void;
   setSettingsOpen: (open: boolean) => void;
   setIsRailExpanded: (expanded: boolean) => void;
 
@@ -102,6 +120,12 @@ interface UIStore extends ModalState, NavigationState, LayoutState, Notification
   setChannelFilter: (channelId: string, filter: Record<string, unknown>) => void;
   clearChannelState: (channelId: string) => void;
 
+  // New Layout actions
+  setAtmosphereIntensity: (intensity: number) => void;
+  setVisualBoost: (boost: boolean) => void;
+  setPlayerBarDismissed: (dismissed: boolean) => void;
+  setHasInitialized: (initialized: boolean) => void;
+
   // Reset actions
   resetUI: () => void;
 }
@@ -112,6 +136,8 @@ const defaultModalState: ModalState = {
   settingsModal: { isOpen: false, activeTab: 'general' },
   castModal: { isOpen: false, personId: null, personName: null },
   searchModal: { isOpen: false },
+  trailerModal: { isOpen: false, trailerKey: null, title: null },
+  browserModal: { isOpen: false, url: null, title: null },
 };
 
 const defaultNavigationState: NavigationState = {
@@ -127,8 +153,12 @@ const defaultLayoutState: LayoutState = {
   screenHeight: 1080,
   screenWidth: 1920,
   isRailExpanded: false,
-  isCommandCenterOpen: false,
+  isSearchOpen: false,
   isSettingsOpen: false,
+  atmosphereIntensity: 0.4,
+  visualBoost: false,
+  playerBarDismissed: false,
+  hasInitialized: false,
 };
 
 const defaultNotificationState: NotificationState = {
@@ -193,12 +223,34 @@ export const useUIStore = createWithEqualityFn<UIStore>()(
             searchModal: { isOpen: false, initialQuery: undefined },
           }),
 
+        openTrailerModal: (trailerKey, title) =>
+          set({
+            trailerModal: { isOpen: true, trailerKey, title },
+          }),
+
+        closeTrailerModal: () =>
+          set({
+            trailerModal: { isOpen: false, trailerKey: null, title: null },
+          }),
+        
+        openBrowserModal: (url, title = 'NovaStream Browser') =>
+          set({
+            browserModal: { isOpen: true, url, title },
+          }),
+
+        closeBrowserModal: () =>
+          set({
+            browserModal: { isOpen: false, url: null, title: null },
+          }),
+
         closeAllModals: () =>
           set({
             contentModal: { isOpen: false, content: null },
             settingsModal: { isOpen: false, activeTab: 'general' },
             castModal: { isOpen: false, personId: null, personName: null },
             searchModal: { isOpen: false, initialQuery: undefined },
+            trailerModal: { isOpen: false, trailerKey: null, title: null },
+            browserModal: { isOpen: false, url: null, title: null },
           }),
 
         // Navigation actions
@@ -218,8 +270,8 @@ export const useUIStore = createWithEqualityFn<UIStore>()(
         // Layout actions
         updateLayout: layout => set(state => ({ ...state, ...layout })),
 
-        setCommandCenterOpen: isCommandCenterOpen => set({ isCommandCenterOpen }),
-        toggleCommandCenter: () => set(state => ({ isCommandCenterOpen: !state.isCommandCenterOpen })),
+        setSearchOpen: isSearchOpen => set({ isSearchOpen }),
+        toggleSearch: () => set(state => ({ isSearchOpen: !state.isSearchOpen })),
         setSettingsOpen: isSettingsOpen => set({ isSettingsOpen }),
         setIsRailExpanded: isRailExpanded => set({ isRailExpanded }),
 
@@ -290,6 +342,11 @@ export const useUIStore = createWithEqualityFn<UIStore>()(
             };
           }),
 
+        setAtmosphereIntensity: atmosphereIntensity => set({ atmosphereIntensity }),
+        setVisualBoost: visualBoost => set({ visualBoost }),
+        setPlayerBarDismissed: playerBarDismissed => set({ playerBarDismissed }),
+        setHasInitialized: hasInitialized => set({ hasInitialized }),
+
         // Reset actions
         resetUI: () => ({
           ...defaultModalState,
@@ -300,7 +357,7 @@ export const useUIStore = createWithEqualityFn<UIStore>()(
         }),
       }),
       {
-        name: 'MaiWatch-ui',
+        name: 'NovaStream-ui',
         storage: createJSONStorage(() => localStorage),
         partialize: state => ({
           // Only persist UI preferences, not ephemeral state
@@ -347,8 +404,12 @@ export const useLayoutState = () =>
       screenHeight: state.screenHeight,
       screenWidth: state.screenWidth,
       isRailExpanded: state.isRailExpanded,
-      isCommandCenterOpen: state.isCommandCenterOpen,
+      isSearchOpen: state.isSearchOpen,
       isSettingsOpen: state.isSettingsOpen,
+      atmosphereIntensity: state.atmosphereIntensity,
+      visualBoost: state.visualBoost,
+      playerBarDismissed: state.playerBarDismissed,
+      hasInitialized: state.hasInitialized,
     }),
     shallow
   );
@@ -357,10 +418,14 @@ export const useLayoutActions = () =>
   useUIStore(
     state => ({
       updateLayout: state.updateLayout,
-      setCommandCenterOpen: state.setCommandCenterOpen,
-      toggleCommandCenter: state.toggleCommandCenter,
+      setSearchOpen: state.setSearchOpen,
+      toggleSearch: state.toggleSearch,
       setSettingsOpen: state.setSettingsOpen,
       setIsRailExpanded: state.setIsRailExpanded,
+      setAtmosphereIntensity: state.setAtmosphereIntensity,
+      setVisualBoost: state.setVisualBoost,
+      setPlayerBarDismissed: state.setPlayerBarDismissed,
+      setHasInitialized: state.setHasInitialized,
     }),
     shallow
   );
@@ -395,10 +460,16 @@ export const useModalActions = () =>
       closeCastModal: state.closeCastModal,
       openSearchModal: state.openSearchModal,
       closeSearchModal: state.closeSearchModal,
+      openTrailerModal: state.openTrailerModal,
+      closeTrailerModal: state.closeTrailerModal,
+      openBrowserModal: state.openBrowserModal,
+      closeBrowserModal: state.closeBrowserModal,
       closeAllModals: state.closeAllModals,
     }),
     shallow
   );
+
+export const useTrailerState = () => useUIStore(state => state.trailerModal, shallow);
 
 export const useNavigationActions = () =>
   useUIStore(

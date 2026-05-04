@@ -41,7 +41,7 @@ export interface UIState {
 
 export interface PlayerMedia {
   id: string;
-  type: 'movie' | 'tv' | 'anime';
+  type: 'movie' | 'tv' | 'anime' | 'series';
   title: string;
   poster?: string;
   season?: number;
@@ -83,6 +83,7 @@ interface PlayerStore extends PlaybackState, AudioState, VideoState, UIState {
 
   // Actions - Media
   loadMedia: (media: PlayerMedia) => void;
+  updateMediaSource: (source: string) => void;
   unloadMedia: () => void;
 
   // Actions - Reset
@@ -204,16 +205,25 @@ export const usePlayerStore = createWithEqualityFn<PlayerStore>()(
 
         // Media actions
         loadMedia: media => {
+          const { volume, muted } = get();
           set({
             currentMedia: media,
             error: null,
             loading: false,
-            // Reset playback state for new media
             ...defaultPlaybackState,
-            // Automatically put on 100% volume for new content
-            volume: 1,
+            // Force unmute and full volume if currently muted or at zero
+            volume: (volume === 0 || muted) ? 1 : volume,
             muted: false,
           });
+        },
+
+        updateMediaSource: source => {
+          const { currentMedia } = get();
+          if (currentMedia) {
+            set({
+              currentMedia: { ...currentMedia, source }
+            });
+          }
         },
 
         unloadMedia: () => {
@@ -248,7 +258,7 @@ export const usePlayerStore = createWithEqualityFn<PlayerStore>()(
         },
       }),
       {
-        name: 'MaiWatch-player',
+        name: 'NovaStream-player',
         storage: createJSONStorage(() => sessionStorage), // Session-based persistence
         partialize: state => ({
           // Only persist preferences, not current state
@@ -315,20 +325,24 @@ export const useCurrentMedia = () => usePlayerStore(state => state.currentMedia)
 
 // Action selectors for cleaner imports
 export const usePlayerActions = () =>
-  usePlayerStore(state => ({
-    setPlaying: state.setPlaying,
-    setCurrentTime: state.setCurrentTime,
-    setDuration: state.setDuration,
-    setVolume: state.setVolume,
-    setMuted: state.setMuted,
-    toggleMute: state.toggleMute,
-    setQuality: state.setQuality,
-    setFullscreen: state.setFullscreen,
-    setShowControls: state.setShowControls,
-    loadMedia: state.loadMedia,
-    unloadMedia: state.unloadMedia,
-    resetPlayer: state.resetPlayer,
-  }));
+  usePlayerStore(
+    state => ({
+      setPlaying: state.setPlaying,
+      setCurrentTime: state.setCurrentTime,
+      setDuration: state.setDuration,
+      setVolume: state.setVolume,
+      setMuted: state.setMuted,
+      toggleMute: state.toggleMute,
+      setQuality: state.setQuality,
+      setFullscreen: state.setFullscreen,
+      setShowControls: state.setShowControls,
+      loadMedia: state.loadMedia,
+      updateMediaSource: state.updateMediaSource,
+      unloadMedia: state.unloadMedia,
+      resetPlayer: state.resetPlayer,
+    }),
+    shallow
+  );
 
 // Development utilities
 if (process.env.NODE_ENV === 'development') {

@@ -8,7 +8,7 @@ import { Hero } from '@/components/content/Hero';
 import { AtmosphericAsyncRail } from '@/components/content/AtmosphericAsyncRail';
 import { BrandBlock } from '@/components/brand/BrandBlock';
 import { contentApi } from '@/lib/api/content';
-import { Content } from '@/lib/types/content';
+
 
 import { useLastWatched } from '@/lib/stores/localDataStore';
 import { useHydrated } from '@/lib/hooks/useHydrated';
@@ -19,39 +19,39 @@ const ANIME_RAILS = [
   {
     id: 'hottest_this_year',
     title: `Hottest Anime This Year 🔥`,
-    fetcher: () => contentApi.getAnimeByGenre(`first_air_date_year=${currentYear}`),
+    fetcher: () => contentApi.getAnimeByGenre(`first_air_date_year=${currentYear}&page=${Math.floor(Math.random() * 3) + 1}`),
   },
-  { id: 'english_original', title: 'Dubbed Hits & English Originals 🎤', fetcher: () => contentApi.getEnglishAnime(1) },
-  { id: 'popular', title: 'All Time Legends 🌟', fetcher: () => contentApi.getAnime(1) },
-  { id: 'shonen', title: 'Shonen Power 👊', fetcher: () => contentApi.getAnimeByGenre('with_genres=10759') }, // Action/Adventure
-  { id: 'simulcasts', title: 'Hot Simulcasts 🔥', fetcher: () => contentApi.getAnime(2) },
-  { id: 'isekai', title: 'Isekai Worlds 🌍', fetcher: () => contentApi.getAnimeByGenre('with_keywords=210024') },
-  { id: 'sol', title: 'Slice of Life 🍰', fetcher: () => contentApi.getAnimeByGenre('with_keywords=9840') },
-  { id: 'dark', title: 'Dark Fantasy & Horror 🌑', fetcher: () => contentApi.getAnimeByGenre('with_keywords=209252') },
-  { id: 'mecha', title: 'Mecha & Cyberpunk 🤖', fetcher: () => contentApi.getAnimeByGenre('with_keywords=10701') },
-  { id: 'romance', title: 'Romance & Heartbreak 💔', fetcher: () => contentApi.getAnimeByGenre('with_genres=10749') },
-  { id: 'comedy', title: 'Comedy & Gag Shows 😂', fetcher: () => contentApi.getAnimeByGenre('with_genres=35') },
+  { id: 'english_original', title: 'Dubbed Hits & English Originals 🎤', fetcher: () => contentApi.getEnglishAnime(Math.floor(Math.random() * 5) + 1) },
+  { id: 'popular', title: 'All Time Legends 🌟', fetcher: () => contentApi.getAnime(Math.floor(Math.random() * 5) + 1) },
+  { id: 'shonen', title: 'Shonen Power 👊', fetcher: () => contentApi.getAnimeByGenre(`with_genres=10759&page=${Math.floor(Math.random() * 5) + 1}`) }, // Action/Adventure
+  { id: 'simulcasts', title: 'Hot Simulcasts 🔥', fetcher: () => contentApi.getAnime(Math.floor(Math.random() * 5) + 3) },
+  { id: 'isekai', title: 'Isekai Worlds 🌍', fetcher: () => contentApi.getAnimeByGenre(`with_keywords=210024&page=${Math.floor(Math.random() * 5) + 1}`) },
+  { id: 'sol', title: 'Slice of Life 🍰', fetcher: () => contentApi.getAnimeByGenre(`with_keywords=9840&page=${Math.floor(Math.random() * 5) + 1}`) },
+  { id: 'dark', title: 'Dark Fantasy & Horror 🌑', fetcher: () => contentApi.getAnimeByGenre(`with_keywords=209252&page=${Math.floor(Math.random() * 3) + 1}`) },
+  { id: 'mecha', title: 'Mecha & Cyberpunk 🤖', fetcher: () => contentApi.getAnimeByGenre(`with_keywords=10701&page=${Math.floor(Math.random() * 3) + 1}`) },
+  { id: 'romance', title: 'Romance & Heartbreak 💔', fetcher: () => contentApi.getAnimeByGenre(`with_genres=10749&page=${Math.floor(Math.random() * 5) + 1}`) },
+  { id: 'comedy', title: 'Comedy & Gag Shows 😂', fetcher: () => contentApi.getAnimeByGenre(`with_genres=35&page=${Math.floor(Math.random() * 5) + 1}`) },
   {
     id: 'supernatural',
     title: 'Supernatural & Magic ✨',
-    fetcher: () => contentApi.getAnimeByGenre('with_genres=10765'),
+    fetcher: () => contentApi.getAnimeByGenre(`with_genres=10765&page=${Math.floor(Math.random() * 5) + 1}`),
   },
-  { id: 'sports', title: 'Sports Spirit 🏀', fetcher: () => contentApi.getAnimeByGenre('with_keywords=6075') },
-  { id: 'psych', title: 'Psychological Thrillers 🧠', fetcher: () => contentApi.getAnimeByGenre('with_genres=9648') },
+  { id: 'sports', title: 'Sports Spirit 🏀', fetcher: () => contentApi.getAnimeByGenre(`with_keywords=6075&page=${Math.floor(Math.random() * 3) + 1}`) },
+  { id: 'psych', title: 'Psychological Thrillers 🧠', fetcher: () => contentApi.getAnimeByGenre(`with_genres=9648&page=${Math.floor(Math.random() * 3) + 1}`) },
   {
     id: 'seinen',
     title: 'Mature Seinen 🔞',
-    fetcher: () => contentApi.getAnimeByGenre('with_keywords=210393&vote_average.gte=7'),
+    fetcher: () => contentApi.getAnimeByGenre(`with_keywords=210393&vote_average.gte=7&page=${Math.floor(Math.random() * 3) + 1}`),
   },
   {
     id: 'movies',
     title: 'Anime Movie Night 🍿',
-    fetcher: () => contentApi.discover({ with_genres: '16', sort_by: 'popularity.desc' }, 'movie'),
+    fetcher: () => contentApi.discover({ with_genres: '16', sort_by: 'popularity.desc', page: Math.floor(Math.random() * 5) + 1 }, 'movie'),
   },
   {
     id: 'classics',
     title: 'Timeless Classics 🏆',
-    fetcher: () => contentApi.getAnimeByGenre('first_air_date.lte=2010-01-01&vote_average.gte=8'),
+    fetcher: () => contentApi.getAnimeByGenre(`first_air_date.lte=2010-01-01&vote_average.gte=8&page=${Math.floor(Math.random() * 3) + 1}`),
   },
 ];
 

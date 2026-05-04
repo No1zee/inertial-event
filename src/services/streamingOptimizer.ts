@@ -122,7 +122,7 @@ class StreamingOptimizer {
   reportFailure(sourceId: string) {
     this.state.failureCounts[sourceId] = (this.state.failureCounts[sourceId] || 0) + 1;
     if (this.state.failureCounts[sourceId] >= 2) {
-      console.warn(`[StreamingOptimizer] Blacklisting source ${sourceId} due to repeated failures.`);
+
       this.state.blacklist.add(sourceId);
     }
   }
@@ -158,13 +158,22 @@ class StreamingOptimizer {
 
   async preloadSources(
     contentId: string,
-    type: 'movie' | 'tv' | 'anime',
+    type: 'movie' | 'tv' | 'anime' | 'series',
     season: number = 1,
     episode: number = 1,
     title: string = '',
     audioPreference: string = 'dub'
   ): Promise<PreloadedSource | null> {
-    const key = this.getPreloadKey(contentId, type, season, episode);
+    const idStr = String(contentId).replace('tmdb_', '');
+    if (!idStr || idStr === 'undefined' || idStr === 'null' || idStr.startsWith('mock-')) {
+      return null;
+    }
+
+    // Movies should only ever fetch S1 E1 or just the ID
+    const effectiveSeason = type === 'movie' ? 1 : Math.max(1, season);
+    const effectiveEpisode = type === 'movie' ? 1 : Math.max(1, episode);
+
+    const key = this.getPreloadKey(contentId, type, effectiveSeason, effectiveEpisode);
 
     if (this.state.currentPreloading.has(key)) {
       return this.state.preloadedSources[key] || null;
@@ -182,10 +191,10 @@ class StreamingOptimizer {
     const fetchWithRetry = async (attempt: number = 1): Promise<PreloadedSource | null> => {
       try {
         const params = new URLSearchParams({
-          id: contentId,
-          type: type === 'movie' ? 'movie' : 'tv',
-          season: season.toString(),
-          episode: episode.toString(),
+          id: idStr,
+          type: (type === 'movie') ? 'movie' : 'tv',
+          season: effectiveSeason.toString(),
+          episode: effectiveEpisode.toString(),
           title,
           audioPreference,
         });
@@ -218,12 +227,12 @@ class StreamingOptimizer {
 
         // If we got an empty response or error, retry once
         if (attempt < 2) {
-          console.log(`[StreamingOptimizer] Attempt ${attempt} failed, retrying in 2s...`);
+
           await new Promise(r => setTimeout(r, 2000));
           return fetchWithRetry(attempt + 1);
         }
       } catch (error) {
-        console.warn(`[StreamingOptimizer] Preload attempt ${attempt} failed:`, error);
+
         if (attempt < 2) {
           await new Promise(r => setTimeout(r, 2000));
           return fetchWithRetry(attempt + 1);

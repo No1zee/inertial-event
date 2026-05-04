@@ -17,7 +17,7 @@ import { shallow } from 'zustand/shallow';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 import { AtmosphericPreview } from './AtmosphericPreview';
 import { PretextHeadline } from '../Common/PretextHeadline';
-import { streamingOptimizer } from '@/services/streamingOptimizer';
+
 import { usePlayerPreferences } from '@/lib/stores/preferencesStore';
 
 interface TMDBEpisode {
@@ -78,20 +78,13 @@ export default function ContentModal() {
   const watchHistory = useLocalDataStore(state => state.watchHistory);
   const { audioLanguage } = usePlayerPreferences();
 
-  const handlePrewarm = useCallback(() => {
-    if (!content) return;
-    const type = (content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie')) as 'movie' | 'tv' | 'anime';
-    streamingOptimizer.preloadSources(
-      content.id,
-      type,
-      1,
-      1,
-      content.title,
-      audioLanguage
-    );
-  }, [content, audioLanguage]);
+  // Source preloading removed from hover — was causing spurious backend requests.
+  // Sources are loaded by VidlinkPlayer/useSourceState when playback begins.
 
-  const inLibrary = content ? isInLibrary(String(content.id)) : false;
+  const inLibrary = useLocalDataStore(
+    state => state.library.some(item => item.contentId === String(content?.id)),
+    shallow
+  );
 
   // Reset and Fetch
   useEffect(() => {
@@ -100,22 +93,29 @@ export default function ContentModal() {
 
       const type = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
       const apiType = type === 'anime' ? 'tv' : type;
+      const isMock = String(content.id).startsWith('mock-');
 
-      contentApi.getDetails(content.id, apiType as 'movie' | 'tv').then(details => {
-        if (details) {
-          setDetailedContent(details);
-          if (details.seasonsList && details.seasonsList.length > 0) {
-            const state = states[String(content.id)];
-            if (state) {
-              setSelectedSeason(state.lastWatchedSeason || details.seasonsList[0].season_number);
-            } else {
-              setSelectedSeason(details.seasonsList[0].season_number);
+      if (!isMock) {
+        contentApi.getDetails(content.id, apiType as 'movie' | 'tv').then(details => {
+          if (details) {
+            setDetailedContent(details);
+            if (details.seasonsList && details.seasonsList.length > 0) {
+              const state = states[String(content.id)];
+              if (state) {
+                setSelectedSeason(state.lastWatchedSeason || details.seasonsList[0].season_number);
+              } else {
+                setSelectedSeason(details.seasonsList[0].season_number);
+              }
             }
           }
-        }
-      });
+        });
 
-      contentApi.getRecommendations(content.id, apiType as 'movie' | 'tv').then(setRecommendations);
+        contentApi.getRecommendations(content.id, apiType as 'movie' | 'tv').then(setRecommendations);
+      } else {
+        // Handle mock data if needed, otherwise just use current content
+        setDetailedContent(content);
+        setRecommendations([]);
+      }
 
       // Trigger trailer preview after a 1.5s delay
       const previewTimer = setTimeout(() => {
@@ -134,6 +134,12 @@ export default function ContentModal() {
     if (!isOpen || !content) return;
     const actualType = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
     if (actualType === 'tv' || actualType === 'anime') {
+      const isMock = String(content.id).startsWith('mock-');
+      if (isMock) {
+        setEpisodes([]);
+        return;
+      }
+
       setIsLoadingEpisodes(true);
       contentApi.getSeasonDetails(content.id, selectedSeason).then(data => {
         const seasonData = data as TMDBSeasonResponse;
@@ -145,11 +151,13 @@ export default function ContentModal() {
     }
   }, [isOpen, content, selectedSeason]);
 
+  const [isNavigating, setIsNavigating] = useState(false);
   const resumeData = content ? getResumeData(String(content.id)) : null;
 
   const handlePlay = useCallback(() => {
-    if (!content) return;
-    closeModal();
+    if (!content || isNavigating) return;
+    setIsNavigating(true);
+    
     const type = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
     const providerQuery = providerId ? `&provider=${providerId}` : '';
 
@@ -160,12 +168,20 @@ export default function ContentModal() {
           `/watch?id=${content.id}&type=${type}${season ? `&season=${season}` : ''}${episode ? `&episode=${episode}` : ''}&progress=${currentTime}${providerQuery}`
         );
       } else {
-        router.push(`/watch?id=${content.id}&type=${type}&season=${season ?? 1}&episode=${(episode ?? 1) + 1}${providerQuery}`);
+        // If series, try to watch next episode. If movie, just replay.
+        if (type === 'movie') {
+          router.push(`/watch?id=${content.id}&type=movie&progress=0${providerQuery}`);
+        } else {
+          router.push(`/watch?id=${content.id}&type=${type}&season=${season ?? 1}&episode=${(episode ?? 1) + 1}${providerQuery}`);
+        }
       }
     } else {
       router.push(`/watch?id=${content.id}&type=${type}${providerQuery}`);
     }
-  }, [closeModal, content, router, resumeData, providerId]);
+    
+    // Close modal after navigation starts to ensure smooth transition
+    setTimeout(closeModal, 150); 
+  }, [closeModal, content, router, resumeData, providerId, isNavigating]);
 
   const toggleWatchlist = useCallback(() => {
     if (!content) return;
@@ -176,8 +192,8 @@ export default function ContentModal() {
         contentId: String(content.id),
         type: content.type || 'movie',
         title: content.title,
-        poster: content.poster,
-        backdrop: content.backdrop,
+        poster: content.poster ?? undefined,
+        backdrop: content.backdrop ?? undefined,
         favorite: false,
       });
     }
@@ -239,18 +255,24 @@ export default function ContentModal() {
                 
                 {/* Trailer Hover Scrim */}
                 <div 
-                  className="absolute inset-0 z-40 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center cursor-pointer"
+                  className={cn(
+                    "absolute inset-0 z-40 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center",
+                    isNavigating ? "cursor-wait opacity-100" : "cursor-pointer"
+                  )}
                   onClick={handlePlay}
-                  onMouseEnter={handlePrewarm}
                 >
                   <motion.div 
                     initial={{ scale: 0.8, opacity: 0 }}
-                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={!isNavigating ? { scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.3)' } : {}}
+                    whileTap={!isNavigating ? { scale: 0.95 } : {}}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-2xl transition-colors duration-300"
+                    className="w-24 h-24 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white shadow-2xl transition-colors duration-300 backdrop-blur-sm"
                   >
-                    <Play size={40} fill="currentColor" className="ml-2" />
+                    {isNavigating ? (
+                      <Loader2 size={40} className="animate-spin text-white/80" />
+                    ) : (
+                      <Play size={40} fill="currentColor" className="ml-2" />
+                    )}
                   </motion.div>
                 </div>
 
@@ -258,15 +280,19 @@ export default function ContentModal() {
 
                 <div className="absolute bottom-0 left-0 p-8 sm:p-14 w-full z-30">
                   <div className="flex items-end gap-6 mb-6">
-                    <motion.div
-                      initial={{ opacity: 0, x: -20, scale: 0.8 }}
-                      whileInView={showPreview ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0 }}
-                      className="w-20 h-20 rounded-2xl bg-white text-black flex items-center justify-center shadow-cinematic cursor-pointer hover:bg-amber-500 hover:scale-110 transition-all duration-500"
-                      onClick={handlePlay}
-                      onMouseEnter={handlePrewarm}
-                    >
-                      <Play size={32} fill="currentColor" className="ml-1" />
-                    </motion.div>
+                    {!isNavigating && (
+                      <motion.div
+                        initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                        whileInView={showPreview ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0 }}
+                        className={cn(
+                          "w-20 h-20 rounded-2xl bg-white text-black flex items-center justify-center shadow-cinematic transition-all duration-500",
+                          "hover:bg-amber-500 hover:scale-110 cursor-pointer"
+                        )}
+                        onClick={handlePlay}
+                      >
+                        <Play size={32} fill="currentColor" className="ml-1" />
+                      </motion.div>
+                    )}
 
                     <PretextHeadline 
                       text={content.title}
@@ -287,10 +313,10 @@ export default function ContentModal() {
                     <Button
                       size="lg"
                       onClick={handlePlay}
-                      onMouseEnter={handlePrewarm}
+                      state={isNavigating ? 'loading' : 'default'}
                       className="bg-white text-black hover:bg-zinc-200 font-bold px-10 h-14 text-xl rounded-xl shadow-2xl transition-all"
                     >
-                      <Play size={24} fill="currentColor" className="mr-3" />
+                      {!isNavigating && <Play size={24} fill="currentColor" className="mr-3" />}
                       {resumeData
                         ? resumeData.completed
                           ? `Watch S${resumeData.season ?? 1} E${(resumeData.episode ?? 1) + 1}`
@@ -351,7 +377,7 @@ export default function ContentModal() {
                       activeTab === 'documentation' ? 'text-amber-500' : 'text-white/40 hover:text-white/60'
                     )}
                   >
-                    Heritage Documentation
+                    Details
                     {activeTab === 'documentation' && (
                       <motion.div layoutId="modal-tab" className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
                     )}
@@ -382,7 +408,7 @@ export default function ContentModal() {
                       <div className="flex flex-wrap items-center gap-4 text-zinc-400 font-medium">
                         <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-500 font-black text-xs tracking-widest uppercase">
                           <Star size={14} fill="currentColor" className="mr-0.5" />
-                          <span>MaiWatch Score // {content.rating?.toFixed(1) || '0.0'}</span>
+                          <span>NovaStream Score // {content.rating?.toFixed(1) || '0.0'}</span>
                         </div>
                         
                         {(detailedContent?.ratings?.imdb || content.ratings?.imdb) && (
@@ -415,7 +441,7 @@ export default function ContentModal() {
                       {detailedContent?.cast && detailedContent.cast.length > 0 && (
                         <div className="space-y-6">
                           <h3 className="text-zinc-500 text-xs font-black uppercase tracking-widest">
-                            Cast // Featured
+                            Featured Cast
                           </h3>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
                             {detailedContent.cast.map((c: CastMember) => (
@@ -448,10 +474,7 @@ export default function ContentModal() {
                       {recommendations.length > 0 && (
                         <div className="space-y-6 pt-12">
                           <div className="flex items-center gap-3">
-                            <span className="text-primary text-xs font-black uppercase tracking-[0.3em]">
-                              Neural Sync
-                            </span>
-                            <h3 className="text-white text-xs font-black uppercase tracking-widest">Matched Content</h3>
+                            <h3 className="text-white text-xs font-black uppercase tracking-widest">More Like This</h3>
                           </div>
                           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-8">
                             {recommendations.map(item => (
@@ -487,7 +510,7 @@ export default function ContentModal() {
                       <div className="space-y-2">
                         <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest">Genres</span>
                         <div className="flex flex-wrap gap-2">
-                          {content.genres?.map(g => (
+                          {(detailedContent?.genres || content.genres)?.map(g => (
                             <span
                               key={g}
                               className="text-xs text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-white/5"
@@ -507,7 +530,7 @@ export default function ContentModal() {
                       <div className="lg:col-span-2 space-y-8">
                         <div className="space-y-4">
                           <h3 className="text-amber-500 text-xs font-black uppercase tracking-[0.3em]">
-                            Cultural Insight // Documentation
+                            Cultural Context
                           </h3>
                           <div className="text-xl text-zinc-300 leading-relaxed font-light space-y-6 italic">
                             {content.heritage.culturalContext ? (
@@ -539,7 +562,7 @@ export default function ContentModal() {
                       <div className="space-y-8">
                         <div className="p-6 rounded-xl bg-zinc-900/50 border border-white/5 space-y-6">
                           <h4 className="text-zinc-500 text-xs font-black uppercase tracking-widest border-b border-white/5 pb-4">
-                            Archives
+                            Production Details
                           </h4>
                           <div className="space-y-4">
                             <div className="flex flex-col gap-1">
@@ -552,7 +575,7 @@ export default function ContentModal() {
                             </div>
                             <div className="flex flex-col gap-1">
                               <span className="text-[10px] font-black text-amber-500/60 uppercase">
-                                Documentation ID
+                                Reference ID
                               </span>
                               <span className="text-sm text-white font-mono uppercase tracking-tighter">
                                 ACU-REF-{content.id.substring(0, 8)}
@@ -599,7 +622,7 @@ export default function ContentModal() {
                       {isLoadingEpisodes ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-4">
                           <Loader2 className="animate-spin text-zinc-600" size={48} />
-                          <span className="text-zinc-500 text-sm font-medium animate-pulse">Fetching episodes...</span>
+                          <span className="text-zinc-500 text-sm font-medium animate-pulse">Loading episodes...</span>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 gap-4">

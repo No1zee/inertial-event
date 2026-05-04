@@ -22,7 +22,6 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
   const [showLeftArrow, setShowLeftArrow] = useState(false);
 
   const isLoading = items === undefined;
-  const isEmpty = items !== undefined && items.length === 0;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -42,7 +41,7 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
     return () => observer.disconnect();
   }, []);
 
-  // if (isEmpty) return null;
+  if (!isLoading && (!items || items.length === 0)) return null;
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollContainerRef.current) return;
@@ -68,17 +67,17 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
         <div className="flex items-center gap-3">
           <PretextHeadline
             text={title}
-            fontSize={24}
+            fontSize={20}
             fontWeight={800}
-            letterSpacing="-0.02em"
-            className="text-zinc-100 hover:text-white transition-colors cursor-pointer"
+            letterSpacing="-0.01em"
+            className="text-zinc-200 hover:text-white transition-colors cursor-pointer"
           />
           {railId && (
             <Link
               href={`/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}`}
-              className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-primary transition-all opacity-0 group-hover/header:opacity-100 flex items-center"
+              className="text-[9px] font-black uppercase tracking-widest text-zinc-700 hover:text-primary transition-all opacity-0 group-hover/header:opacity-100 flex items-center"
             >
-              Archive Index <ChevronRight size={10} className="ml-1" />
+              Browse Index <ChevronRight size={10} className="ml-1" />
             </Link>
           )}
         </div>
@@ -88,14 +87,13 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
         {/* Left Arrow */}
         <button
           onClick={() => scroll('left')}
-          title="Scroll left"
           aria-label="Scroll left"
           className={cn(
             'absolute left-0 top-0 bottom-0 z-30 w-12 bg-gradient-to-r from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 disabled:opacity-0',
             !showLeftArrow && 'hidden'
           )}
         >
-          <ChevronLeft className="text-white hover:scale-125" size={32} />
+          <ChevronLeft className="text-white hover:scale-125 transition-transform" size={32} />
         </button>
 
         {/* Scroll Container */}
@@ -140,11 +138,10 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
         {/* Right Arrow */}
         <button
           onClick={() => scroll('right')}
-          title="Scroll right"
           aria-label="Scroll right"
           className="absolute right-0 top-0 bottom-0 z-30 w-12 bg-gradient-to-l from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/scroll:opacity-100"
         >
-          <ChevronRight className="text-white hover:scale-125" size={32} />
+          <ChevronRight className="text-white hover:scale-125 transition-transform" size={32} />
         </button>
       </div>
     </div>

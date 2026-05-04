@@ -23,6 +23,9 @@ export const SeriesTracker: React.FC = () => {
       const newDiscoveries: { id: string; type: string; title: string; poster: string; label: string; backdrop: string }[] = [];
 
       for (const id of activeIds) {
+        // Guard against NaN or invalid IDs
+        if (id === 'NaN' || id === 'undefined' || isNaN(Number(id))) continue;
+        
         const state = contentState[id];
         if (!state) continue;
 
@@ -57,8 +60,8 @@ export const SeriesTracker: React.FC = () => {
               id,
               type: state.type,
               title: state.title,
-              poster: details.poster || state.poster || '',
-              backdrop: details.backdrop || state.backdrop || '',
+              poster: details?.poster || state.poster || '',
+              backdrop: details?.backdrop || state.backdrop || '',
               label: labelText
             });
           }
@@ -68,7 +71,7 @@ export const SeriesTracker: React.FC = () => {
       }
 
       if (newDiscoveries.length > 0) {
-        playSound('pop');
+        playSound('success');
 
         // If only one, show specific toast. If many, show aggregate.
         if (newDiscoveries.length === 1) {

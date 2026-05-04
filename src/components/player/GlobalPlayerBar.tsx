@@ -3,24 +3,46 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, ChevronRight, Activity } from 'lucide-react';
-import { useLastWatched, useModalActions } from '@/lib/stores';
+import { 
+  useLastWatched, 
+  useModalActions, 
+  useCurrentMedia, 
+  useModalState,
+  useLayoutState,
+  useLayoutActions
+} from '@/lib/stores';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { Content } from '@/lib/types/content';
 
 export const GlobalPlayerBar: React.FC = () => {
   const lastWatched = useLastWatched();
+  const currentMedia = useCurrentMedia();
+  const { isOpen: isModalOpen } = useModalState();
+  const { playerBarDismissed } = useLayoutState();
+  const { setPlayerBarDismissed } = useLayoutActions();
+  
   const [isVisible, setIsVisible] = useState(false);
   const { openContentModal } = useModalActions();
 
   useEffect(() => {
-    // Only show if we have history and the item is not completed
-    if (lastWatched && !lastWatched.completed && lastWatched.progress > 2) {
+    // Only show if:
+    // 1. We have watch history
+    // 2. It's not completed
+    // 3. NO media is currently active in the player
+    // 4. NO modal is currently open
+    // 5. It hasn't been dismissed for this session
+    if (lastWatched && 
+        !lastWatched.completed && 
+        lastWatched.progress > 2 && 
+        !currentMedia && 
+        !isModalOpen && 
+        !playerBarDismissed) {
       const timer = setTimeout(() => setIsVisible(true), 1500);
       return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
     }
-  }, [lastWatched]);
+  }, [lastWatched, currentMedia, isModalOpen, playerBarDismissed]);
 
   if (!lastWatched) return null;
 
@@ -32,6 +54,12 @@ export const GlobalPlayerBar: React.FC = () => {
       poster: lastWatched.poster,
       backdrop: lastWatched.backdrop,
     } as unknown as Content);
+  };
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsVisible(false);
+    setPlayerBarDismissed(true);
   };
 
   return (
@@ -93,10 +121,7 @@ export const GlobalPlayerBar: React.FC = () => {
                 <ChevronRight size={14} />
               </button>
               <button
-                onClick={e => {
-                  e.stopPropagation();
-                  setIsVisible(false);
-                }}
+                onClick={handleDismiss}
                 title="Dismiss"
                 aria-label="Dismiss"
                 className="p-2 text-zinc-500 hover:text-white transition-colors"

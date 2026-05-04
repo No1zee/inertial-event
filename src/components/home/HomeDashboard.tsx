@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useActiveProfile, useContinueWatching, useWatchHistoryActions, type ContinueWatchingItem } from '@/lib/stores/localDataStore';
+import { useActiveProfile, useContinueWatching, type ContinueWatchingItem } from '@/lib/stores/localDataStore';
 import { Play, TrendingUp, History, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
@@ -10,10 +10,8 @@ import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
-import { cn } from '@/lib/utils';
 import { EditorialSpotlight } from './EditorialSpotlight';
-import { CriticsChoice } from './CriticsChoice';
-import { StudioRail } from './StudioRail';
+import { AfricanCinematicUniverse } from './AfricanCinematicUniverse';
 
 export const HomeDashboard: React.FC = () => {
   const activeProfile = useActiveProfile();
@@ -28,13 +26,14 @@ export const HomeDashboard: React.FC = () => {
   const { data: trending } = useQuery<Content[]>({
     queryKey: ['trending_pulse', activeProfile?.preferences],
     queryFn: async () => {
-      const baseTrending = await contentApi.getTrending(1);
+      const baseTrending = await contentApi.getTrending(Math.floor(Math.random() * 3) + 1);
       if (activeProfile?.preferences?.genres?.length || activeProfile?.preferences?.vibes?.length) {
         return contentApi.getPersonalizedMix(baseTrending, activeProfile.preferences);
       }
-      return baseTrending;
+      return [...baseTrending].sort(() => Math.random() - 0.5);
     },
-    staleTime: 1000 * 60 * 30,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const greeting = useMemo(() => {
@@ -49,22 +48,16 @@ export const HomeDashboard: React.FC = () => {
 
   return (
     <section className="relative px-10 lg:px-24 pt-32 pb-12">
-      {/* 1. Vault Status & Greeting */}
+      {/* 1. Dashboard Context */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8"
+        className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/5 pb-12"
       >
         <div className="flex-1">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
-              <Sparkles size={12} className="text-amber-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
-                Vault Status: {activeProfile.preferences?.vibes?.join(' / ') || 'Neutral'}
-              </span>
-            </div>
-            <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
+          <div className="flex items-center gap-4 mb-2">
+            <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.4em]">
               {greeting}
             </span>
           </div>
@@ -73,41 +66,25 @@ export const HomeDashboard: React.FC = () => {
             fontSize={64}
             fontWeight={900}
             letterSpacing="-0.04em"
-            className="text-white"
-            shadow={{
-              color: 'rgba(255, 191, 0, 0.2)',
-              blur: 40,
-              offsetX: 0,
-              offsetY: 10
-            }}
+            className="text-white uppercase"
           />
         </div>
 
-        <div className="flex items-center gap-6 pb-4">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-1">Taste Profile</span>
-            <div className="flex gap-1">
-              {(activeProfile.preferences?.genres || []).slice(0, 3).map(genre => (
-                <span key={genre} className="text-[10px] font-bold text-white px-2 py-0.5 rounded bg-white/5 border border-white/10 uppercase">
-                  {genre}
-                </span>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center gap-8 pb-1">
           <button 
             onClick={() => router.push('/profile')}
-            className="h-12 px-6 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform active:scale-95"
+            className="h-12 px-8 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-all active:scale-95 shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
           >
             Refine Profile
           </button>
         </div>
       </motion.div>
 
-      {/* 2. The Command Panel (Aurelian Glass) */}
+      {/* 2. Quick Access (Resume + Trending) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-full">
         
-        {/* Left Wing: Your Pipeline (Resume) */}
-        <div className="relative group/pipeline">
+        {/* Left Wing: Continue Watching */}
+        <div className="relative group/continue-watching">
           <div className="flex items-center gap-3 mb-6">
             <History size={16} className="text-zinc-500" />
             <PretextHeadline
@@ -120,38 +97,53 @@ export const HomeDashboard: React.FC = () => {
           </div>
           
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-            <AnimatePresence mode="wait">
-              {continueWatching
-                .filter(item => item && item.id)
-                .slice(0, 5)
-                .map((item, idx) => (
-                  <PipelineCard
-                    key={item.id}
-                    item={item}
-                    index={idx}
-                    onClick={() => {
-                      const providerQuery = item.providerId ? `&provider=${item.providerId}` : '';
-                      const url =
-                        item.type === 'movie'
-                          ? `/watch?id=${item.id}&type=movie${providerQuery}`
-                          : `/watch?id=${item.id}&type=tv&season=${item.season || 1}&episode=${
-                              item.episode || 1
-                            }${providerQuery}`;
-                      router.push(url);
-                    }}
-                  />
-                ))}
-              {continueWatching.length === 0 && (
-                <div className="w-full h-32 rounded-[2rem] bg-zinc-900/20 border border-white/5 flex items-center justify-center border-dashed">
-                  <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Nothing here yet</span>
-                </div>
+            <AnimatePresence mode="popLayout" initial={false}>
+              {continueWatching.length > 0 ? (
+                <motion.div 
+                  key="continue-list"
+                  className="flex gap-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  {continueWatching
+                    .slice(0, 5)
+                    .map((item, idx) => (
+                      <ContinueWatchingCard
+                        key={item.id}
+                        item={item}
+                        index={idx}
+                        onClick={() => {
+                          const providerQuery = item.providerId ? `&provider=${item.providerId}` : '';
+                          const url =
+                            item.type === 'movie'
+                              ? `/watch?id=${item.id}&type=movie${providerQuery}`
+                              : `/watch?id=${item.id}&type=tv&season=${item.season || 1}&episode=${
+                                  item.episode || 1
+                                }${providerQuery}`;
+                          router.push(url);
+                        }}
+                      />
+                    ))}
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="continue-empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full h-32 rounded-3xl bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center gap-1 group/empty hover:bg-white/[0.04] transition-all duration-700"
+                >
+                  <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.4em] opacity-40 group-hover/empty:opacity-60 transition-opacity">Your list is empty</span>
+                  <span className="text-[7px] text-zinc-800 uppercase tracking-widest opacity-20">Start watching something to see it here</span>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* Right Wing: The Pulse (Trending) */}
-        <div className="relative group/pulse">
+        {/* Right Wing: Trending */}
+        <div className="relative group/trending">
           <div className="flex items-center gap-3 mb-6">
             <TrendingUp size={16} className="text-amber-500/70" />
             <PretextHeadline
@@ -165,10 +157,9 @@ export const HomeDashboard: React.FC = () => {
 
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {trending
-              ?.filter(item => item && item.id)
-              .slice(0, 5)
+              ?.slice(0, 5)
               .map((item, idx) => (
-                <PulseCard
+                <TrendingCard
                   key={item.id}
                   item={item}
                   index={idx}
@@ -179,22 +170,54 @@ export const HomeDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* 3. The Masterpiece (Editorial Spotlight) */}
+      <AnimatePresence>
+        {trending && trending.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-20"
+          >
+            <div className="flex items-center gap-3 mb-8">
+              <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.4em]">Recommended for You</span>
+              <div className="h-[1px] w-24 bg-gradient-to-r from-amber-500/50 to-transparent" />
+            </div>
+            <EditorialSpotlight 
+              item={trending[0]} 
+              curationReason={trending[0].editorialReason || "HANDPICKED FOR YOUR PROFILE"}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 4. The ACU Advance (African Cinematic Universe) */}
+      <AfricanCinematicUniverse />
     </section>
   );
 };
 
-const PipelineCard = ({ item, index, onClick }: { item: ContinueWatchingItem; index: number; onClick: () => void }) => {
+const ContinueWatchingCard = ({ item, index, onClick }: { item: ContinueWatchingItem; index: number; onClick: () => void }) => {
   const [isNavigating, setIsNavigating] = useState(false);
+  const router = useRouter();
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={isNavigating ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1], x: 0 } : { opacity: 1, x: 0 }}
       transition={isNavigating ? { repeat: Infinity, duration: 0.8, ease: "easeInOut" } : { delay: index * 0.1, duration: 0.8 }}
+      onMouseEnter={() => {
+        const providerQuery = item.providerId ? `&provider=${item.providerId}` : '';
+        const url = item.type === 'movie'
+          ? `/watch?id=${item.id}&type=movie${providerQuery}`
+          : `/watch?id=${item.id}&type=tv&season=${item.season || 1}&episode=${item.episode || 1}${providerQuery}`;
+        router.prefetch(url);
+      }}
       onClick={() => {
         setIsNavigating(true);
         onClick();
       }}
-      className="relative flex-shrink-0 w-[280px] aspect-[21/9] rounded-[1.5rem] overflow-hidden bg-zinc-900/40 border border-white/5 hover:border-amber-500/30 transition-all duration-500 cursor-pointer group/card"
+      className="relative flex-shrink-0 w-[280px] aspect-[21/9] rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 hover:border-amber-500/30 transition-all duration-500 cursor-pointer group/card"
     >
     <OptimizedImage
       src={item.backdrop || item.poster || ''}
@@ -235,14 +258,17 @@ const PipelineCard = ({ item, index, onClick }: { item: ContinueWatchingItem; in
   );
 };
 
-const PulseCard = ({ item, index, onClick }: { item: Content; index: number; onClick: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, x: 20 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay: index * 0.1 + 0.5, duration: 0.8 }}
-    onClick={onClick}
-    className="relative flex-shrink-0 w-[220px] aspect-[16/9] rounded-[1.5rem] overflow-hidden bg-zinc-900/40 border border-white/5 hover:border-red-500/30 transition-all duration-500 cursor-pointer group/card"
-  >
+const TrendingCard = ({ item, index, onClick }: { item: Content; index: number; onClick: () => void }) => {
+  const router = useRouter();
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.1 + 0.5, duration: 0.8 }}
+      onMouseEnter={() => router.prefetch(`/watch?id=${item.id}&type=${item.type || 'movie'}`)}
+      onClick={onClick}
+      className="relative flex-shrink-0 w-[220px] aspect-[16/9] rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 hover:border-red-500/30 transition-all duration-500 cursor-pointer group/card"
+    >
     <OptimizedImage
       src={item.backdrop_path || item.poster_path || ''}
       alt={item.title || ''}
@@ -259,8 +285,15 @@ const PulseCard = ({ item, index, onClick }: { item: Content; index: number; onC
         fontSize={10}
         fontWeight={900}
         letterSpacing="-0.02em"
-        className="text-white uppercase truncate"
+        className="text-white uppercase truncate mb-1"
       />
+      {item.editorialReason && (
+        <span className="text-[7px] font-medium text-zinc-400 line-clamp-1 italic">
+          {item.editorialReason}
+        </span>
+      )}
     </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
+

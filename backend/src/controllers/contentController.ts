@@ -14,8 +14,10 @@ export const getTrending = async (req: Request, res: Response) => {
     try {
         if (!isDbConnected()) {
             const tmdbData = await tmdbService.getTrending();
-            if (tmdbData.length > 0) return res.json(tmdbData);
-            return res.json(MOCK_CONTENT);
+            const randomized = tmdbData.length > 0 
+                ? tmdbData.sort(() => Math.random() - 0.5) 
+                : MOCK_CONTENT.sort(() => Math.random() - 0.5);
+            return res.json(randomized);
         }
 
         const content = await (Content as any).find()
@@ -68,7 +70,8 @@ export const getFeatured = async (req: Request, res: Response) => {
         }
 
         const featured = await (Content as any).findOne({ trendingScore: { $gt: 0 } }).sort({ trendingScore: -1 });
-        res.json(featured || MOCK_CONTENT[0]);
+        const finalFeatured = featured || MOCK_CONTENT[Math.floor(Math.random() * MOCK_CONTENT.length)];
+        res.json(finalFeatured);
     } catch (error: any) {
         res.json(MOCK_CONTENT[0]);
     }

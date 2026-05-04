@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { OptimizedImage } from '../ui/OptimizedImage';
 
-import { type Content } from '../../store/contentStore';
+import { type Content } from '@/lib/types/content';
 
 interface ContentCardProps {
   item: Content & { _id?: string }; // Support both MongoDB _id and standard id

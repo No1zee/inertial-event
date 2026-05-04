@@ -18,6 +18,7 @@ import HeritageCard from '@/components/content/HeritageCard';
 const DirectorSidebar = dynamic(() => import('@/components/content/DirectorSidebar'), { ssr: false });
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MoodGrid } from '@/components/content/MoodGrid';
 
 interface FilterState {
@@ -49,10 +50,17 @@ export default function BrowsePage() {
 
   // Update filters when URL params change
   useEffect(() => {
-    if (companyId) {
-      setFilters(prev => ({ ...prev, company: parseInt(companyId) }));
+    const moodParam = searchParams.get('mood');
+    const genresParam = searchParams.get('genres');
+
+    if (moodParam || genresParam || companyId) {
+      setFilters(prev => ({
+        ...prev,
+        company: companyId ? parseInt(companyId) : prev.company,
+        genres: genresParam ? genresParam.split(',') : prev.genres
+      }));
     }
-  }, [companyId]);
+  }, [searchParams, companyId]);
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['browse', filters],
@@ -91,15 +99,19 @@ export default function BrowsePage() {
     <div className="space-y-6 pt-24 px-4 md:px-12 pb-20">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">{brandName || 'Browse'}</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight capitalize">
+            {brandName || searchParams.get('mood') || 'Browse'}
+          </h1>
           <p className="text-zinc-400 text-sm mt-1">
             {brandName
               ? 'Complete Collection'
-              : filters.type === 'all'
-                ? 'All Content'
-                : filters.type === 'movie'
-                  ? 'Movies'
-                  : 'TV Shows'}
+              : searchParams.get('mood')
+                ? 'Curated Mood Selection'
+                : filters.type === 'all'
+                  ? 'All Content'
+                  : filters.type === 'movie'
+                    ? 'Movies'
+                    : 'TV Shows'}
             {filters.genres.length > 0 && ` • ${filters.genres.length} filters active`}
           </p>
         </div>
@@ -110,7 +122,7 @@ export default function BrowsePage() {
               if (!isHeritageTheme) {
                 setIsPavilionEntering(true);
               } else {
-                setTheme('Mai');
+                setTheme('Nova');
               }
             }}
             className={cn(
@@ -143,7 +155,7 @@ export default function BrowsePage() {
         <div className="py-8 border-b border-white/5">
            <div className="flex items-center gap-3 mb-8 text-zinc-500 font-black uppercase tracking-[0.3em] text-[10px]">
               <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-              <span>Sanctuary Moods // Emotion-First Discovery</span>
+              <span>Discovery by Mood // Emotion-First Discovery</span>
            </div>
            <MoodGrid />
         </div>
@@ -163,37 +175,51 @@ export default function BrowsePage() {
         item={selectedHeritageItem}
       />
 
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-          {Array(12)
-            .fill(0)
-            .map((_, i) => (
-              <ContentCardSkeleton key={i} />
-            ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-          {items?.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-zinc-500">No content found matching your filters.</div>
-          ) : (
-            items?.map((item: Content) =>
-              isHeritageTheme ? (
-                <HeritageCard
-                  key={`${item.type}-${item.id}`}
-                  item={item}
-                  onPlay={item => {
-                    // Trigger play logic or just open modal
-                    setSelectedHeritageItem(item);
-                  }}
-                  onInfo={item => setSelectedHeritageItem(item)}
-                />
-              ) : (
-                <ContentCard key={`${item.type}-${item.id}`} item={item} />
+      <AnimatePresence mode="popLayout">
+        {isLoading ? (
+          <motion.div
+            key="skeleton-grid"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
+          >
+            {Array(12)
+              .fill(0)
+              .map((_, i) => (
+                <ContentCardSkeleton key={i} />
+              ))}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content-grid"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
+          >
+            {items?.length === 0 ? (
+              <div className="col-span-full py-20 text-center text-zinc-500">No content found matching your filters.</div>
+            ) : (
+              items?.map((item: Content) =>
+                isHeritageTheme ? (
+                  <HeritageCard
+                    key={`${item.type}-${item.id}`}
+                    item={item}
+                    onPlay={item => {
+                      // Trigger play logic or just open modal
+                      setSelectedHeritageItem(item);
+                    }}
+                    onInfo={item => setSelectedHeritageItem(item)}
+                  />
+                ) : (
+                  <ContentCard key={`${item.type}-${item.id}`} item={item} />
+                )
               )
-            )
-          )}
-        </div>
-      )}
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <FilterOverlay
         isOpen={isFilterOpen}

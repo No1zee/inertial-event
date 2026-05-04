@@ -58,7 +58,7 @@ export const useCollectionStore = createWithEqualityFn<CollectionState>()(
           collections: state.collections.map(c => {
             if (c.id !== collectionId) return c;
             // Avoid duplicates
-            if (c.items.some(i => String(i.id) === String(item.id))) return c;
+            if ((c.items || []).some(i => String(i.id) === String(item.id))) return c;
 
             // Optimize storage
             const minifiedItem = minifyContent(item) as Content;
@@ -78,12 +78,12 @@ export const useCollectionStore = createWithEqualityFn<CollectionState>()(
 
       isInCollection: (collectionId, itemId) => {
         const col = get().collections.find(c => c.id === collectionId);
-        if (!col) return false;
+        if (!col || !Array.isArray(col.items)) return false;
         return col.items.some(i => String(i.id) === String(itemId));
       },
     }),
     {
-      name: 'MaiWatch-collections',
+      name: 'NovaStream-collections',
     }
   )
 );

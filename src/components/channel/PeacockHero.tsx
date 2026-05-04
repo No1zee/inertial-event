@@ -43,6 +43,13 @@ export function PeacockHero({ item }: PeacockHeroProps) {
               opacity: [0.05, 0.15, 0.05],
               x: [0, 20, 0],
               y: [0, 10, 0],
+              backgroundColor: color,
+            }}
+            initial={{
+              width: '40vw',
+              height: '40vw',
+              top: `${i * 15 - 20}%`,
+              right: `${(5 - i) * 10 - 20}%`,
             }}
             transition={{
               duration: 8 + i,
@@ -50,13 +57,6 @@ export function PeacockHero({ item }: PeacockHeroProps) {
               delay: i * 0.5,
             }}
             className="absolute rounded-full blur-[120px]"
-            style={{
-              backgroundColor: color,
-              width: '40vw',
-              height: '40vw',
-              top: `${i * 15 - 20}%`,
-              right: `${(5 - i) * 10 - 20}%`,
-            }}
           />
         ))}
       </div>
@@ -94,10 +94,9 @@ export function PeacockHero({ item }: PeacockHeroProps) {
                 <motion.div
                   key={i}
                   initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
+                  animate={{ scale: 1, backgroundColor: color }}
                   transition={{ delay: 0.8 + i * 0.1 }}
                   className="w-2 h-2 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.2)]"
-                  style={{ backgroundColor: color }}
                 />
               ))}
             </div>

@@ -18,12 +18,17 @@ export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Fetch smart recommendations and new episode checks
+  // Fetch smart recommendations and new episode checks only when opened
   useEffect(() => {
     const fetchData = async () => {
+      if (loading || recs.length > 0) return; // Already loading or have data
+      
       setLoading(true);
       try {
-        // 1. Hot Drops (High anticipation / engagement recently)
+        // Fetch data after a slight delay to allow page hydration to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 1. Trending (Formerly Hot Drops)
         const [hotMovies, hotTV] = await Promise.all([
           contentApi.getDayOneDrops('movie'),
           contentApi.getDayOneDrops('tv'),
@@ -32,13 +37,11 @@ export function NotificationDropdown() {
         const isGlobalHit = (item: Content) => {
           const asianLangs = ['ja', 'ko', 'zh', 'cn', 'th', 'vi', 'id'];
           if (item.language && asianLangs.includes(item.language)) {
-            // "Big in America" threshold: Very high popularity or widespread acclaim
             return (item.popularity && item.popularity > 1500) || item.rating > 8.0;
           }
           return true;
         };
 
-        // Combine and sort by rating/popularity to find the "buzz"
         const combinedHot = [...hotMovies, ...hotTV]
           .filter(isGlobalHit)
           .sort((a, b) => b.rating - a.rating)
@@ -47,7 +50,7 @@ export function NotificationDropdown() {
 
         // 2. New Episodes check (if history exists)
         if (history.length > 0) {
-          const watchedShows = history.filter(item => item.type === 'tv' || item.type === 'anime').slice(0, 10);
+          const watchedShows = history.filter(item => item.type === 'tv' || item.type === 'anime').slice(0, 5);
 
           const newEpPromises = watchedShows.map(async show => {
             const typeForApi = show.type === 'anime' ? 'tv' : show.type;
@@ -58,7 +61,6 @@ export function NotificationDropdown() {
             const lastWatchedDate = new Date(show.lastWatched);
             const isRecent = new Date().getTime() - lastAir.getTime() < 30 * 24 * 60 * 60 * 1000;
 
-            // Strict check: if it aired AFTER we last watched it
             if (lastAir > lastWatchedDate && isRecent) {
               return freshDetails;
             }
@@ -66,7 +68,6 @@ export function NotificationDropdown() {
           });
 
           const newEpResults = (await Promise.all(newEpPromises)).filter(Boolean) as Content[];
-          // Remove duplicates
           setNewEpisodes(newEpResults.filter(ep => !combinedHot.find(h => h.id === ep.id)));
 
           // 3. "Because You Watched"
@@ -75,13 +76,12 @@ export function NotificationDropdown() {
             const similar = await contentApi.getSimilar(lastWatched.contentId, lastWatched.type);
             setRecs(
               similar
-                .filter(isGlobalHit) // Apply "Prudent" filter to recommendations too
+                .filter(isGlobalHit)
                 .filter(s => !combinedHot.find(h => h.id === s.id))
                 .slice(0, 3)
             );
           }
         } else {
-          // Cold start recommendations if no history, just more hot drops or trending
           const trending = await contentApi.getTrending();
           setRecs(trending.slice(0, 3));
         }
@@ -92,11 +92,12 @@ export function NotificationDropdown() {
       }
     };
 
-    if (typeof window !== 'undefined') {
+    if (isOpen) {
       fetchData();
     }
-  }, [history]);
+  }, [isOpen, history]);
 
+  // Small effect to show an indicator if there's history (optional, or just keep it simple)
   const hasUnread = recs.length > 0 || newEpisodes.length > 0 || hotDrops.length > 0;
 
   return (

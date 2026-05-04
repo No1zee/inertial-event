@@ -4,13 +4,12 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/lib/stores/playerStore';
 import { streamingOptimizer } from '@/services/streamingOptimizer';
-import { X, Play, Plus } from 'lucide-react';
+import { X, Play } from 'lucide-react';
 import { usePreferencesStore } from '@/lib/stores/preferencesStore';
 import { useSimilar } from '@/hooks/queries/useContent';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
-import { PretextHeadline } from '@/components/Common/PretextHeadline';
-import Link from 'next/link';
-import { type Content } from '@/lib/types/content';
+import { contentApi } from '@/lib/api/content';
+import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 interface CinematicEndCreditsProps {
   contentId: string;
@@ -20,6 +19,12 @@ interface CinematicEndCreditsProps {
   hasNext: boolean;
   onNext: () => void;
   onCancel: () => void;
+}
+
+interface EpisodeInfo {
+  name: string;
+  still_path: string | null;
+  overview: string | null;
 }
 
 export function CinematicEndCredits({
@@ -35,17 +40,18 @@ export function CinematicEndCredits({
   const storeDuration = usePlayerStore(state => state.duration);
   const audioLanguage = usePreferencesStore(state => state.audioLanguage);
   const [hasPreloaded, setHasPreloaded] = useState(false);
-  
-  // Use the countdown from playerStore or local default
-  const countdownSeconds = 15; 
+  const [episodeInfo, setEpisodeInfo] = useState<EpisodeInfo | null>(null);
+
+  const countdownSeconds = 15;
   const [countdown, setCountdown] = useState(countdownSeconds);
   const [showOverlay, setShowOverlay] = useState(false);
   const [isPreloading, setIsPreloading] = useState(false);
-  
-  const { data: similarContent } = useSimilar(contentId, type);
+
+  useSimilar(contentId, type);
 
   const triggeredRef = useRef(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchedRef = useRef(false);
 
   const handleAutoAdvance = useCallback(() => {
     if (triggeredRef.current) return;
@@ -54,16 +60,47 @@ export function CinematicEndCredits({
     onNext();
   }, [onNext]);
 
+  // Fetch next episode metadata (still image + name)
   useEffect(() => {
-    if (!hasNext || storeDuration <= 30) return;
+    if (fetchedRef.current || !hasNext || type === 'movie') return;
+    if (String(contentId).startsWith('mock-')) return;
+
+    fetchedRef.current = true;
+    const apiType = type === 'anime' ? 'tv' : type;
+
+    contentApi.getSeasonDetails(contentId, season, apiType).then(data => {
+      const episodes = (data as any)?.episodes || [];
+      const ep = episodes.find((e: any) => e.episode_number === nextEpisode);
+      if (ep) {
+        setEpisodeInfo({
+          name: ep.name || `Episode ${nextEpisode}`,
+          still_path: ep.still_path || null,
+          overview: ep.overview || null,
+        });
+      }
+    }).catch(() => {
+      // Non-critical: overlay still works without episode metadata
+    });
+  }, [contentId, season, nextEpisode, hasNext, type]);
+
+  useEffect(() => {
+    if (!hasNext || !Number.isFinite(storeDuration) || storeDuration <= 30) return;
 
     const timeRemaining = storeDuration - currentTime;
     const progress = currentTime / storeDuration;
 
     // Show overlay in the last 30 seconds
-    if (timeRemaining <= 30 && timeRemaining > 0 && progress > 0.9 && !triggeredRef.current) {
-      setShowOverlay(true);
-      
+    if (
+      Number.isFinite(timeRemaining) &&
+      timeRemaining <= 30 &&
+      timeRemaining > 0 &&
+      progress > 0.9 &&
+      !triggeredRef.current
+    ) {
+      if (!showOverlay) {
+        setShowOverlay(true);
+      }
+
       // Start auto-advance countdown in the last 15 seconds
       if (timeRemaining <= countdownSeconds && !intervalRef.current) {
         intervalRef.current = setInterval(() => {
@@ -76,7 +113,7 @@ export function CinematicEndCredits({
           });
         }, 1000);
       }
-    } else if (timeRemaining > 35) {
+    } else if (timeRemaining > 35 || isNaN(timeRemaining)) {
       setShowOverlay(false);
       setCountdown(countdownSeconds);
       if (intervalRef.current) {
@@ -84,122 +121,168 @@ export function CinematicEndCredits({
         intervalRef.current = null;
       }
     }
-  }, [currentTime, storeDuration, hasNext, handleAutoAdvance, countdownSeconds]);
+  }, [currentTime, storeDuration, hasNext, handleAutoAdvance, countdownSeconds, showOverlay]);
 
-  // Preload next episode
+  // Preload next episode sources when close to the end
   useEffect(() => {
     if (!hasNext || storeDuration <= 30 || hasPreloaded || isPreloading) return;
 
     const timeRemaining = storeDuration - currentTime;
     if (timeRemaining <= 45) {
       setIsPreloading(true);
-      streamingOptimizer.preloadSources(contentId, type, season, nextEpisode, '', audioLanguage).then(() => {
-        setHasPreloaded(true);
-        setIsPreloading(false);
-      });
+      streamingOptimizer
+        .preloadSources(contentId, type, season, nextEpisode, '', audioLanguage)
+        .then(() => {
+          setHasPreloaded(true);
+          setIsPreloading(false);
+        });
     }
   }, [currentTime, storeDuration, hasNext, hasPreloaded, isPreloading, contentId, type, season, nextEpisode, audioLanguage]);
 
   if (!showOverlay) return null;
 
+  const stillUrl = episodeInfo?.still_path
+    ? getOptimizedImageUrl(episodeInfo.still_path, 'w500')
+    : null;
+
+  const episodeName = episodeInfo?.name || `Episode ${nextEpisode}`;
+
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 z-[200] flex flex-col justify-end p-12 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none"
+        initial={{ opacity: 0, y: 50, scale: 0.9, x: 20 }}
+        animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
+        exit={{ opacity: 0, y: 30, scale: 0.95 }}
+        className="absolute bottom-24 right-12 z-[200] w-[420px] pointer-events-auto"
       >
-        <div className="flex flex-col gap-12 max-w-7xl mx-auto w-full pointer-events-auto">
-          {/* Main Action Area */}
-          <div className="flex items-end justify-between gap-12">
-            {/* Left: Next Episode Preview */}
-            <div className="flex-1 max-w-2xl">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-500/70 mb-4 block">Current Reel Ending</span>
-              <div className="flex gap-8 items-center">
-                <div className="relative w-72 aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl group cursor-pointer" onClick={onNext}>
-                  <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
-                    <Play fill="currentColor" size={48} className="text-white" />
-                  </div>
-                  <OptimizedImage 
-                    src={`https://image.tmdb.org/t/p/w500/${contentId}`} // Fallback for now, ideally next episode thumb
-                    alt="Next Episode"
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-                    <motion.div 
-                      className="h-full bg-primary"
-                      initial={{ width: "0%" }}
-                      animate={{ width: `${(1 - countdown / countdownSeconds) * 100}%` }}
-                    />
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-zinc-950/80 backdrop-blur-3xl border border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
+
+          <div className="relative p-6 flex flex-col gap-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Up Next</span>
+                </div>
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                  Transitioning in {countdown}s
+                </span>
+              </div>
+              <button
+                onClick={onCancel}
+                title="Cancel transition"
+                aria-label="Cancel transition"
+                className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Episode Thumbnail */}
+            <div
+              className="relative aspect-video rounded-2xl overflow-hidden border border-white/5 shadow-2xl cursor-pointer group/card"
+              onClick={onNext}
+              role="button"
+              aria-label={`Play ${episodeName}`}
+            >
+              {stillUrl ? (
+                <OptimizedImage
+                  src={stillUrl}
+                  alt={episodeName}
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover/card:scale-110"
+                />
+              ) : (
+                // Graceful fallback when no still is available
+                <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
+                      <Play size={18} fill="white" className="opacity-30 ml-0.5" />
+                    </div>
+                    <p className="text-[9px] text-white/20 uppercase tracking-widest font-bold">Preview Unavailable</p>
                   </div>
                 </div>
-                
-                <div className="flex flex-col gap-2">
-                  <PretextHeadline
-                    text={`Episode ${nextEpisode}`}
-                    fontSize={48}
-                    fontWeight={900}
-                    letterSpacing="-0.04em"
-                    className="text-white uppercase italic"
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+              {/* Hover play icon */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
+                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-2xl scale-90 group-hover/card:scale-100 transition-transform">
+                  <Play fill="white" size={24} className="ml-1" />
+                </div>
+              </div>
+
+              {/* Episode label */}
+              <div className="absolute bottom-4 left-5 right-5">
+                <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-1">
+                  Season {season} · Episode {nextEpisode}
+                </p>
+                <h4 className="text-lg font-bold text-white truncate">
+                  {episodeName}
+                </h4>
+              </div>
+            </div>
+
+            {/* Footer row: subtitle + countdown ring */}
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-[11px] text-zinc-400 leading-snug font-medium line-clamp-2 flex-1">
+                {episodeInfo?.overview
+                  ? episodeInfo.overview.length > 90
+                    ? episodeInfo.overview.slice(0, 90) + '…'
+                    : episodeInfo.overview
+                  : 'Continuing your journey. Premium stream synchronized for seamless viewing.'}
+              </p>
+
+              <div
+                className="relative w-14 h-14 shrink-0 cursor-pointer"
+                onClick={onNext}
+                role="button"
+                aria-label="Auto-advance countdown"
+              >
+                <svg className="w-full h-full -rotate-90">
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r="24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="text-white/5"
                   />
-                  <p className="text-zinc-500 font-bold text-xs uppercase tracking-widest">Master Source Synchronized</p>
-                  <div className="flex gap-3 mt-4">
-                    <button 
-                      onClick={onNext}
-                      className="px-8 py-3 bg-white text-black rounded-2xl font-black uppercase tracking-tighter italic text-sm hover:scale-105 transition-transform"
-                    >
-                      Watch Now ({countdown}s)
-                    </button>
-                    <button 
-                      title="Cancel"
-                      onClick={onCancel}
-                      className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-colors"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
+                  <motion.circle
+                    cx="28"
+                    cy="28"
+                    r="24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeDasharray="150.8"
+                    initial={{ strokeDashoffset: 150.8 }}
+                    animate={{
+                      strokeDashoffset:
+                        150.8 - (150.8 * (countdownSeconds - countdown)) / countdownSeconds,
+                    }}
+                    className="text-primary"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-white">
+                  {countdown}
                 </div>
               </div>
             </div>
 
-            {/* Right: Recommendations */}
-            {similarContent && similarContent.length > 0 && (
-              <div className="w-[400px]">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-6 block">Editorial Selection</span>
-                <div className="flex flex-col gap-4">
-                  {similarContent.slice(0, 3).map((item: Content) => (
-                    <Link 
-                      key={item.id}
-                      href={`/watch?id=${item.id}&type=${type}`}
-                      className="flex gap-4 items-center p-3 rounded-2xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/5"
-                    >
-                      <div className="relative w-20 aspect-video rounded-xl overflow-hidden shrink-0">
-                        <OptimizedImage 
-                          src={item.backdrop || item.poster || ''}
-                          alt={item.title || 'Recommendation'}
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-white truncate">{item.title}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Match {Math.round((item.rating || 0) * 10)}%</span>
-                        </div>
-                      </div>
-                      <Plus size={16} className="text-zinc-600 group-hover:text-white transition-colors" />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* CTA */}
+            <button
+              onClick={onNext}
+              className="w-full py-3.5 bg-white text-black font-black uppercase tracking-[0.2em] text-[10px] rounded-xl hover:bg-primary hover:text-white transition-all shadow-xl"
+            >
+              Stream Now
+            </button>
           </div>
         </div>
-        
-        {/* Background Blur Field */}
-        <div className="absolute inset-0 -z-10 bg-black/60 backdrop-blur-3xl" />
       </motion.div>
     </AnimatePresence>
   );

@@ -64,7 +64,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
     return () => {
       clearTimeout(timer);
     };
-  }, [displayItems.length, index]);
+  }, [displayItems, index]);
 
   if (!isHydrated || !currentItem) {
     return (
@@ -107,7 +107,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
   return (
     <section className="relative h-[70vh] sm:h-[80vh] lg:h-[88vh] w-full overflow-hidden group select-none px-4 py-2">
       <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] lg:rounded-[3.5rem] border border-white/5 bg-[#050505]">
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={currentItem.id || safeIndex}
             initial={{ opacity: 0 }}
@@ -129,33 +129,36 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
         </AnimatePresence>
 
         <div className="absolute bottom-24 lg:bottom-32 left-10 lg:left-24 z-20 space-y-6 max-w-[90%] lg:max-w-[50%]">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            key={`info-${currentItem.id}`}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <span className="px-3 py-1 bg-primary text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20">
-                Prime Selection
-              </span>
-              <div className="flex items-center gap-1.5 text-zinc-300 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                <span className="text-xs font-bold leading-none">{(currentItem.rating || 0).toFixed(1)}</span>
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              key={`info-${currentItem.id}`}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <span className="px-3 py-1 bg-primary text-black text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20">
+                  Prime Selection
+                </span>
+                <div className="flex items-center gap-1.5 text-zinc-300 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                  <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                  <span className="text-xs font-bold leading-none">{(currentItem.rating || 0).toFixed(1)}</span>
+                </div>
               </div>
-            </div>
-            
-            <PretextHeadline 
-              text={currentItem.title || ''} 
-              fontSize={typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 104}
-              fontWeight={900}
-              className="text-white mb-4"
-            />
-            
-            <p className="text-zinc-400 text-sm lg:text-lg line-clamp-3 lg:line-clamp-2 max-w-xl font-medium leading-relaxed">
-              {currentItem.description}
-            </p>
-          </motion.div>
+              
+              <PretextHeadline 
+                text={currentItem.title || ''} 
+                fontSize={typeof window !== 'undefined' && window.innerWidth < 1024 ? 56 : 104}
+                fontWeight={900}
+                className="text-white mb-4"
+              />
+              
+              <p className="text-zinc-400 text-sm lg:text-lg line-clamp-3 lg:line-clamp-2 max-w-xl font-medium leading-relaxed">
+                {currentItem.description}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -1,7 +1,7 @@
 /**
- * MaiWatch State Management - Consolidated Index
+ * NovaStream State Management - Consolidated Index
  *
- * This is the main entry point for all state management in MaiWatch.
+ * This is the main entry point for all state management in NovaStream.
  * Import stores and hooks from here to maintain a clean architecture.
  */
 
@@ -87,7 +87,7 @@ export const initializeTheme = () => {
       const state = useUserPreferencesStore.getState();
 
       // Apply theme to DOM
-      if (state.theme !== 'Mai') {
+      if (state.theme !== 'Nova') {
         document.documentElement.classList.add(`theme-${state.theme}`);
       }
     });
@@ -99,7 +99,7 @@ export const initializeTheme = () => {
 // Development utilities
 // export const debugState = async () => {
 //   if (process.env.NODE_ENV === 'development') {
-//     console.group('🔍 MaiWatch State Debug');
+//     console.group('🔍 NovaStream State Debug');
 //
 //     try {
 //       const { usePlayerStore } = await import('./playerStore');

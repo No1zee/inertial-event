@@ -17,7 +17,7 @@ export function StudioRail() {
     <div className="px-4 md:px-12 mb-16">
       <div className="mb-6 px-2">
         <PretextHeadline
-          text="Studio Network Hub"
+          text="Browse by Studio"
           fontSize={12}
           fontWeight={700}
           letterSpacing="0.4em"
@@ -33,7 +33,7 @@ export function StudioRail() {
             aria-label={studio.name}
             className={cn(
               'relative aspect-[16/7] rounded-2xl overflow-hidden cursor-pointer group outline-none',
-              'border border-white/5 bg-zinc-900/40 backdrop-blur-xl',
+              'border border-white/5 bg-black/40 backdrop-blur-xl',
               'hover:scale-[1.05] hover:border-white/20 transition-all duration-500',
               'shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
               studio.slug === 'hulu' && 'hover:shadow-[0_0_30px_rgba(28,231,131,0.15)]',
@@ -43,8 +43,9 @@ export function StudioRail() {
           >
             {/* Background subtle color glow */}
             <motion.div
-              className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-[var(--brand-color)]"
-              style={{ '--brand-color': studio.color } as React.CSSProperties}
+              className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-700"
+              initial={false}
+              animate={{ backgroundColor: studio.color }}
             />
 
             {/* Animated Mesh / Noise Layer on hover */}
@@ -69,9 +70,10 @@ export function StudioRail() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             {/* Bottom Brand Bar */}
-            <div
-              className="absolute bottom-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[var(--brand-color)]"
-              style={{ '--brand-color': studio.color } as React.CSSProperties}
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              initial={false}
+              animate={{ backgroundColor: studio.color }}
             />
           </button>
         ))}

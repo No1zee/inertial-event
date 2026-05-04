@@ -378,7 +378,7 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                      <div className="flex flex-col gap-8">
                         <div className="flex items-center gap-3">
                            <div className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-                              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Neural Profile</span>
+                              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Active Profile</span>
                            </div>
                         </div>
                         <h3 className="text-5xl font-black text-white uppercase tracking-tighter">Biographical Insights</h3>

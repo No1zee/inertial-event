@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializeTheme, useUIPreferences, usePreferencesStore } from '@/lib/stores';
+import { initializeTheme, usePreferencesStore } from '@/lib/stores';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import 'core-js/stable';
@@ -50,12 +50,41 @@ export default function BrowserInit() {
     // Global uncaught error logging
     window.onerror = (message, source, lineno, colno, error) => {
       console.error('[AG] Global Uncaught Error:', { message, source, lineno, colno, error });
+      
+      // NovaStream Recovery Logic: Handle ChunkLoadError
+      const isChunkError = 
+        (message && message.toString().includes('ChunkLoadError')) || 
+        (error && error.name === 'ChunkLoadError');
+        
+      if (isChunkError) {
+        const hasReloaded = sessionStorage.getItem('ag_chunk_reload');
+        if (!hasReloaded) {
+          sessionStorage.setItem('ag_chunk_reload', 'true');
+          console.log('[AG] ChunkLoadError detected. Attempting automatic recovery reload...');
+          window.location.reload();
+          return;
+        }
+      }
+
       const el = document.getElementById('ag-debug-log');
       if (el) el.innerHTML += `<div class="debug-err">ERR: ${message}</div>`;
     };
 
     window.onunhandledrejection = event => {
       console.error('[AG] Global Unhandled Rejection:', event.reason);
+      
+      // NovaStream Recovery Logic: Handle ChunkLoadError in promises
+      const reasonStr = event.reason?.toString() || '';
+      if (reasonStr.includes('ChunkLoadError')) {
+        const hasReloaded = sessionStorage.getItem('ag_chunk_reload');
+        if (!hasReloaded) {
+          sessionStorage.setItem('ag_chunk_reload', 'true');
+          console.log('[AG] Promise ChunkLoadError detected. Attempting recovery reload...');
+          window.location.reload();
+          return;
+        }
+      }
+
       const el = document.getElementById('ag-debug-log');
       if (el) el.innerHTML += `<div class="debug-rej">REJ: ${event.reason}</div>`;
     };
@@ -76,8 +105,23 @@ export default function BrowserInit() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
+    // NovaStream In-App Browser Listener
+    if (window.electron?.ipcRenderer) {
+      const handleOpenExternal = (_event: any, data: { url: string; title?: string }) => {
+        console.log('🌐 [AG] Opening In-App Browser:', data.url);
+        useUIStore.getState().openBrowserModal(data.url, data.title);
+      };
+
+      window.electron.ipcRenderer.on('OPEN_EXTERNAL_LINK', handleOpenExternal);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.electron.ipcRenderer.off('OPEN_EXTERNAL_LINK', handleOpenExternal);
+      };
+    }
+
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [activeProfileId, deleteProfile, profiles, setHasCompletedOnboarding]);
 
   // Safe "process" check
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';

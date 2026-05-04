@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
@@ -20,7 +21,7 @@ function SearchContent() {
   const [results, setResults] = useState<Content[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchResults = useCallback(async (q: string, aiMode: boolean) => {
+  const fetchResults = useCallback(async (q: string, _aiMode: boolean) => {
     if (!q) return;
     setLoading(true);
     try {
@@ -80,10 +81,12 @@ function SearchContent() {
             className="fixed inset-0 pointer-events-none z-0"
           >
             <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
-            <img 
+            <Image 
               src={`https://image.tmdb.org/t/p/original${results[0].backdrop || results[0].backdrop_path}`}
               className="w-full h-full object-cover blur-[100px] scale-110"
               alt=""
+              fill
+              priority
             />
           </motion.div>
         )}

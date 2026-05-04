@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Play, Info, Star } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Content } from '@/lib/types/content';
@@ -52,7 +51,7 @@ export function Hero({ items = [] }: HeroProps) {
       onMouseMove={handleInteraction}
       onClick={handleInteraction}
     >
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <motion.div
           key={currentItem?.id}
           initial={{ opacity: 0 }}
@@ -73,7 +72,7 @@ export function Hero({ items = [] }: HeroProps) {
 
       {/* Content Overlay */}
       <div className="absolute bottom-0 left-0 z-20 p-6 pb-24 md:p-12 md:pb-32 lg:p-16 lg:pb-40 w-full max-w-5xl xl:max-w-6xl space-y-4 md:space-y-6 pointer-events-none">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout">
           {uiVisible && (
             <motion.div
               key={String(currentItem?.id) + '-text'}
@@ -118,7 +117,7 @@ export function Hero({ items = [] }: HeroProps) {
                 <span>•</span>
                 <span>{currentItem.releaseDate?.substring(0, 4)}</span>
                 <span>•</span>
-                <span className="uppercase tracking-widest text-xs border border-zinc-600 px-2 py-0.5 rounded text-zinc-400 bg-zinc-900/40">
+                <span className="uppercase tracking-widest text-xs border border-zinc-600 px-2 py-0.5 rounded text-zinc-400 bg-black/40">
                   {currentItem?.type === 'tv' ? 'Series' : 'Movie'}
                 </span>
               </div>

@@ -2,7 +2,7 @@ import axios from 'axios';
 import './cache';
 import api from '@/services/api';
 import { Content, SeasonDetails } from '@/lib/types/content';
-import { generateMockContent, MOCK_TV_SHOWS } from './mockData';
+import { generateMockContent } from './mockData';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 // Hardcoded for static export - TMDB keys are meant to be public anyway
@@ -18,12 +18,42 @@ const TMDB_KEY =
 // and can lead to 404s if not configured in next.config.js for rewrites.
 const BASE_URL = 'https://api.themoviedb.org/3';
 
+// Retry configuration
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000; // 1s
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url: string, retries = MAX_RETRIES): Promise<any> => {
+  try {
+    return await axios.get(url);
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(`[ContentAPI] Fetch failed, retrying... (${retries} left): ${url}`);
+      await sleep(RETRY_DELAY);
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw error;
+  }
+};
+
 // Helper to handle URL switching between Proxy (Dev) and Direct (Prod/Android)
 const getTmdbUrl = (endpoint: string, params: string = '') => {
   // Always hit TMDB directly with API key
   const separator = endpoint.includes('?') ? '&' : '?';
   const finalParams = params ? `&${params}` : '';
   return `${BASE_URL}${endpoint}${separator}api_key=${TMDB_KEY}${finalParams}`;
+};
+
+const getInitialJustification = (item: TMDBItem, score: number): string => {
+  if (score > 90) return "MASTERPIECE SELECTION";
+  if (score > 85) return "CRITICALLY ACCLAIMED";
+  if (item.origin_country?.includes('NG') || item.origin_country?.includes('ZA') || item.origin_country?.includes('KE')) {
+    return "HERITAGE PRIDE";
+  }
+  if (item.vote_count && item.vote_count > 5000) return "CULTURAL PHENOMENON";
+  if (item.vote_average && item.vote_average > 8.0) return "S-TIER RATING";
+  return "HANDPICKED FOR YOU";
 };
 
 interface TMDBItem {
@@ -47,6 +77,7 @@ interface TMDBItem {
   media_type?: string;
   type?: string;
   genres?: Array<{ id: number; name: string } | string>;
+  genre_ids?: number[];
   origin_country?: string[];
   original_language?: string;
   last_air_date?: string;
@@ -86,6 +117,56 @@ interface TMDBItem {
   adult?: boolean;
   number_of_seasons?: number;
   number_of_episodes?: number;
+  created_by?: Array<{ name: string }>;
+}
+
+const TMDB_ID_TO_GENRE: Record<number, string> = {
+  28: 'Action',
+  12: 'Adventure',
+  16: 'Animation',
+  35: 'Comedy',
+  80: 'Crime',
+  99: 'Documentary',
+  18: 'Drama',
+  10751: 'Family',
+  14: 'Fantasy',
+  36: 'History',
+  27: 'Horror',
+  10402: 'Music',
+  9648: 'Mystery',
+  10749: 'Romance',
+  878: 'Sci-Fi',
+  10770: 'TV Movie',
+  53: 'Thriller',
+  10752: 'War',
+  37: 'Western',
+  10759: 'Action & Adventure',
+  10762: 'Kids',
+  10763: 'News',
+  10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy',
+  10766: 'Soap',
+  10767: 'Talk',
+  10768: 'War & Politics'
+};
+
+interface TMDBVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official?: boolean;
+}
+
+interface TMDBPerson {
+  id: number;
+  name: string;
+  biography?: string;
+  profile_path: string | null;
+  known_for_department?: string;
+  place_of_birth?: string | null;
+  birthday?: string | null;
 }
 
 export const contentApi = {
@@ -113,39 +194,48 @@ export const contentApi = {
   getTrending: async (page: number = 1): Promise<Content[]> => {
     const url = getTmdbUrl('/trending/all/day', `language=en-US&page=${page}`);
     try {
-      const res = await axios.get(url, { timeout: 10000 });
+      const res = await fetchWithRetry(url);
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
+      if (data.length === 0) throw new Error('No results');
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent(item)));
-    } catch (e: any) {
-      console.error(`[ContentAPI] Trending fetch failed for URL: ${url}`, e);
-      return generateMockContent(12);
+    } catch (e) {
+      console.warn(`[ContentAPI] Trending fetch failed, attempting fallback to popular movies...`);
+      try {
+        const fallbackRes = await fetchWithRetry(getTmdbUrl('/movie/popular', `language=en-US&page=${page}`));
+        const data = fallbackRes.data.results || [];
+        return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' })));
+      } catch {
+        return generateMockContent(20);
+      }
     }
   },
 
   getPopularTV: async (page: number = 1): Promise<Content[]> => {
     const url = getTmdbUrl('/tv/popular', `language=en-US&page=${page}`);
     try {
-      const res = await axios.get(url, { timeout: 10000 });
+      const res = await fetchWithRetry(url);
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
+      if (data.length === 0) throw new Error('No results');
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' })));
-    } catch (e: any) {
-      console.error(`[ContentAPI] Popular TV fetch failed for URL: ${url}`, e);
-      return generateMockContent(12);
+    } catch (e) {
+      console.warn(`[ContentAPI] Popular TV fetch failed, attempting fallback to top rated TV...`);
+      try {
+        const fallbackRes = await fetchWithRetry(getTmdbUrl('/tv/top_rated', `language=en-US&page=${page}`));
+        return prioritizeContent((fallbackRes.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'tv' })));
+      } catch {
+        return generateMockContent(20);
+      }
     }
   },
 
-  getByGenre: async (genreId: number, type: 'movie' | 'tv' = 'movie', page?: number): Promise<Content[]> => {
+  getByGenre: async (genreId: number, type: 'movie' | 'tv' | 'anime' | 'series' = 'movie', page?: number): Promise<Content[]> => {
     try {
       const endpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
       const randomPage = page || 1;
-      const res = await axios.get(
-        getTmdbUrl(endpoint, `with_genres=${genreId}&sort_by=popularity.desc&language=en-US&page=${randomPage}`),
-        { timeout: 10000 }
+      const res = await fetchWithRetry(
+        getTmdbUrl(endpoint, `with_genres=${genreId}&sort_by=popularity.desc&language=en-US&page=${randomPage}`)
       );
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
       return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type })));
     } catch (e) {
       console.error(`Genre ${genreId} fetch failed:`, e);
@@ -153,19 +243,46 @@ export const contentApi = {
     }
   },
 
+
   // --- Dynamic Categories (The Candy Store) ---
 
   getUpcoming: async (page?: number): Promise<Content[]> => {
     try {
       const randomPage = page || 1;
-      const res = await axios.get(getTmdbUrl('/movie/upcoming', `language=en-US&region=US&page=${randomPage}`), { timeout: 10000 });
-      const data = res.data.results || [];
+      const [res1, res2] = await Promise.all([
+        axios.get(getTmdbUrl('/movie/upcoming', `language=en-US&region=US&page=${randomPage}`), { timeout: 10000 }),
+        axios.get(getTmdbUrl('/movie/upcoming', `language=en-US&region=US&page=${randomPage + 1}`), { timeout: 10000 })
+      ]);
+      
+      const data = [...(res1.data.results || []), ...(res2.data.results || [])];
       const futureEvents = data.filter((item: TMDBItem) => {
         const release = new Date(item.release_date || '');
         return release > new Date();
       });
-      if (futureEvents.length === 0) return generateMockContent(12);
-      return futureEvents.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+
+      const sorted = futureEvents.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+      const limited = sorted.slice(0, 12);
+
+      // Concurrency-limited batching for trailers (Max 3 at a time)
+      const results: Content[] = [];
+      const CHUNK_SIZE = 3;
+      
+      for (let i = 0; i < limited.length; i += CHUNK_SIZE) {
+        const chunk = limited.slice(i, i + CHUNK_SIZE);
+        const chunkResults = await Promise.all(
+          chunk.map(async (item) => {
+            try {
+              const vidRes = await axios.get(getTmdbUrl(`/movie/${item.id}/videos`, 'language=en-US'), { timeout: 5000 });
+              return transformToContent({ ...item, videos: vidRes.data, type: 'movie' });
+            } catch {
+              return transformToContent({ ...item, type: 'movie' });
+            }
+          })
+        );
+        results.push(...chunkResults);
+      }
+      
+      return results;
     } catch (e) {
       console.error('Upcoming fetch failed:', e);
       return generateMockContent(12);
@@ -191,11 +308,11 @@ export const contentApi = {
     }
   },
 
-  getBangers: async (type: 'movie' | 'tv' = 'movie', page?: number): Promise<Content[]> => {
+  getBangers: async (type: 'movie' | 'tv' | 'anime' | 'series' = 'movie', page?: number): Promise<Content[]> => {
     try {
       const tmdbEndpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
       const randomPage = page || 1;
-      const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+      const extraFilter = (type === 'tv' || type === 'anime' || type === 'series') ? '&without_keywords=210024' : '';
       const [res1, res2] = await Promise.all([
         axios.get(
           getTmdbUrl(
@@ -213,20 +330,19 @@ export const contentApi = {
         ),
       ]);
       const data = [...(res1.data.results || []), ...(res2.data.results || [])];
-      if (data.length === 0) return generateMockContent(12);
-      return data.map((item: TMDBItem) => transformToContent({ ...item, type }));
+      return prioritizeContent(data.map((item: TMDBItem) => transformToContent({ ...item, type })));
     } catch (e) {
       console.error('Bangers fetch failed:', e);
       return generateMockContent(12);
     }
   },
 
-  getClassics: async (type: 'movie' | 'tv' = 'movie', page?: number): Promise<Content[]> => {
+  getClassics: async (type: 'movie' | 'tv' | 'anime' | 'series' = 'movie', page?: number): Promise<Content[]> => {
     try {
       const tmdbEndpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
       const randomPage = page || 1;
       const dateFilter = type === 'movie' ? 'primary_release_date.lte=2010-01-01' : 'first_air_date.lte=2010-01-01';
-      const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+      const extraFilter = (type === 'tv' || type === 'anime' || type === 'series') ? '&without_keywords=210024' : '';
 
       const [res1, res2] = await Promise.all([
         axios.get(
@@ -254,11 +370,11 @@ export const contentApi = {
     }
   },
 
-  getUnderrated: async (type: 'movie' | 'tv' = 'movie', page?: number): Promise<Content[]> => {
+  getUnderrated: async (type: 'movie' | 'tv' | 'anime' | 'series' = 'movie', page?: number): Promise<Content[]> => {
     try {
       const tmdbEndpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
       const randomPage = page || 1;
-      const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+      const extraFilter = (type === 'tv' || type === 'anime' || type === 'series') ? '&without_keywords=210024' : '';
 
       const [res1, res2] = await Promise.all([
         axios.get(
@@ -282,14 +398,14 @@ export const contentApi = {
     }
   },
 
-  getFresh: async (type: 'movie' | 'tv' = 'movie', page?: number): Promise<Content[]> => {
+  getFresh: async (type: 'movie' | 'tv' | 'anime' | 'series' = 'movie', page?: number): Promise<Content[]> => {
     try {
       const tmdbEndpoint = type === 'movie' ? '/discover/movie' : '/discover/tv';
       const randomPage = page || 1;
       const currentYear = new Date().getFullYear();
       const dateFilter =
         type === 'movie' ? `primary_release_year=${currentYear}` : `first_air_date_year=${currentYear}`;
-      const extraFilter = type === 'tv' ? '&without_keywords=210024' : '';
+      const extraFilter = (type === 'tv' || type === 'anime' || type === 'series') ? '&without_keywords=210024' : '';
 
       const [res1, res2] = await Promise.all([
         axios.get(
@@ -314,10 +430,10 @@ export const contentApi = {
   },
 
 
-  getSimilar: async (id: string, type: 'movie' | 'tv' | 'anime'): Promise<Content[]> => {
+  getSimilar: async (id: string, type: 'movie' | 'tv' | 'anime' | 'series'): Promise<Content[]> => {
     try {
-      // For Anime, we treat it as TV for TMDB queries usually
-      const queryType = type === 'anime' ? 'tv' : type;
+      // For Anime, Series, etc., we treat it as TV for TMDB queries usually
+      const queryType = type === 'movie' ? 'movie' : 'tv';
       const cleanId = id.replace('tmdb_', '');
       const res = await axios.get(getTmdbUrl(`/${queryType}/${cleanId}/recommendations`, 'language=en-US&page=1'));
       const data = res.data.results || [];
@@ -438,10 +554,9 @@ export const contentApi = {
         getTmdbUrl('/discover/movie', 'with_runtime.lte=40&sort_by=popularity.desc&language=en-US&page=1')
       );
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return generateMockContent(12);
+      return [];
     }
   },
 
@@ -648,20 +763,47 @@ export const contentApi = {
     }
   },
 
-  getAfricanMovies: async (): Promise<Content[]> => {
+  getAfricanMovies: async (region?: 'west' | 'east' | 'southern' | 'north'): Promise<Content[]> => {
+    const regionConfig: Record<string, string> = {
+      west: 'NG,GH,SN,CI',
+      east: 'KE,ET,UG,TZ',
+      southern: 'ZA,ZW,MZ,NA',
+      north: 'EG,MA,DZ,TN'
+    };
+    
+    const countries = region ? regionConfig[region] : 'NG,ZA,KE,ET,GH,UG,DZ,MA,EG,ZW';
+    
     try {
-      // African cinema - Nigeria (Nollywood), South Africa, Kenya
-      const [nigeria, southAfrica] = await Promise.all([
-        axios.get(
-          getTmdbUrl('/discover/movie', 'with_origin_country=NG&sort_by=popularity.desc&language=en-US&page=1')
-        ),
-        axios.get(
-          getTmdbUrl('/discover/movie', 'with_origin_country=ZA&sort_by=popularity.desc&language=en-US&page=1')
-        ),
-      ]);
-      const results = [...(nigeria.data.results || []), ...(southAfrica.data.results || [])];
-      if (results.length === 0) return generateMockContent(12);
-      return results.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+      const res = await axios.get(
+        getTmdbUrl(
+          '/discover/movie',
+          `with_origin_country=${countries}&sort_by=popularity.desc&vote_count.gte=10&page=1`
+        )
+      );
+      const data = res.data.results || [];
+      return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+    } catch {
+      return generateMockContent(12);
+    }
+  },
+
+  getNollywoodExcellence: async (): Promise<Content[]> => {
+    try {
+      const res = await axios.get(
+        getTmdbUrl('/discover/movie', 'with_origin_country=NG&sort_by=revenue.desc&vote_count.gte=50')
+      );
+      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
+    } catch {
+      return generateMockContent(12);
+    }
+  },
+
+  getAfrofuturism: async (): Promise<Content[]> => {
+    try {
+      const res = await axios.get(
+        getTmdbUrl('/discover/movie', 'with_keywords=232930,1701&sort_by=popularity.desc')
+      );
+      return (res.data.results || []).map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
       return generateMockContent(12);
     }
@@ -742,10 +884,9 @@ export const contentApi = {
         )
       );
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return generateMockContent(12);
+      return [];
     }
   },
 
@@ -790,10 +931,9 @@ export const contentApi = {
         )
       );
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return generateMockContent(12);
+      return [];
     }
   },
 
@@ -845,10 +985,9 @@ export const contentApi = {
         { timeout: 10000 }
       );
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return generateMockContent(12);
+      return [];
     }
   },
 
@@ -860,10 +999,9 @@ export const contentApi = {
         { timeout: 10000 }
       );
       const data = res.data.results || [];
-      if (data.length === 0) return generateMockContent(12);
       return data.map((item: TMDBItem) => transformToContent({ ...item, type: 'movie' }));
     } catch {
-      return generateMockContent(12);
+      return [];
     }
   },
 
@@ -951,7 +1089,7 @@ export const contentApi = {
 
       const res = await axios.get(url);
       const results = (res.data.results || []).filter(
-        (item: any) => item.media_type === 'movie' || item.media_type === 'tv' || !item.media_type
+        (item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv' || !item.media_type
       );
       
       return prioritizeContent(results.map((item: TMDBItem) => {
@@ -980,7 +1118,10 @@ export const contentApi = {
 
   getTrailer: async (id: string, type: 'movie' | 'tv' = 'movie'): Promise<string | null> => {
     try {
-      const cleanId = id.replace('tmdb_', '');
+      const idStr = String(id);
+      if (idStr.startsWith('mock-')) return null;
+
+      const cleanId = idStr.replace('tmdb_', '');
       const res = await axios.get(getTmdbUrl(`/${type}/${cleanId}/videos`, 'language=en-US'));
       const videos = res.data.results || [];
       const trailer =
@@ -993,7 +1134,7 @@ export const contentApi = {
     }
   },
 
-  getDetails: async (id: string | number, type: 'movie' | 'tv' | 'anime' = 'movie'): Promise<Content | null> => {
+  getDetails: async (id: string | number, type: 'movie' | 'tv' | 'anime' | 'series' = 'movie'): Promise<Content | null> => {
     try {
       const idStr = String(id);
       // Handle mock IDs
@@ -1032,13 +1173,22 @@ export const contentApi = {
     }
   },
 
-  getSeasonDetails: async (id: string | number, seasonNumber: number): Promise<SeasonDetails | null> => {
+  getSeasonDetails: async (id: string | number, seasonNumber: number, type: 'movie' | 'tv' | 'anime' | 'series' = 'tv'): Promise<SeasonDetails | null> => {
     try {
-      const idStr = String(id).replace('tmdb_', '');
-      const res = await axios.get(getTmdbUrl(`/tv/${idStr}/season/${seasonNumber}`, 'language=en-US'));
+      const idStr = String(id);
+      if (idStr.startsWith('mock-')) return null;
+
+      // Safety check: Movies don't have seasons on TMDB
+      if ((type as string) === 'movie') {
+        console.warn(`[ContentAPI] Attempted to fetch season details for a movie (ID: ${id}). Aborting.`);
+        return null;
+      }
+
+      const cleanId = idStr.replace('tmdb_', '');
+      const res = await axios.get(getTmdbUrl(`/tv/${cleanId}/season/${seasonNumber}`, 'language=en-US'));
       return res.data;
     } catch (e) {
-      console.error(`Failed to fetch season ${seasonNumber} for ${id}:`, e);
+      console.error(`Failed to fetch season ${seasonNumber} for ${id} (${type}):`, e);
       return null;
     }
   },
@@ -1058,19 +1208,23 @@ export const contentApi = {
     }
   },
 
-  getRecommendations: async (id: string | number, type: 'movie' | 'tv'): Promise<Content[]> => {
-    const tmdbId = typeof id === 'string' && id.startsWith('tmdb_') ? id.replace('tmdb_', '') : id;
+  getRecommendations: async (id: string | number, type: 'movie' | 'tv' | 'anime' | 'series'): Promise<Content[]> => {
+    const idStr = String(id);
+    if (idStr.startsWith('mock-')) return generateMockContent(12);
+
+    const tmdbId = idStr.startsWith('tmdb_') ? idStr.replace('tmdb_', '') : idStr;
     try {
-      const res = await axios.get(getTmdbUrl(`/${type}/${tmdbId}/recommendations`, 'language=en-US'));
+      const queryType = type === 'movie' ? 'movie' : 'tv';
+      const res = await axios.get(getTmdbUrl(`/${queryType}/${tmdbId}/recommendations`, 'language=en-US'));
       const data = res.data.results || [];
-      return data.slice(0, 10).map((item: TMDBItem) => transformToContent(item, type));
+      return data.slice(0, 10).map((item: TMDBItem) => transformToContent(item, type as any));
     } catch (e) {
       console.error('Fetch recommendations failed:', e);
       return generateMockContent(12);
     }
   },
 
-  getPersonDetails: async (personId: number): Promise<any> => {
+  getPersonDetails: async (personId: number): Promise<TMDBPerson | null> => {
     try {
       const res = await axios.get(getTmdbUrl(`/person/${personId}`, 'language=en-US'));
       return res.data;
@@ -1092,9 +1246,12 @@ export const contentApi = {
     }
   },
 
-  getVideos: async (id: string | number, type: 'movie' | 'tv' = 'movie'): Promise<any[]> => {
+  getVideos: async (id: string | number, type: 'movie' | 'tv' = 'movie'): Promise<TMDBVideo[]> => {
     try {
-      const cleanId = String(id).replace('tmdb_', '');
+      const idStr = String(id);
+      if (idStr.startsWith('mock-')) return [];
+
+      const cleanId = idStr.replace('tmdb_', '');
       const res = await axios.get(getTmdbUrl(`/${type}/${cleanId}/videos`, 'language=en-US'));
       return res.data.results || [];
     } catch (e) {
@@ -1128,17 +1285,23 @@ export const contentApi = {
     }
   },
 
-  getPersonalizedMix: async (trendingContent: Content[], preferences?: { genres: string[], vibes: string[] }): Promise<Content[]> => {
+  getPersonalizedMix: async (trendingContent: Content[], preferences?: RecommendationPreferences): Promise<Content[]> => {
+    // Apply "Trending" justification to base content
+    const trendingWithReasons = trendingContent.map(item => ({
+      ...item,
+      editorialReason: item.editorialReason || "Trending globally across the NovaStream network."
+    }));
+
     if (!preferences || (!preferences.genres?.length && !preferences.vibes?.length)) {
-      return trendingContent;
+      return trendingWithReasons;
     }
 
     try {
       const genres = preferences.genres || [];
       const vibes = preferences.vibes || [];
       
-      // 40% of the rail should be personalized
-      const totalCount = trendingContent.length;
+      // Personalized Mix Ratio: Default 40% (can be expanded later)
+      const totalCount = trendingWithReasons.length;
       const personalizedCount = Math.ceil(totalCount * 0.4);
       const baseCount = totalCount - personalizedCount;
 
@@ -1152,41 +1315,69 @@ export const contentApi = {
       const vibePoolPromises = vibes.map(vibeId => {
         const config = VIBE_MAP[vibeId];
         if (!config) return Promise.resolve([]);
+        // Chaos Factor: Fetch from a random page (1-5) to ensure variety on every load
+        const randomPage = Math.floor(Math.random() * 5) + 1;
         return contentApi.discover({ 
           with_genres: config.genres.join(','),
           with_keywords: config.keywords.join(','),
-          sort_by: 'popularity.desc'
+          sort_by: config.sort || 'popularity.desc',
+          page: randomPage
         }, 'movie');
       });
 
       const pools = await Promise.all([...genrePoolPromises, ...vibePoolPromises]);
-      const personalizedPool = pools.flat();
+      const rawPersonalizedPool = pools.flat();
       
-      if (personalizedPool.length === 0) return trendingContent;
+      if (rawPersonalizedPool.length === 0) return trendingWithReasons;
 
-      // Deduplicate and Shuffle personalized pool
-      const uniquePool = personalizedPool.filter((item, index, self) => 
+      // Deduplicate and apply justifications
+      const uniquePool = rawPersonalizedPool.filter((item, index, self) => 
         index === self.findIndex(t => t.id === item.id)
-      );
+      ).map(item => ({
+        ...item,
+        editorialReason: generateEditorialJustification(item, preferences)
+      }));
       
-      const shuffledPersonalized = uniquePool.sort(() => Math.random() - 0.5).slice(0, personalizedCount);
+      // Score and sort by relevance to preferences + Random Jitter
+      const rankedPersonalized = uniquePool.sort((a, b) => {
+        const jitter = () => (Math.random() - 0.5) * 2; // -1 to 1
+        const scoreA = (a.rating || 0) + (preferences.heritage?.some(h => a.originCountry?.includes(h)) ? 5 : 0) + jitter();
+        const scoreB = (b.rating || 0) + (preferences.heritage?.some(h => b.originCountry?.includes(h)) ? 5 : 0) + jitter();
+        return scoreB - scoreA;
+      });
+
+      const selectedPersonalized = rankedPersonalized.slice(0, personalizedCount);
       
       // Combine: Base trending (60%) + Personalized (40%)
-      const baseTrending = trendingContent.slice(0, baseCount);
+      const baseTrending = trendingWithReasons.slice(0, baseCount);
       
-      // Final mix shuffled slightly
-      return [...baseTrending, ...shuffledPersonalized].sort(() => Math.random() - 0.5);
+      // Final mix: Merge and perform a high-fidelity shuffle
+      return [...baseTrending, ...selectedPersonalized]
+        .map(value => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
     } catch (e) {
       console.error('Failed to create personalized mix:', e);
-      return trendingContent;
+      return trendingWithReasons;
     }
   },
 
-  getReviews: async (id: string | number, type: 'movie' | 'tv' = 'movie'): Promise<Array<{ author: string; content: string; url: string }>> => {
+  getReviews: async (id: string | number, type: 'movie' | 'tv' | 'anime' | 'series' = 'movie'): Promise<Array<{ id: string; author: string; content: string; url: string }>> => {
     try {
-      const cleanId = String(id).replace('tmdb_', '');
-      const res = await axios.get(getTmdbUrl(`/${type}/${cleanId}/reviews`, 'language=en-US'));
-      return res.data.results || [];
+      const idStr = String(id);
+      if (idStr.startsWith('mock-')) return [];
+
+      const cleanId = idStr.replace('tmdb_', '');
+      const queryType = type === 'movie' ? 'movie' : 'tv';
+      
+      const res = await axios.get(getTmdbUrl(`/${queryType}/${cleanId}/reviews`, 'language=en-US'));
+      // TMDB always returns id on review objects; we guarantee it defensively
+      return (res.data.results || []).map((r: { id?: string; author?: string; content?: string; url?: string }, i: number) => ({
+        id: r.id || `review-${i}`,
+        author: r.author || 'Anonymous',
+        content: r.content || '',
+        url: r.url || '',
+      }));
     } catch {
       return [];
     }
@@ -1304,9 +1495,17 @@ export const VIBE_MAP: Record<string, { genres: number[], keywords: number[], so
   }
 };
 
-export const prioritizeContent = (contents: Content[]): Content[] => {
+export const prioritizeContent = (contents: Content[], preferences?: RecommendationPreferences): Content[] => {
+  const currentYear = new Date().getFullYear();
+
   // Geographic Priority Tiers
   const getGeoScore = (c: Content): number => {
+    // Heritage Match: Highest priority if user has cultural ties
+    if (preferences?.heritage?.some(code => c.originCountry?.includes(code))) return 200;
+
+    // Language Priority: Boost English Audio Content
+    if (c.originalLanguage === 'en') return 150;
+
     // US First
     if (c.originCountry?.includes('US')) return 100;
     // UK Second
@@ -1324,19 +1523,88 @@ export const prioritizeContent = (contents: Content[]): Content[] => {
   const getRecencyScore = (c: Content): number => {
     const year = parseInt(c.releaseDate);
     if (isNaN(year)) return 0;
-    const currentYear = new Date().getFullYear();
-    // Give boost if within last 2 years
-    return year >= currentYear - 2 ? 50 : 0;
+    
+    // Older content strict filtering: only allow if truly, truly exceptional (really really really good)
+    if (year < currentYear - 15) {
+      return c.rating >= 8.8 ? 250 : -2000; // Even more aggressive penalty
+    }
+
+    if (year < currentYear - 10) {
+      return c.rating >= 8.5 ? 150 : -1000;
+    }
+
+    if (year < currentYear - 5) {
+      return c.rating >= 8.0 ? 100 : -500;
+    }
+
+    if (year < currentYear - 2) {
+      return c.rating >= 7.5 ? 50 : -200;
+    }
+
+    return 100; // Fresh content base boost
   };
 
   const getPremiumScore = (c: Content): number => {
     // High rating (>8.0) is premium
-    return c.rating >= 8.0 ? 50 : 0;
+    return c.rating >= 8.0 ? 80 : 0;
   };
 
-  return [...contents].sort((a, b) => {
-    const scoreA = getGeoScore(a) + getRecencyScore(a) + getPremiumScore(a);
-    const scoreB = getGeoScore(b) + getRecencyScore(b) + getPremiumScore(b);
+  const getPersonalizedScore = (c: Content): number => {
+    if (!preferences) return 0;
+    let score = 0;
+
+    // Genre Weights: Multiply weight by fixed boost
+    c.genres?.forEach(g => {
+      const weight = preferences.genreWeights?.[g] || 0;
+      score += weight * 10;
+    });
+
+    // Cinematic Weights (Vibes)
+    Object.entries(preferences.cinematicWeights || {}).forEach(([vibeId, weight]) => {
+      const vibeConfig = VIBE_MAP[vibeId];
+      if (vibeConfig) {
+        // If content matches vibe genres, apply weight
+        if (vibeConfig.genres.some(gId => c.genres?.includes(gId.toString()))) {
+          score += weight * 15;
+        }
+      }
+    });
+
+    return score;
+  };
+
+  // === HARD FILTER: Remove old content that isn't genuinely exceptional ===
+  // Scoring alone can't fix this — mediocre old content still appears at the tail of rails.
+  // This gate ensures only masterpieces from the archive survive into the pool at all.
+  const filtered = contents.filter(c => {
+    const year = parseInt(c.releaseDate);
+    if (isNaN(year)) return true;
+
+    const age = currentYear - year;
+  
+    // 15+ years old: must be a genuine all-time classic (8.8+)
+    if (age >= 15) return (c.rating || 0) >= 8.8;
+
+    // 10-14 years old: must be elite (8.5+)
+    if (age >= 10) return (c.rating || 0) >= 8.5;
+
+    // 5-9 years old: must be very good (8.0+)
+    if (age >= 5) return (c.rating || 0) >= 8.0;
+
+    // 2-4 years old: must be solid (7.5+)
+    if (age >= 2) return (c.rating || 0) >= 7.5;
+
+    // Under 2 years: keep everything
+    return true;
+  });
+
+  // If filtering would leave us with fewer than 5 items, relax slightly
+  // to avoid empty rails — but still sort the best to the top
+  const pool = filtered.length >= 5 ? filtered : contents;
+
+  return [...pool].sort((a, b) => {
+    const scoreA = getGeoScore(a) + getRecencyScore(a) + getPremiumScore(a) + getPersonalizedScore(a);
+    const scoreB = getGeoScore(b) + getRecencyScore(b) + getPremiumScore(b) + getPersonalizedScore(b);
 
     // Secondary sort by popularity/rating if scores are equal
     if (scoreB === scoreA) {
@@ -1348,6 +1616,12 @@ export const prioritizeContent = (contents: Content[]): Content[] => {
 };
 
 const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime'): Content => {
+  const baseRating = (item.vote_average || 0) * 10;
+  const ratingJitter = (Number(item.id) % 7) - 3;
+  const score = Math.floor(baseRating + ratingJitter);
+  const heritageScore = (item.origin_country?.includes('NG') || item.origin_country?.includes('ZA') || item.origin_country?.includes('KE')) ? 15 : 0;
+  const finalPersonalizationScore = Math.min(100, Math.max(70, score + heritageScore));
+
   return {
     id: String(item._id || item.id || `tmdb_${item.tmdbId}`),
     title: item.title || item.name || 'Unknown Title',
@@ -1360,18 +1634,26 @@ const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime
     poster_path: item.poster_path || item.posterUrl || undefined,
     backdrop_path: item.backdrop_path || item.backdropUrl || undefined,
     rating: item.rating || item.vote_average || 0,
-    releaseDate: item.year || item.release_date || item.first_air_date || '2024',
+    releaseDate: item.year || item.release_date || item.first_air_date || '2026',
     type: (() => {
-      const rawType = forcedType || item.media_type || item.type || 'movie';
-      const typeStr = String(rawType).toLowerCase();
-      if (typeStr === 'movie' || typeStr === 'tv' || typeStr === 'anime') {
-        return typeStr as 'movie' | 'tv' | 'anime';
+      const rawType = forcedType || item.media_type || item.type;
+      if (rawType) {
+        const typeStr = String(rawType).toLowerCase();
+        if (typeStr === 'movie' || typeStr === 'tv' || typeStr === 'anime') {
+          return typeStr as 'movie' | 'tv' | 'anime';
+        }
       }
-      // Fallback for TMDB person or invalid values
-      if (item.first_air_date || item.name) return 'tv';
+      
+      // Strict Fallback: Movies have titles, TV shows have names on TMDB
+      // Also check for season/episode counts which are TV-specific
+      if (item.first_air_date || (item.name && !item.title) || item.number_of_seasons || item.seasons) {
+        return 'tv';
+      }
       return 'movie';
     })(),
-    genres: (item.genres || []).map((g: { name: string } | string) => (typeof g === 'object' ? g.name : g)),
+    genres: item.genres 
+      ? item.genres.map((g: { name: string } | string) => (typeof g === 'object' ? g.name : g))
+      : (item.genre_ids || []).map(id => TMDB_ID_TO_GENRE[id]).filter(Boolean),
     lastAirDate: item.last_air_date || undefined,
     originalLanguage: item.original_language || undefined,
     originCountry:
@@ -1414,7 +1696,11 @@ const transformToContent = (item: TMDBItem, forcedType?: 'movie' | 'tv' | 'anime
         votes: item.vote_count || 0
       },
       rottenTomatoes: {
-        score: item.vote_average ? Math.round(item.vote_average * 10) : 0,
+        score: item.vote_average ? (() => {
+          const base = Math.round(item.vote_average * 10);
+          const jitter = (Number(item.id) % 7) - 3; // Deterministic ±3% variation
+          return Math.min(100, Math.max(0, base + jitter));
+        })() : 0,
         state:
           (item.vote_average || 0) * 10 >= 75 ? 'certified' : (item.vote_average || 0) * 10 >= 60 ? 'fresh' : 'rotten',
       },
@@ -1436,6 +1722,32 @@ const getHeritageData = (id: number | string, title: string) => {
       curatorNote: 'A powerful representation of African military prowess and the legacy of the Dahomey Amazons.',
       didYouKnow:
         "The Dahomey kingdom's female warriors were the real-life inspiration for the Dora Milaje in Black Panther.",
+    };
+  }
+
+  // Sample: District 9 (TMDB 17654)
+  if (idStr === '17654' || title.includes('District 9')) {
+    return {
+      culturalContext:
+        'A groundbreaking allegory for apartheid, set in a fictionalized Johannesburg where extraterrestrial refugees are confined to a slum.\n\nIt explores themes of segregation, xenophobia, and the dehumanization of the "other" through a high-octane sci-fi lens.',
+      regionalOrigins: ['South Africa', 'Johannesburg'],
+      accuracyVerified: true,
+      curatorNote: 'A landmark for African sci-fi, proving that localized narratives can achieve global prestige.',
+      didYouKnow:
+        "The film's title and premise were inspired by events that took place in District Six, Cape Town, during the apartheid era.",
+    };
+  }
+
+  // Sample: Lionheart (TMDB 551325)
+  if (idStr === '551325' || title.includes('Lionheart')) {
+    return {
+      culturalContext:
+        'The first Nigerian film to be acquired by Netflix and submitted for the Oscars, Lionheart is a celebration of family, business ethics, and the resilience of African women in leadership.\n\nSet in Enugu, it showcases the vibrant culture and entrepreneurial spirit of the Igbo people.',
+      regionalOrigins: ['Nigeria', 'Enugu'],
+      accuracyVerified: true,
+      curatorNote: 'A pivotal moment for Nollywood’s global transition and aesthetic refinement.',
+      didYouKnow:
+        "Genevieve Nnaji, the director and lead actress, is often referred to as the 'Julia Roberts of Africa'.",
     };
   }
 
@@ -1464,11 +1776,54 @@ const getHeritageData = (id: number | string, title: string) => {
     };
   }
 
-  // Fallback Institutional Note for high-quality content
+  // Fallback Note for high-quality content
   return {
     culturalContext: `This work is a cornerstone of our cinematic archive, selected for its directorial integrity and stylistic vanguard.`,
     accuracyVerified: true,
-    curatorNote: `"${title}" has been inducted into the S-Class archive for its exceptional thematic purity and visual excellence.`,
-    didYouKnow: "Every entry in the S-Class archive undergoes a rigorous directorial audit for thematic purity and visual excellence."
+    curatorNote: `"${title}" has been inducted into the S-Class archive for its exceptional thematic depth and visual excellence.`,
+    didYouKnow: "Every entry in the S-Class archive undergoes a rigorous directorial audit to ensure its place in our cinematic history."
   };
+};
+
+export interface RecommendationPreferences {
+  genres: string[];
+  vibes: string[];
+  heritage?: string[];
+  cinematicWeights?: Record<string, number>;
+  genreWeights?: Record<string, number>;
+}
+
+export const generateEditorialJustification = (content: Content, preferences?: RecommendationPreferences): string => {
+  if (!preferences) return "Selected for its exceptional cinematic quality and directorial integrity.";
+
+  // 1. Heritage Match
+  if (preferences.heritage?.some(h => content.originCountry?.includes(h))) {
+    const country = content.originCountry?.find(h => preferences.heritage?.includes(h));
+    return `A masterpiece of ${country || 'regional'} cinema, aligned with your heritage profile.`;
+  }
+
+  // 2. Vibe Match
+  const matchingVibe = (preferences.vibes || []).find(v => {
+    const map = VIBE_MAP[v.toLowerCase()];
+    return map && (
+      map.genres.some(g => content.genres?.includes(String(g))) ||
+      content.description?.toLowerCase().includes(v.toLowerCase())
+    );
+  });
+  if (matchingVibe) {
+    return `Inspired by your appreciation for ${matchingVibe} cinematic experiences.`;
+  }
+
+  // 3. Genre Match
+  const matchingGenre = (preferences.genres || []).find(g => content.genres?.includes(g));
+  if (matchingGenre) {
+    return `Selected as a vanguard entry in the ${matchingGenre} genre.`;
+  }
+
+  // 4. Fallback (Institutional)
+  if (content.rating && content.rating >= 8.5) {
+    return "An S-Class production inducted for its absolute thematic and visual purity.";
+  }
+
+  return "A cornerstone selection from our curated cinematic archive.";
 };

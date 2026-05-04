@@ -1,6 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
-interface MaiWatchDB extends DBSchema {
+interface NovaStreamDB extends DBSchema {
   preferences: {
     key: string;
     value: unknown;
@@ -26,11 +26,11 @@ interface MaiWatchDB extends DBSchema {
   };
 }
 
-let dbPromise: Promise<IDBPDatabase<MaiWatchDB>> | null = null;
+let dbPromise: Promise<IDBPDatabase<NovaStreamDB>> | null = null;
 
 const getDB = () => {
   if (!dbPromise) {
-    dbPromise = openDB<MaiWatchDB>('maiwatch', 1, {
+    dbPromise = openDB<NovaStreamDB>('novastream', 1, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('preferences')) {
           db.createObjectStore('preferences');
@@ -50,7 +50,7 @@ const getDB = () => {
   return dbPromise;
 };
 
-const createStorage = (storeName: keyof MaiWatchDB) => ({
+const createStorage = (storeName: keyof NovaStreamDB) => ({
   getItem: async (name: string): Promise<string | null> => {
     const db = await getDB();
     const item = await db.get(storeName as 'preferences', name);

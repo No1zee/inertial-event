@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ContentCard } from './ContentCard';
@@ -16,6 +17,7 @@ interface AtmosphericRailProps {
   className?: string;
   providerId?: string;
   railId?: string;
+  playTrailerOnClick?: boolean;
 }
 
 export const AtmosphericRail = React.memo(function AtmosphericRail({
@@ -25,6 +27,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
   aspectRatio = 'portrait',
   className,
   providerId,
+  playTrailerOnClick = false,
 }: AtmosphericRailProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,9 +119,10 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
     >
       {/* Atmospheric Brand Glow (Floating) */}
       {isSpecialProvider && (
-        <div
-          className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[150px] pointer-events-none z-0 bg-[var(--brand-color)]"
-          style={{ '--brand-color': provider.color } as React.CSSProperties}
+        <motion.div
+          className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[150px] pointer-events-none z-0"
+          initial={false}
+          animate={{ backgroundColor: provider.color }}
         />
       )}
 
@@ -128,9 +132,10 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
           <div className="flex items-center gap-3">
             {isSpecialProvider ? (
               <div className="flex items-center gap-2">
-                <div
-                  className="h-4 w-[2px] rounded-full bg-[var(--brand-color)]"
-                  style={{ '--brand-color': provider.color } as React.CSSProperties}
+                <motion.div
+                  className="h-4 w-[2px] rounded-full"
+                  initial={false}
+                  animate={{ backgroundColor: provider.color }}
                 />
                 <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">
                   {provider.name} Features
@@ -140,7 +145,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
               <>
                 <div className="h-[1px] w-6 bg-red-600/50" />
                 <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.4em]">
-                  Cinematic Collection / {title.split(' ')[0]}
+                  {title}
                 </h2>
               </>
             )}
@@ -164,8 +169,9 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
           <Link
             href={`/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}`}
             className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors group/link px-4 py-2 rounded-full border border-white/5 hover:bg-white/5"
+            aria-label={`View all ${title}`}
           >
-            Index
+            View All
             <ChevronRight size={12} className="group-hover/link:translate-x-1 transition-transform" />
           </Link>
         )}
@@ -177,8 +183,8 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
         <button
           onClick={() => scroll('left')}
           disabled={!canScrollLeft}
-          title="Scroll left"
-          aria-label="Scroll left"
+          title={`Scroll ${title} left`}
+          aria-label={`Scroll ${title} left`}
           className={cn(
             'absolute left-4 lg:left-12 top-1/2 -translate-y-1/2 z-20 h-14 w-14 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-zinc-900 transition-all shadow-2xl',
             !canScrollLeft && 'opacity-0 pointer-events-none'
@@ -191,8 +197,8 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
         <button
           onClick={() => scroll('right')}
           disabled={!canScrollRight}
-          title="Scroll right"
-          aria-label="Scroll right"
+          title={`Scroll ${title} right`}
+          aria-label={`Scroll ${title} right`}
           className={cn(
             'absolute right-4 lg:right-12 top-1/2 -translate-y-1/2 z-20 h-14 w-14 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-zinc-900 transition-all shadow-2xl',
             !canScrollRight && 'opacity-0 pointer-events-none'
@@ -227,6 +233,7 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
                     provider?.slug === 'netflix' && 'rounded-none'
                   )}
                   providerId={providerId}
+                  playTrailerOnClick={playTrailerOnClick}
                 />
               </div>
             ))

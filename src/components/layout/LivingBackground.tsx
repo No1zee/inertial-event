@@ -10,64 +10,34 @@ import React from 'react';
  * 2. GPU-accelerated transforms (translate3d/scale3d).
  * 3. Atomic compositing layers via will-change.
  */
+import { useUIStore } from '@/lib/stores/uiStore';
+import { shallow } from 'zustand/shallow';
+
 export const LivingBackground: React.FC = () => {
+  const intensity = useUIStore(state => state.atmosphereIntensity, shallow);
+
   return (
     <div className="fixed inset-0 -z-50 overflow-hidden bg-[#020205] pointer-events-none">
       {/* Ambient Aura 1 */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] aura-blur bg-primary/30 rounded-full animate-pulse-slow will-change-transform opacity-40" />
+      <div 
+        className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] aura-blur bg-primary/30 rounded-full animate-pulse-slow will-change-transform" 
+        ref={el => el?.style.setProperty('--aura-opacity', (0.4 * intensity).toString())}
+      />
 
       {/* Ambient Aura 2 */}
-      <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] aura-blur bg-indigo-600/20 rounded-full animate-float-slow will-change-transform opacity-30" />
+      <div 
+        className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] aura-blur bg-indigo-600/20 rounded-full animate-float-slow will-change-transform" 
+        ref={el => el?.style.setProperty('--aura-opacity', (0.3 * intensity).toString())}
+      />
 
       {/* Ambient Aura 3 */}
-      <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] aura-blur bg-purple-600/15 rounded-full animate-pulse-gentle will-change-opacity" />
+      <div 
+        className="absolute top-[30%] right-[10%] w-[30%] h-[30%] aura-blur bg-purple-600/15 rounded-full animate-pulse-gentle will-change-opacity" 
+        ref={el => el?.style.setProperty('--aura-opacity', (0.25 * intensity).toString())}
+      />
 
       {/* Static Grain Overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('/noise.svg')] bg-repeat" />
-
-      <style jsx>{`
-        @keyframes pulse-slow {
-          0%,
-          100% {
-            transform: scale3d(1, 1, 1);
-            opacity: 0.3;
-          }
-          50% {
-            transform: scale3d(1.15, 1.15, 1);
-            opacity: 0.5;
-          }
-        }
-        @keyframes float-slow {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-          }
-          50% {
-            transform: translate3d(5%, 2%, 0) scale3d(1.1, 1.1, 1);
-          }
-        }
-        @keyframes pulse-gentle {
-          0%,
-          100% {
-            opacity: 0.15;
-          }
-          50% {
-            opacity: 0.35;
-          }
-        }
-        .animate-pulse-slow {
-          animation: pulse-slow 15s ease-in-out infinite;
-        }
-        .animate-float-slow {
-          animation: float-slow 20s ease-in-out infinite;
-        }
-        .animate-pulse-gentle {
-          animation: pulse-gentle 12s ease-in-out infinite;
-        }
-        .aura-blur {
-          filter: blur(120px);
-        }
-      `}</style>
     </div>
   );
 };

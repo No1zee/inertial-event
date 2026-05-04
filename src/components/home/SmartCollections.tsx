@@ -31,7 +31,7 @@ export function SmartCollections() {
   if (isLoading && collections.length === 0) return null;
 
   return (
-    <section id="the-archives" className="px-10 lg:px-24 py-16">
+    <section id="the-collection" className="px-10 lg:px-24 py-16">
       <div className="flex items-center justify-between mb-12">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.1)]">
@@ -39,7 +39,7 @@ export function SmartCollections() {
           </div>
           <div>
             <PretextHeadline
-              text="The Archives"
+              text="Collections"
               fontSize={30}
               fontWeight={900}
               letterSpacing="-0.02em"
@@ -75,25 +75,25 @@ export function SmartCollections() {
                   <div className="flex items-center gap-3">
                     <FolderOpen size={16} className="text-purple-400" />
                     <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">
-                      Archival Cluster
+                      Collection
                     </span>
                   </div>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
-                    <span className="text-[9px] font-bold text-purple-300 uppercase tracking-widest">Logic Active</span>
+                    <span className="text-[9px] font-bold text-purple-300 uppercase tracking-widest">Active</span>
                   </div>
                 </div>
                 <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2 group-hover:text-purple-400 transition-colors">
                   {collection.title}
                 </h3>
                 
-                {/* Neural Logic Snippet (Hover) */}
+                {/* Institutional Description */}
                 <div className="relative h-12 overflow-hidden">
                   <p className="absolute inset-0 text-sm text-zinc-400 line-clamp-2 font-medium transition-all duration-500 group-hover:-translate-y-full opacity-100 group-hover:opacity-0">
                     {collection.description}
                   </p>
                   <p className="absolute inset-0 text-[11px] text-purple-300/60 font-medium italic line-clamp-2 transition-all duration-500 translate-y-full group-hover:translate-y-0 opacity-0 group-hover:opacity-100">
-                    "{collection.logic}"
+                    &quot;{collection.logic}&quot;
                   </p>
                 </div>
               </div>
@@ -101,17 +101,21 @@ export function SmartCollections() {
               {/* Stacked Images Effect */}
               <div className="absolute top-12 right-12 w-32 h-44 z-10">
                 {collection.items.slice(0, 3).map((item, i) => (
-                  <div
+                  <motion.div
                     key={item.id}
-                    className="absolute inset-0 rounded-xl overflow-hidden border border-white/10 shadow-2xl transition-all duration-700 group-hover:scale-110"
-                    style={{
-                      transform: `rotate(${i * 10 - 5}deg) translate(${i * 20}px, ${i * -10}px)`,
+                    initial={{ 
+                      rotate: i * 10 - 5,
+                      x: i * 20,
+                      y: i * -10,
                       zIndex: 3 - i,
-                      opacity: 1 - i * 0.2,
+                      opacity: 1 - i * 0.2
                     }}
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.7 }}
+                    className="absolute inset-0 rounded-xl overflow-hidden border border-white/10 shadow-2xl transition-all"
                   >
                     <OptimizedImage src={item.poster} alt={item.title} fill className="object-cover" />
-                  </div>
+                  </motion.div>
                 ))}
               </div>
 
@@ -120,7 +124,7 @@ export function SmartCollections() {
               {/* Hover Reveal Items */}
               <div className="absolute inset-x-8 bottom-8 flex justify-end transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-30">
                 <button className="h-12 px-6 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">
-                  Open Archive
+                  View Collection
                   <ChevronRight size={16} />
                 </button>
               </div>

@@ -3,6 +3,8 @@
 import { useCallback } from 'react';
 import { useUserPreferences } from '@/lib/stores/localDataStore';
 
+let sharedAudioCtx: AudioContext | null = null;
+
 export function useUISounds() {
   const { interfaceSounds } = useUserPreferences();
 
@@ -10,16 +12,23 @@ export function useUISounds() {
     (type: 'hover' | 'click' | 'success' | 'error') => {
       if (typeof window === 'undefined' || !interfaceSounds) return;
 
-      const audioCtx = new (
-        window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      )();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+      if (!sharedAudioCtx) {
+        sharedAudioCtx = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
+      }
+
+      if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume();
+      }
+
+      const oscillator = sharedAudioCtx.createOscillator();
+      const gainNode = sharedAudioCtx.createGain();
 
       oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+      gainNode.connect(sharedAudioCtx.destination);
 
-      const now = audioCtx.currentTime;
+      const now = sharedAudioCtx.currentTime;
 
       if (type === 'hover') {
         oscillator.type = 'sine';
@@ -38,8 +47,6 @@ export function useUISounds() {
         oscillator.start(now);
         oscillator.stop(now + 0.1);
       }
-
-      setTimeout(() => audioCtx.close(), 200);
     },
     [interfaceSounds]
   );

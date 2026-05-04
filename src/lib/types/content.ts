@@ -1,29 +1,35 @@
 export interface Content {
   id: string;
   title: string;
+  name?: string;
+  media_type?: string;
   description?: string;
   overview?: string;
-  poster: string;
-  backdrop?: string;
+  poster: string | null;
+  backdrop?: string | null;
   poster_path?: string;
   backdrop_path?: string;
+  posterUrl?: string; // Legacy/Store compatibility
+  backdropUrl?: string; // Legacy/Store compatibility
   rating: number;
   releaseDate: string;
-  type: 'movie' | 'tv' | 'anime';
+  year?: string | number;
+  type: 'movie' | 'tv' | 'anime' | 'series';
   genres: string[];
+  genre_names?: string[];
   lastAirDate?: string;
   originalLanguage?: string;
   originCountry?: string[];
   progress?: number; // Current playback time in seconds
   lastWatched?: number; // Timestamp
   addedAt?: number; // Timestamp
-  duration?: number; // Total duration in seconds (already exists, verify type)
+  duration?: number; // Total duration in seconds
   season?: number;
   episode?: number;
   seasons?: number;
   episodes?: number;
-  status: 'ongoing' | 'completed';
-  isAdult: boolean;
+  status?: 'ongoing' | 'completed';
+  isAdult?: boolean;
   language?: string;
   country?: string[];
   providerId?: string;
@@ -31,6 +37,7 @@ export interface Content {
   cast?: CastMember[];
   recommendations?: Content[];
   trailer?: string;
+  trailerUrl?: string;
   popularity?: number;
   director?: string;
   directors?: string[];
@@ -53,17 +60,21 @@ export interface Content {
     curatorNote?: string;
     didYouKnow?: string;
   };
+  editorialReason?: string;
+  vibeLabel?: string;
+  customBadge?: { label: string; color: string };
+  leavingDate?: string;
+  slug?: string;
 }
 
-// Optimized interface for storage (LocalStorage is synchronous!)
+// Optimized interface for storage
 export interface MinifiedContent extends Partial<Content> {
   id: string;
   title: string;
   overview?: string;
-  type: 'movie' | 'tv' | 'anime';
-  poster: string;
-  // Optional extras we might want to keep
-  backdrop?: string;
+  type: 'movie' | 'tv' | 'anime' | 'series';
+  poster: string | null;
+  backdrop?: string | null;
   lastWatched?: number;
   progress?: number;
   duration?: number;
@@ -77,6 +88,16 @@ export interface CastMember {
   name: string;
   character: string;
   profilePath: string | null;
+}
+
+export interface PersonDetails {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  biography: string;
+  birthday: string | null;
+  place_of_birth: string | null;
+  known_for_department: string;
 }
 
 export interface Season {
@@ -104,6 +125,8 @@ export interface SeasonEpisode {
   still_path: string | null;
   air_date: string;
   runtime: number;
+  vote_average?: number;
+  backdrop_path?: string | null;
 }
 
 export interface Episode {
@@ -120,7 +143,7 @@ export interface Episode {
 
 export interface StreamSource {
   id: string;
-  name: string; // 'Vidlink', 'Consumet', 'Torrent', etc
+  name: string;
   url: string;
   quality: 'SD' | '720p' | '1080p' | '4K';
   type: 'hls' | 'dash' | 'mp4' | 'torrent';
@@ -142,7 +165,7 @@ export interface SearchFilters {
   year?: number;
   rating?: number;
   status?: 'ongoing' | 'completed';
-  type?: 'movie' | 'tv' | 'anime';
+  type?: 'movie' | 'tv' | 'anime' | 'series';
   sortBy?: 'trending' | 'rating' | 'newest' | 'popularity';
 }
 

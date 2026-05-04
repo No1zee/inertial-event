@@ -29,10 +29,10 @@ export function CinematicHero({ item }: CinematicHeroProps) {
     } else {
       addToLibrary({
         contentId: String(item.id),
-        type: contentType as 'movie' | 'tv' | 'anime',
+        type: contentType as 'movie' | 'tv' | 'anime' | 'series',
         title: item.title,
-        poster: item.poster,
-        backdrop: item.backdrop,
+        poster: item.poster ?? undefined,
+        backdrop: item.backdrop ?? undefined,
         favorite: false,
       });
     }

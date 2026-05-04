@@ -5,18 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
   ShieldCheck, 
-  User, 
-  Camera, 
-  Heart, 
   Sparkles, 
   ArrowRight, 
   Check,
-  Film,
-  Tv,
   Zap
 } from 'lucide-react';
 import { usePreferencesActions } from '@/lib/stores/preferencesStore';
-import { useLocalDataStore, useProfileActions, useProfiles } from '@/lib/stores/localDataStore';
+import { useProfileActions } from '@/lib/stores/localDataStore';
 import { useThemeStore, Theme } from '@/lib/stores/themeStore';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { Button } from '@/components/ui/button';
@@ -78,11 +73,11 @@ const VIBES = [
 ];
 
 const THEMES: { id: Theme; name: string; desc: string; colors: string[] }[] = [
-  { id: 'Mai', name: 'Obsidian', desc: 'The classic cinematic experience. Deep blacks and crimson accents.', colors: ['#000000', '#E50914'] },
-  { id: 'ocean', name: 'Oceanic', desc: 'Cool and deep. Midnight blues with teal highlights.', colors: ['#0A192F', '#00CFCC'] },
-  { id: 'cyberpunk', name: 'Cyberpunk', desc: 'Vibrant and intense. Neon purples and electric cyan.', colors: ['#0D0221', '#FF00FF'] },
-  { id: 'oled', name: 'OLED Pure', desc: 'Minimum distraction. Absolute black and pristine white.', colors: ['#000000', '#FFFFFF'] },
-  { id: 'heritage', name: 'Heritage', desc: 'Warm and earthy. Gold accents on deep umber.', colors: ['#1A140F', '#FFD700'] },
+  { id: 'Nova', name: 'Nova Stream', desc: 'The classic cinematic experience. Deep blacks and secondary accents.', colors: ['#000000', '#E50914'] },
+  { id: 'ocean', name: 'Oceanic', desc: 'Cool and deep. Midnight blues with teal highlights.', colors: ['#0A192F', '#0EA5E9'] },
+  { id: 'cyberpunk', name: 'Cyberpunk', desc: 'Vibrant and intense. Neon purples and electric cyan.', colors: ['#0D0221', '#FF00BB'] },
+  { id: 'oled', name: 'Pure OLED', desc: 'Minimum distraction. Absolute black and pristine white.', colors: ['#000000', '#FFFFFF'] },
+  { id: 'heritage', name: 'Heritage', desc: 'Warm and earthy. Gold accents on deep umber.', colors: ['#1A140F', '#FFB700'] },
 ];
 
 export function OnboardingFlow() {
@@ -93,7 +88,12 @@ export function OnboardingFlow() {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
-  const [selectedTheme, setSelectedTheme] = useState<Theme>('Mai');
+  const [selectedTheme, _setSelectedTheme] = useState<Theme>('Nova');
+  
+  const setSelectedTheme = (t: Theme) => {
+    _setSelectedTheme(t);
+    setTheme(t);
+  };
   
   const { 
     setHasCompletedOnboarding, 
@@ -103,7 +103,6 @@ export function OnboardingFlow() {
   } = usePreferencesActions();
   const { createProfile, setActiveProfile, updateProfile } = useProfileActions();
   const { setTheme } = useThemeStore();
-  const profiles = useProfiles();
 
   const handleNext = () => setStep(s => s + 1);
 
@@ -232,8 +231,8 @@ export function OnboardingFlow() {
           >
             <div className="flex items-center justify-between w-full">
               <div className="space-y-1">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Vault Setup</span>
-                <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Who's watching?</h2>
+                <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Profile Setup</span>
+                <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Who&apos;s watching?</h2>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 1 of 4</span>
@@ -242,7 +241,7 @@ export function OnboardingFlow() {
                 </div>
               </div>
             </div>
-            <p className="text-zinc-500 text-sm font-medium -mt-6">Choose a name (max 12 chars) and a custom avatar for your vault.</p>
+            <p className="text-zinc-500 text-sm font-medium -mt-6">Choose a name (max 12 chars) and a custom avatar for your account.</p>
 
             <div className="w-full space-y-8">
               <div className="space-y-4">
@@ -267,7 +266,7 @@ export function OnboardingFlow() {
                       key={i}
                       onClick={() => setSelectedAvatar(avatar)}
                       className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all hover:scale-105 active:scale-95 group ${
-                        selectedAvatar === avatar ? 'border-primary shadow-[0_0_20px_rgba(255,0,0,0.3)]' : 'border-white/5 opacity-80 grayscale-0 hover:border-white/30 hover:opacity-100'
+                        selectedAvatar === avatar ? 'border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]' : 'border-white/5 opacity-80 grayscale-0 hover:border-white/30 hover:opacity-100'
                       }`}
                     >
                       <OptimizedImage src={avatar} alt={`Avatar ${i}`} fill className="object-cover" />
@@ -384,7 +383,7 @@ export function OnboardingFlow() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Personalize</span>
-                <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Tonight's Mood</h2>
+                <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Tonight&apos;s Mood</h2>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Step 3 of 4</span>
@@ -496,7 +495,12 @@ export function OnboardingFlow() {
                     </span>
                     <div className="flex gap-1.5">
                       {theme.colors.map((c, i) => (
-                        <div key={i} className="w-3 h-3 rounded-full border border-white/10" style={{ backgroundColor: c }} />
+                        <motion.div 
+                          key={i} 
+                          className="w-3 h-3 rounded-full border border-white/10" 
+                          initial={false}
+                          animate={{ backgroundColor: c }} 
+                        />
                       ))}
                     </div>
                   </div>
@@ -545,7 +549,7 @@ export function OnboardingFlow() {
             </div>
             <div className="space-y-2">
               <PretextHeadline 
-                text="Vault Secured" 
+                text="Profile Ready" 
                 fontSize={32}
                 fontWeight={900}
                 className="text-white uppercase" 
