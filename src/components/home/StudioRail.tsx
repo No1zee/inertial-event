@@ -32,7 +32,7 @@ export function StudioRail() {
             title={studio.name}
             aria-label={studio.name}
             className={cn(
-              'relative aspect-[16/7] rounded-2xl overflow-hidden cursor-pointer group outline-none',
+              'relative aspect-16/7 rounded-2xl overflow-hidden cursor-pointer group outline-none',
               'border border-white/5 bg-black/40 backdrop-blur-xl',
               'hover:scale-[1.05] hover:border-white/20 transition-all duration-500',
               'shadow-[0_8px_32px_rgba(0,0,0,0.4)]',
@@ -67,7 +67,7 @@ export function StudioRail() {
             </div>
 
             {/* Gloss effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             {/* Bottom Brand Bar */}
             <motion.div
@@ -81,3 +81,4 @@ export function StudioRail() {
     </div>
   );
 }
+

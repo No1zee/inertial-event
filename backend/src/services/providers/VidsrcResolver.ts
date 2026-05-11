@@ -19,10 +19,11 @@ export interface IResolveResult {
 
 export class VidsrcResolver {
     private static MIRRORS = [
-        'https://vidsrc.xyz',
-        'https://vidsrc.to',
+        'https://vidsrc.pm',
         'https://vidsrc.me',
-        'https://vidsrc.cc'
+        'https://vidsrc.net',
+        'https://vidsrc.in',
+        'https://vidsrc.to'
     ];
 
     /**

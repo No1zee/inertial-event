@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, FolderOpen, ChevronRight } from 'lucide-react';
 import { getSmartCollections, SmartCollection } from '@/lib/api/collections';
@@ -8,25 +8,26 @@ import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { PretextHeadline } from '../Common/PretextHeadline';
 import { ArchiveModal } from '../ArchiveModal';
+import { useQuery } from '@tanstack/react-query';
 
 export function SmartCollections() {
-  const [collections, setCollections] = useState<SmartCollection[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedCollection, setSelectedCollection] = useState<SmartCollection | null>(null);
   const watchHistory = useLocalDataStore(state => state.watchHistory);
   const activeProfile = useLocalDataStore(state => state.profiles.find(p => p.id === state.activeProfileId));
+  const [selectedCollection, setSelectedCollection] = useState<SmartCollection | null>(null);
 
-  useEffect(() => {
-    // Correctly map contentIds from the watch history array
-    const historyIds = Array.isArray(watchHistory) 
+  const historyIds = useMemo(() => 
+    Array.isArray(watchHistory) 
       ? watchHistory.map(h => h.contentId).filter(Boolean)
-      : [];
-      
-    getSmartCollections(historyIds, activeProfile?.preferences).then(data => {
-      setCollections(data);
-      setIsLoading(false);
-    });
-  }, [watchHistory, activeProfile?.preferences]);
+      : [],
+    [watchHistory]
+  );
+
+  const { data: collections = [], isLoading } = useQuery<SmartCollection[]>({
+    queryKey: ['smart_collections', historyIds, activeProfile?.preferences],
+    queryFn: () => getSmartCollections(historyIds, activeProfile?.preferences),
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    enabled: !!activeProfile,
+  });
 
   if (isLoading && collections.length === 0) return null;
 
@@ -119,7 +120,7 @@ export function SmartCollections() {
                 ))}
               </div>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+              <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
               {/* Hover Reveal Items */}
               <div className="absolute inset-x-8 bottom-8 flex justify-end transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-30">
@@ -139,3 +140,4 @@ export function SmartCollections() {
     </section>
   );
 }
+

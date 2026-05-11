@@ -125,7 +125,7 @@ const ContentCard = memo(function ContentCard({
       return { label: 'Award Winning', color: 'bg-amber-500 text-black font-black border-none ring-4 ring-amber-500/10' };
     }
     if (matchScore >= 95) {
-      return { label: 'Top Pick', color: 'bg-white text-black font-black border-none ring-4 ring-white/10' };
+      return { label: 'Top Pick', color: 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] font-black border-none ring-4 ring-[hsl(var(--foreground))]/10' };
     }
 
     if (item.popularity && item.popularity > 2000) {
@@ -147,13 +147,13 @@ const ContentCard = memo(function ContentCard({
     if (diffDays >= 0 && diffDays < 14)
       return {
         label: 'Just Released',
-        color: 'bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)] border border-white/20',
+        color: 'bg-[hsl(var(--primary))] shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)] border border-[hsl(var(--foreground))]/20',
       };
-    if (diffDays >= 0 && diffDays < 30) return { label: 'New Arrival', color: 'bg-zinc-100 text-black font-black' };
+    if (diffDays >= 0 && diffDays < 30) return { label: 'New Arrival', color: 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] font-black' };
     
     // Leaving Soon heuristic (randomly or via metadata if exists)
     if (item.leavingDate) {
-       return { label: 'Leaving Soon', color: 'bg-zinc-800 text-white border border-white/10' };
+       return { label: 'Leaving Soon', color: 'bg-[hsl(var(--surface-elevated))] text-[hsl(var(--foreground))] border border-[hsl(var(--border))]/30' };
     }
     
     return null;
@@ -218,19 +218,19 @@ const ContentCard = memo(function ContentCard({
       aria-label={`${item.title} (${contentType === 'tv' ? 'Series' : contentType === 'anime' ? 'Anime' : 'Movie'})`}
       role="button"
       className={cn(
-        'relative rounded-2xl overflow-hidden bg-zinc-900/50 cursor-pointer group shrink-0 border border-white/5 outline-none transition-all duration-500',
-        'hover:z-30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)]',
+        'relative rounded-2xl overflow-hidden bg-[hsl(var(--surface))]/50 cursor-pointer group shrink-0 border border-[hsl(var(--border))]/30 outline-none transition-all duration-500',
+        'hover:z-30 hover:shadow-[var(--shadow-cinematic)]',
         provider?.slug === 'netflix'
           ? 'hover:border-red-600 hover:shadow-[0_0_30px_rgba(229,9,20,0.3)]'
           : provider?.slug === 'hulu'
             ? 'hover:border-[#1ce783] hover:shadow-[0_0_30px_rgba(28,231,131,0.2)]'
             : provider?.slug === 'disney'
               ? 'hover:border-[#113ccf] hover:shadow-[0_0_30px_rgba(17,60,207,0.3)]'
-              : 'hover:border-white/20',
-        'focus:border-red-600 focus:ring-4 focus:ring-red-600/20',
-        (aspectRatio === 'portrait' || aspectRatio === 'poster') && 'aspect-[2/3] w-[160px] md:w-[200px]',
+              : 'hover:border-[hsl(var(--foreground))]/30',
+        'focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary))]/20',
+        (aspectRatio === 'portrait' || aspectRatio === 'poster') && 'aspect-2/3 w-[160px] md:w-[200px]',
         (aspectRatio === 'landscape' || aspectRatio === '16:9') && 'aspect-video w-[280px] md:w-[350px]',
-        (aspectRatio === '21:9' || aspectRatio === 'ultrawide') && 'aspect-[21/9] w-[350px] md:w-[420px]',
+        (aspectRatio === '21:9' || aspectRatio === 'ultrawide') && 'aspect-21/9 w-[350px] md:w-[420px]',
         aspectRatio === 'square' && 'aspect-square w-[160px] md:w-[200px]',
         aspectRatio === 'fill' && 'w-full h-full',
         className
@@ -248,7 +248,7 @@ const ContentCard = memo(function ContentCard({
     >
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         {/* Base Layer for transition stability */}
-        <div className="absolute inset-0 bg-[#09090b]" />
+        <div className="absolute inset-0 bg-[hsl(var(--background))]" />
 
         {(() => {
           const isLandscape =
@@ -282,15 +282,15 @@ const ContentCard = memo(function ContentCard({
 
         {/* Holographic Shimmer Overlay */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-reflection-slow" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/0 via-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+          <div className="absolute inset-0 bg-linear-to-tr from-transparent via-[hsl(var(--foreground))]/5 to-transparent -translate-x-full group-hover:animate-reflection-slow" />
+          <div className="absolute inset-0 bg-linear-to-tr from-[hsl(var(--primary))]/0 via-[hsl(var(--primary))]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 group-hover:via-black/70 transition-all duration-700" />
+        <div className="absolute inset-0 bg-linear-to-t from-[hsl(var(--background))] via-[hsl(var(--background))]/20 to-transparent opacity-80 group-hover:opacity-100 group-hover:via-[hsl(var(--background))]/70 transition-all duration-700" />
         
         {/* Cinematic Reflection */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none">
-          <div className="absolute top-0 left-[-100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-25deg] group-hover:animate-reflection" />
+          <div className="absolute top-0 left-[-100%] w-[50%] h-full bg-linear-to-r from-transparent via-[hsl(var(--foreground))]/10 to-transparent skew-x-[-25deg] group-hover:animate-reflection" />
         </div>
 
         {badge && !providerId && (
@@ -310,7 +310,7 @@ const ContentCard = memo(function ContentCard({
               'absolute top-3 right-3 z-30 px-2.5 py-1.5 rounded-md backdrop-blur-md flex items-center justify-center border transition-all duration-300',
               providerId === 'acu'
                 ? 'bg-amber-600/20 border-amber-500/50 shadow-[0_0_15px_rgba(251,191,36,0.2)]'
-                : `bg-black/60 border-white/10 group-hover:bg-black/80 group-hover:border-white/20`
+                : `bg-[hsl(var(--background))]/60 border-[hsl(var(--border))]/30 group-hover:bg-[hsl(var(--background))]/80 group-hover:border-[hsl(var(--border))]/50`
             )}
           >
             {provider?.logo ? (
@@ -340,7 +340,7 @@ const ContentCard = memo(function ContentCard({
         if (!resumeData || resumeData.currentTime < 30) return null;
 
         return (
-          <div className="absolute inset-0 z-25 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+          <div className="absolute inset-0 z-25 bg-[hsl(var(--background))]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
             <button
               onClick={handlePlay}
               className="flex flex-col items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500"
@@ -352,12 +352,12 @@ const ContentCard = memo(function ContentCard({
                     ? 'bg-[#1ce783] text-black shadow-[#1ce783]/40'
                     : provider?.slug === 'netflix'
                       ? 'bg-red-600 text-white shadow-red-600/40'
-                      : 'bg-white text-black shadow-white/20'
+                      : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] shadow-[hsl(var(--foreground))]/20'
                 )}
               >
                 <Play size={20} fill="currentColor" className="ml-1" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-white drop-shadow-lg">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[hsl(var(--foreground))] drop-shadow-lg">
                 Resume at {Math.floor(resumeData.currentTime / 60)}:
                 {(resumeData.currentTime % 60).toString().padStart(2, '0')}
               </span>
@@ -381,7 +381,7 @@ const ContentCard = memo(function ContentCard({
                 ? 'bg-[#1ce783] text-black hover:bg-[#15b364]'
                 : provider?.slug === 'netflix'
                   ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-white text-black hover:bg-neutral-200'
+                  : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:opacity-90'
             )}
             aria-label={`Play ${item.title}`}
             title={`Play ${item.title}`}
@@ -392,8 +392,8 @@ const ContentCard = memo(function ContentCard({
           </button>
           <button
             className={cn(
-              'w-9 h-9 rounded-md flex items-center justify-center glass-card border border-white/10 shadow-2xl active:scale-95 transition-all text-white',
-              inLibrary ? provider?.color || 'bg-red-600 border-red-500' : 'bg-black/60'
+              'w-9 h-9 rounded-md flex items-center justify-center glass-card border border-[hsl(var(--border))]/30 shadow-2xl active:scale-95 transition-all text-[hsl(var(--foreground))]',
+              inLibrary ? provider?.color || 'bg-red-600 border-red-500' : 'bg-[hsl(var(--background))]/60'
             )}
             aria-label={inLibrary ? `Remove ${item.title} from Watchlist` : `Add ${item.title} to Watchlist`}
             title={inLibrary ? 'Remove from Watchlist' : 'Add to Watchlist'}
@@ -405,15 +405,15 @@ const ContentCard = memo(function ContentCard({
         </div>
 
         <div className="space-y-1">
-          <h3 className="font-black text-white text-sm md:text-base tracking-tight leading-tight drop-shadow-2xl truncate uppercase">
+          <h3 className="font-black text-[hsl(var(--foreground))] text-sm md:text-base tracking-tight leading-tight drop-shadow-2xl truncate uppercase">
             {item.title}
           </h3>
-          <div className="flex items-center gap-2 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">
-            <span className="bg-white/10 text-white/80 px-1.5 py-0.5 rounded-[2px] tracking-widest text-[8px]">
+          <div className="flex items-center gap-2 text-[9px] font-black text-[hsl(var(--muted-foreground))] uppercase tracking-[0.2em]">
+            <span className="bg-[hsl(var(--foreground))]/10 text-[hsl(var(--foreground))]/80 px-1.5 py-0.5 rounded-xs tracking-widest text-[8px]">
               {contentType === 'tv' ? 'Series' : contentType === 'anime' ? 'Anime' : 'Movie'}
             </span>
             {matchScore >= 55 && (
-              <span className={cn(matchScore >= 95 ? 'text-amber-500' : 'text-red-500/80')}>{matchScore}% Match</span>
+              <span className={cn(matchScore >= 95 ? 'text-amber-500' : 'text-[hsl(var(--primary))]')}>{matchScore}% Match</span>
             )}
             <span className="opacity-30">•</span>
             <span>{item.releaseDate?.substring(0, 4) || 'Archived'}</span>
@@ -424,7 +424,7 @@ const ContentCard = memo(function ContentCard({
               {(item.genres || item.genre_names || []).slice(0, 2).map((genre, i) => (
                 <span 
                   key={genre} 
-                  className="text-[7px] font-black text-zinc-400/80 group-hover:text-zinc-200 border border-white/5 px-1.5 py-0.5 rounded-[2px] uppercase tracking-[0.15em] bg-white/[0.02] transition-colors"
+                  className="text-[7px] font-black text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] border border-[hsl(var(--border))]/30 px-1.5 py-0.5 rounded-xs uppercase tracking-[0.15em] bg-[hsl(var(--foreground))]/[0.02] transition-colors"
                 >
                   {genre}
                 </span>
@@ -433,7 +433,7 @@ const ContentCard = memo(function ContentCard({
           )}
 
           {item.editorialReason && (
-            <p className="hidden group-hover:block text-[9px] leading-relaxed text-zinc-500 font-medium line-clamp-1 pt-1 border-t border-white/5">
+            <p className="hidden group-hover:block text-[9px] leading-relaxed text-[hsl(var(--muted-foreground))] font-medium line-clamp-1 pt-1 border-t border-[hsl(var(--border))]/30">
               {item.editorialReason}
             </p>
           )}
@@ -469,31 +469,31 @@ function CardProgressBar({ item, providerColor }: { item: Content; providerColor
 
   return (
     <>
-      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/5 z-30">
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[hsl(var(--border))]/10 z-30">
         <motion.div
           className="h-full relative overflow-hidden"
           initial={{ width: 0 }}
           animate={{ 
             width: `${progress}%`,
-            backgroundColor: providerColor || '#E50914'
+            backgroundColor: providerColor || 'hsl(var(--primary))'
           }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" />
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-[hsl(var(--foreground))]/20 to-transparent animate-shimmer bg-[length:200%_100%]" />
         </motion.div>
       </div>
       {resumeData && resumeData.currentTime > 30 && (
         <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-1.5">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-black/70 backdrop-blur-md rounded-full border border-white/10 shadow-2xl">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-[hsl(var(--background))]/70 backdrop-blur-md rounded-full border border-[hsl(var(--border))]/30 shadow-2xl">
             <MotionClock 
               size={10} 
               initial={false}
-              animate={{ color: providerColor || '#E50914' }} 
+              animate={{ color: providerColor || 'hsl(var(--primary))' }} 
             />
-            <span className="text-[9px] font-bold text-white tabular-nums">{formatTime(resumeData.currentTime)}</span>
+            <span className="text-[9px] font-bold text-[hsl(var(--foreground))] tabular-nums">{formatTime(resumeData.currentTime)}</span>
           </div>
           {resumeData.season && (
-            <div className="px-1.5 py-0.5 bg-zinc-800/90 backdrop-blur-md rounded-sm border border-white/5 text-[8px] font-black text-zinc-100 uppercase tracking-wider">
+            <div className="px-1.5 py-0.5 bg-[hsl(var(--surface-elevated))]/90 backdrop-blur-md rounded-sm border border-[hsl(var(--border))]/30 text-[8px] font-black text-[hsl(var(--foreground))] uppercase tracking-wider">
               S{resumeData.season} • E{resumeData.episode}
             </div>
           )}
@@ -502,3 +502,4 @@ function CardProgressBar({ item, providerColor }: { item: Content; providerColor
     </>
   );
 }
+

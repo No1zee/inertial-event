@@ -72,8 +72,8 @@ export function PeacockHero({ item }: PeacockHeroProps) {
         />
 
         {/* Advanced Scrim Architecture */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-linear-to-r from-black via-black/40 to-transparent" />
 
         {/* Subtle Prism Texture */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
@@ -180,3 +180,4 @@ export function PeacockHero({ item }: PeacockHeroProps) {
     </section>
   );
 }
+

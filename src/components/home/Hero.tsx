@@ -9,6 +9,7 @@ import { OptimizedImage } from '../ui/OptimizedImage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useExperiment } from '@/components/providers/ExperimentProvider';
 import { logExperimentEvent } from '@/lib/experiment';
+import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import { type ExperimentGroup } from '@/lib/experiment';
@@ -52,7 +53,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
     setShowTrailer(false);
     const timer = setTimeout(() => {
       if (content?.trailerUrl) setShowTrailer(true);
-    }, 3000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [content]);
 
@@ -74,7 +75,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }} // Faster transition
-          className="absolute inset-0 bg-background"
+          className="absolute inset-0 bg-transparent"
         >
           {showTrailer && content?.trailerUrl && !trailerError ? (
             <div className="relative w-full h-full scale-[1.35] overflow-hidden pointer-events-none">
@@ -108,9 +109,10 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
           )}
 
           {/* Advanced Multi-Stage Gradients for "Premium" look */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
-          <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(var(--background-rgb),0.5)]" />
+          <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent z-[1]" />
+          <div className="absolute inset-0 bg-linear-to-r from-background via-background/40 to-transparent z-[1]" />
+          <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(var(--background-rgb),0.5)] z-[1]" />
+          <div className="absolute inset-0 atmospheric-scrim opacity-40 z-[1]" />
         </motion.div>
       </AnimatePresence>
 
@@ -122,7 +124,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 50 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="absolute bottom-[25%] left-10 lg:left-20 max-w-3xl space-y-8 z-10"
+          className="absolute bottom-[20%] left-10 lg:left-20 max-w-4xl space-y-8 z-10"
         >
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -131,7 +133,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             className="flex items-center space-x-4"
           >
             {variant === 'B' ? (
-              <span className="px-3 py-1 bg-gradient-to-r from-primary to-accent text-[10px] font-black rounded-lg uppercase tracking-[0.2em] shadow-lg shadow-primary/30 flex items-center gap-2 animate-pulse">
+              <span className="px-3 py-1 bg-linear-to-r from-primary to-accent text-[10px] font-black rounded-lg uppercase tracking-[0.2em] shadow-lg shadow-primary/30 flex items-center gap-2 animate-pulse">
                 <Sparkles size={12} />
                 AI RECOMMENDED
               </span>
@@ -151,7 +153,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-7xl lg:text-8xl font-black tracking-tighter text-foreground drop-shadow-sm italic"
+            className="text-7xl lg:text-9xl text-foreground drop-shadow-2xl leading-[0.8] visual-boost"
           >
             {content?.title}
           </motion.h1>
@@ -160,7 +162,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="text-xl text-muted-foreground line-clamp-2 font-medium max-w-xl"
+            className="text-xl text-muted-foreground line-clamp-3 font-medium max-w-2xl leading-relaxed"
           >
             {content?.description}
           </motion.p>
@@ -169,48 +171,51 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="flex items-center space-x-6 pt-6"
+            className="flex items-center space-x-4 pt-6"
           >
-            <button
+            <Button
+              variant="primary"
+              size="lg"
               onClick={handlePlay}
-              aria-label={`Stream ${content?.title} now`}
-              className={cn(
-                'flex items-center space-x-3 text-primary-foreground px-10 py-5 rounded-2xl font-black transition-all active:scale-95 shadow-2xl group/play overflow-hidden relative',
-                'bg-primary hover:bg-primary/90'
-              )}
+              className="group/play"
+              aria-label="Play now"
             >
-              <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover/play:translate-x-0 transition-transform duration-300" />
-              <span className="relative z-10 flex items-center space-x-3">
-                <Play fill="currentColor" size={24} />
-                <span className="text-lg">STREAM NOW</span>
-              </span>
-            </button>
+              <Play fill="currentColor" size={24} className="group-hover/play:scale-110 transition-transform" />
+              <span>STREAM NOW</span>
+            </Button>
 
-            <button
-              aria-label={`View details for ${content?.title}`}
-              className="flex items-center space-x-3 bg-surface-deep/60 backdrop-blur-xl text-foreground px-10 py-5 rounded-2xl font-black hover:bg-surface-deep/80 transition-all active:scale-95 border border-border shadow-2xl"
+            <Button
+              variant="secondary"
+              size="lg"
+              className="backdrop-blur-xl"
+              aria-label="View details"
             >
               <Info size={24} />
-              <span className="text-lg">DETAILS</span>
-            </button>
+              <span>DETAILS</span>
+            </Button>
 
-            <button
+            <Button
+              variant="secondary"
+              size="icon"
               onClick={() =>
                 isFavorited
                   ? removeFromLibrary(content?.id?.toString() || content?._id || '')
                   : addToLibrary(content?.id?.toString() || content?._id || '')
               }
-              aria-label={isFavorited ? `Remove ${content?.title} from library` : `Add ${content?.title} to library`}
-              className={`p-5 rounded-2xl transition-all border shadow-2xl ${
-                isFavorited
-                  ? 'bg-primary border-primary text-primary-foreground'
-                  : 'bg-surface-deep/60 backdrop-blur-xl border-border text-foreground hover:bg-surface-deep/80'
-              }`}
+              className={cn(
+                "backdrop-blur-xl",
+                isFavorited && "bg-primary border-primary text-white"
+              )}
+              aria-label={isFavorited ? "Remove from watchlist" : "Add to watchlist"}
             >
               {isFavorited ? <Check size={28} /> : <Plus size={28} />}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="secondary"
+              size="icon"
+              className="backdrop-blur-xl"
+              aria-label="Share content"
               onClick={() => {
                 const url = `${window.location.origin}/watch?id=${content?.id || content?._id}&ref=user_share`;
                 if (navigator.share) {
@@ -223,20 +228,19 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                     .then(() => logExperimentEvent('viral_loop', 'A' as ExperimentGroup, 'share_success'));
                 } else {
                   navigator.clipboard.writeText(url);
-                  alert('Link copied to clipboard! Share it with friends.');
+                  // Using a more subtle notification would be better than alert
+                  console.log('Link copied');
                   logExperimentEvent('viral_loop', 'A' as ExperimentGroup, 'copy_link');
                 }
               }}
-              className="p-5 rounded-2xl bg-surface-deep/60 backdrop-blur-xl border border-border text-foreground hover:bg-surface-deep/80 transition-all active:scale-95 shadow-2xl"
-              title="Share with friends"
             >
               <motion.div whileHover={{ rotate: 15 }}>
                 <svg
                   viewBox="0 0 24 24"
-                  width="28"
-                  height="28"
+                  width="24"
+                  height="24"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   fill="none"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -246,7 +250,7 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
                   <line x1="12" y1="2" x2="12" y2="15"></line>
                 </svg>
               </motion.div>
-            </button>
+            </Button>
           </motion.div>
         </motion.div>
       </AnimatePresence>
@@ -285,3 +289,4 @@ export const Hero: React.FC<HeroProps> = ({ items }) => {
 };
 
 export default Hero;
+

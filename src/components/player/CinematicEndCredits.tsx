@@ -42,7 +42,7 @@ export function CinematicEndCredits({
   const [hasPreloaded, setHasPreloaded] = useState(false);
   const [episodeInfo, setEpisodeInfo] = useState<EpisodeInfo | null>(null);
 
-  const countdownSeconds = 15;
+  const countdownSeconds = 10;
   const [countdown, setCountdown] = useState(countdownSeconds);
   const [showOverlay, setShowOverlay] = useState(false);
   const [isPreloading, setIsPreloading] = useState(false);
@@ -52,13 +52,30 @@ export function CinematicEndCredits({
   const triggeredRef = useRef(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const fetchedRef = useRef(false);
+  // Tracks when the countdown began so ring animation can resume correctly after re-renders
+  const countdownStartRef = useRef<number | null>(null);
+  // Remaining duration for the ring animation (recalculated if re-render happens mid-countdown)
+  const [ringDuration, setRingDuration] = useState(countdownSeconds);
 
   const handleAutoAdvance = useCallback(() => {
     if (triggeredRef.current) return;
     triggeredRef.current = true;
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     onNext();
   }, [onNext]);
+
+  const handleCancel = useCallback(() => {
+    // Stop the countdown interval so auto-advance never fires after user cancels
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    triggeredRef.current = true; // Prevent any late-firing advance
+    onCancel();
+  }, [onCancel]);
 
   // Fetch next episode metadata (still image + name)
   useEffect(() => {
@@ -101,8 +118,13 @@ export function CinematicEndCredits({
         setShowOverlay(true);
       }
 
-      // Start auto-advance countdown in the last 15 seconds
+      // Start auto-advance countdown in the last 10 seconds
       if (timeRemaining <= countdownSeconds && !intervalRef.current) {
+        // Record the exact start time so the ring animation can calculate remaining duration
+        if (countdownStartRef.current === null) {
+          countdownStartRef.current = Date.now();
+          setRingDuration(Math.min(timeRemaining, countdownSeconds));
+        }
         intervalRef.current = setInterval(() => {
           setCountdown(prev => {
             if (prev <= 1) {
@@ -116,6 +138,8 @@ export function CinematicEndCredits({
     } else if (timeRemaining > 35 || isNaN(timeRemaining)) {
       setShowOverlay(false);
       setCountdown(countdownSeconds);
+      setRingDuration(countdownSeconds);
+      countdownStartRef.current = null;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -128,13 +152,15 @@ export function CinematicEndCredits({
     if (!hasNext || storeDuration <= 30 || hasPreloaded || isPreloading) return;
 
     const timeRemaining = storeDuration - currentTime;
-    if (timeRemaining <= 45) {
+    // Start preloading even earlier (60s) for a "warm" start
+    if (timeRemaining <= 60) {
       setIsPreloading(true);
       streamingOptimizer
         .preloadSources(contentId, type, season, nextEpisode, '', audioLanguage)
         .then(() => {
           setHasPreloaded(true);
           setIsPreloading(false);
+          console.log('[CinematicEndCredits] Background pre-fetch complete for next episode');
         });
     }
   }, [currentTime, storeDuration, hasNext, hasPreloaded, isPreloading, contentId, type, season, nextEpisode, audioLanguage]);
@@ -156,7 +182,7 @@ export function CinematicEndCredits({
         className="absolute bottom-24 right-12 z-[200] w-[420px] pointer-events-auto"
       >
         <div className="relative overflow-hidden rounded-[2.5rem] bg-zinc-950/80 backdrop-blur-3xl border border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] group">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
+          <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-transparent opacity-50" />
 
           <div className="relative p-6 flex flex-col gap-6">
             {/* Header */}
@@ -171,7 +197,7 @@ export function CinematicEndCredits({
                 </span>
               </div>
               <button
-                onClick={onCancel}
+                onClick={handleCancel}
                 title="Cancel transition"
                 aria-label="Cancel transition"
                 className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
@@ -206,7 +232,7 @@ export function CinematicEndCredits({
                 </div>
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
 
               {/* Hover play icon */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
@@ -262,8 +288,13 @@ export function CinematicEndCredits({
                     strokeDasharray="150.8"
                     initial={{ strokeDashoffset: 150.8 }}
                     animate={{
-                      strokeDashoffset:
-                        150.8 - (150.8 * (countdownSeconds - countdown)) / countdownSeconds,
+                      strokeDashoffset: 0,
+                    }}
+                    transition={{
+                      // Use ringDuration so if metadata arrives late and causes re-render,
+                      // the animation resumes from remaining time instead of resetting to full circle
+                      duration: ringDuration,
+                      ease: "linear"
                     }}
                     className="text-primary"
                   />
@@ -287,3 +318,4 @@ export function CinematicEndCredits({
     </AnimatePresence>
   );
 }
+

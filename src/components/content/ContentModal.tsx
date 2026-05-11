@@ -89,6 +89,7 @@ export default function ContentModal() {
   // Reset and Fetch
   useEffect(() => {
     if (isHydrated && isOpen && content) {
+      setIsNavigating(false);
       setDetailedContent(content);
 
       const type = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
@@ -161,26 +162,34 @@ export default function ContentModal() {
     const type = content.type || (content.seasonsList && content.seasonsList.length > 0 ? 'tv' : 'movie');
     const providerQuery = providerId ? `&provider=${providerId}` : '';
 
-    if (resumeData) {
-      const { season, episode, currentTime, completed } = resumeData;
-      if (!completed) {
-        router.push(
-          `/watch?id=${content.id}&type=${type}${season ? `&season=${season}` : ''}${episode ? `&episode=${episode}` : ''}&progress=${currentTime}${providerQuery}`
-        );
-      } else {
-        // If series, try to watch next episode. If movie, just replay.
-        if (type === 'movie') {
-          router.push(`/watch?id=${content.id}&type=movie&progress=0${providerQuery}`);
+    // Schedule modal close regardless of router.push success to avoid infinite loading locks
+    setTimeout(() => {
+      closeModal();
+      setIsNavigating(false);
+    }, 150);
+
+    try {
+      if (resumeData) {
+        const { season, episode, currentTime, completed } = resumeData;
+        if (!completed) {
+          router.push(
+            `/watch?id=${content.id}&type=${type}${season ? `&season=${season}` : ''}${episode ? `&episode=${episode}` : ''}&progress=${currentTime}${providerQuery}`
+          );
         } else {
-          router.push(`/watch?id=${content.id}&type=${type}&season=${season ?? 1}&episode=${(episode ?? 1) + 1}${providerQuery}`);
+          // If series, try to watch next episode. If movie, just replay.
+          if (type === 'movie') {
+            router.push(`/watch?id=${content.id}&type=movie&progress=0${providerQuery}`);
+          } else {
+            router.push(`/watch?id=${content.id}&type=${type}&season=${season ?? 1}&episode=${(episode ?? 1) + 1}${providerQuery}`);
+          }
         }
+      } else {
+        router.push(`/watch?id=${content.id}&type=${type}${providerQuery}`);
       }
-    } else {
-      router.push(`/watch?id=${content.id}&type=${type}${providerQuery}`);
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      setIsNavigating(false);
     }
-    
-    // Close modal after navigation starts to ensure smooth transition
-    setTimeout(closeModal, 150); 
   }, [closeModal, content, router, resumeData, providerId, isNavigating]);
 
   const toggleWatchlist = useCallback(() => {
@@ -239,7 +248,7 @@ export default function ContentModal() {
               </button>
 
               {/* Hero Image Section */}
-              <div className="relative aspect-[21/9] w-full group">
+              <div className="relative aspect-21/9 w-full group">
                 <OptimizedImage
                   src={content.backdrop || content.poster || content.backdrop_path || content.poster_path}
                   alt={content.title}
@@ -276,7 +285,7 @@ export default function ContentModal() {
                   </motion.div>
                 </div>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent pointer-events-none" />
 
                 <div className="absolute bottom-0 left-0 p-8 sm:p-14 w-full z-30">
                   <div className="flex items-end gap-6 mb-6">
@@ -450,14 +459,14 @@ export default function ContentModal() {
                                 className="group/cast space-y-3 cursor-pointer"
                                 onClick={() => openCastModal(c.id, c.name)}
                               >
-                                <div className="aspect-[4/5] relative rounded-lg overflow-hidden bg-zinc-900 ring-1 ring-white/5 group-hover/cast:ring-white/20 transition-all">
+                                <div className="aspect-4/5 relative rounded-lg overflow-hidden bg-zinc-900 ring-1 ring-white/5 group-hover/cast:ring-white/20 transition-all">
                                   <OptimizedImage
                                     src={c.profilePath || '/images/cast_placeholder.jpg'}
                                     alt={c.name}
                                     fill
                                     className="object-cover group-hover/cast:scale-105 transition-transform duration-500 grayscale group-hover/cast:grayscale-0"
                                   />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/cast:opacity-100 transition-opacity" />
+                                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/cast:opacity-100 transition-opacity" />
                                 </div>
                                 <div>
                                   <p className="text-white font-bold text-sm truncate">{c.name}</p>
@@ -483,14 +492,14 @@ export default function ContentModal() {
                                 onClick={() => setDetailedContent(null)} // Trigger re-render with new content
                                 className="w-40 shrink-0 group/rec cursor-pointer"
                               >
-                                <div className="aspect-[2/3] relative rounded-lg overflow-hidden ring-1 ring-white/5 group-hover/rec:ring-primary/40 transition-all">
+                                <div className="aspect-2/3 relative rounded-lg overflow-hidden ring-1 ring-white/5 group-hover/rec:ring-primary/40 transition-all">
                                   <OptimizedImage
                                     src={item.poster || item.poster_path || item.backdrop || item.backdrop_path}
                                     alt={item.title}
                                     fill
                                     className="object-cover transition-transform duration-700 group-hover/rec:scale-110"
                                   />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+                                  <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent opacity-60" />
                                 </div>
                                 <p className="text-[10px] font-bold text-white mt-3 truncate uppercase tracking-tighter opacity-60 group-hover/rec:opacity-100 transition-opacity">
                                   {item.title}
@@ -678,3 +687,4 @@ export default function ContentModal() {
     </Transition>
   );
 }
+

@@ -62,7 +62,8 @@ class TmdbService {
         try {
             const trending = await this.getTrending();
             return trending[0] || MOCK_CONTENT[0];
-        } catch (error) {
+        } catch (error: any) {
+            console.warn('[TMDBService] Featured fetch failed, falling back to mock:', error.message);
             return MOCK_CONTENT[0];
         }
     }
@@ -93,7 +94,8 @@ class TmdbService {
                 const result = this.transformTmdbItem({ ...response.data, media_type: 'tv' });
                 cache.set(cacheKey, result, 86400); // 24 hours
                 return result;
-            } catch (tvError) {
+            } catch (tvError: any) {
+                console.error('[TMDBService] Details fetch failed for both Movie and TV:', tvError.message);
                 return null;
             }
         }
@@ -116,11 +118,15 @@ class TmdbService {
             });
             const results = response.data.results
                 .filter((i: any) => i.media_type === 'movie' || i.media_type === 'tv')
-                .map(this.transformTmdbItem);
+                .map(this.transformTmdbItem.bind(this));
             
+            // Boost popular mainstream content
+            results.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+
             cache.set(cacheKey, results, 1800); // 30 minutes
             return results;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('[TMDBService] Search failed:', error.message);
             return [];
         }
     }
@@ -138,8 +144,9 @@ class TmdbService {
             rating: item.vote_average,
             year: (item.release_date || item.first_air_date || '').split('-')[0],
             type: item.media_type || 'movie',
-            genres: item.genre_ids, // Would need mapping, effectively raw for now
-            sources: [] // TMDB doesn't provide stream links
+            genres: item.genre_ids,
+            sources: [],
+            popularity: item.popularity
         };
     }
     // Helper to get external IDs (IMDB) for Torrentio

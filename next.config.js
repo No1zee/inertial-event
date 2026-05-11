@@ -6,7 +6,6 @@ const nextConfig = {
   reactStrictMode: false,
   compress: true,
   productionBrowserSourceMaps: false,
-  optimizeFonts: false, // Prevents socket hang up errors during build in restricted networks
 
   images: {
     loader: 'custom',
@@ -58,9 +57,9 @@ const nextConfig = {
     'hls.js',
     'dashjs'
   ],
-  swcMinify: true,
+  turbopack: {}, // Silence Next.js 16 Turbopack/Webpack mismatch error
   webpack: (config, options) => {
-    // Force react-hook-form to use CJS via absolute path alias
+    // Keep webpack aliases for non-turbopack environments
     config.resolve.alias = {
       ...config.resolve.alias,
       'react-hook-form': path.join(__dirname, 'node_modules/react-hook-form/dist/index.cjs.js'),
@@ -72,9 +71,6 @@ const nextConfig = {
 
   typescript: {
     ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
 };

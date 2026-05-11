@@ -26,7 +26,7 @@ function ContinueWatchingCard({ item, onClick, onRemove }: ContinueWatchingCardP
   return (
     <div className="relative flex-shrink-0 w-[320px] md:w-[400px] group cursor-pointer master-reveal" onClick={onClick}>
       {/* Backdrop Container */}
-      <div className="relative aspect-video rounded-sm overflow-hidden bg-zinc-900 border border-white/[0.03] transition-all duration-500 group-hover:border-white/20 group-hover:shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+      <div className="relative aspect-video rounded-sm overflow-hidden bg-muted/20 border border-border transition-all duration-500 group-hover:border-primary/50 group-hover:shadow-[var(--shadow-cinematic)]">
         {item.poster || item.backdrop || item.poster_path || item.backdrop_path ? (
           <OptimizedImage
             src={item.poster || item.backdrop || item.poster_path || item.backdrop_path || ''}
@@ -36,43 +36,43 @@ function ContinueWatchingCard({ item, onClick, onRemove }: ContinueWatchingCardP
             sizes="(max-width: 768px) 320px, 400px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white/10 uppercase tracking-widest text-[9px]">
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 uppercase tracking-widest text-[9px]">
             No Visual Data
           </div>
         )}
 
         {/* Technical Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent p-5 flex flex-col justify-end">
+        <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent p-5 flex flex-col justify-end">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="px-1.5 py-0.5 rounded-sm bg-white/10 text-[8px] font-bold text-white/50 uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-sm bg-surface-elevated/40 text-[8px] font-bold text-muted-foreground uppercase tracking-wider">
                 {item.type}
               </span>
               {item.type === 'tv' && (
-                <span className="text-red-500/80 font-bold text-[10px]">
+                <span className="text-primary font-bold text-[10px]">
                   S{item.season}:E{item.episode}
                 </span>
               )}
             </div>
-            <h3 className="font-bold text-white text-lg tracking-tight truncate">{item.title}</h3>
+            <h3 className="font-bold text-foreground text-lg tracking-tight truncate">{item.title}</h3>
           </div>
         </div>
 
         {/* Session Active Indicator */}
-        <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 rounded-md bg-black/40 backdrop-blur-md border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-          <span className="text-[8px] font-bold text-white/70 uppercase tracking-widest">Active Session</span>
+        <div className="absolute top-4 left-4 flex items-center gap-2 px-2 py-1 rounded-md bg-background/60 backdrop-blur-md border border-border opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Active Session</span>
         </div>
 
         {/* Progress Bar (Institutional HUD Style) */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/20">
           <div
             ref={progressRef}
-            className="h-full bg-red-600 relative overflow-hidden transition-all duration-1000 dynamic-width"
+            className="h-full bg-primary relative overflow-hidden transition-all duration-1000 dynamic-width"
           >
             <div
               ref={shimmerRef}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"
+              className="absolute inset-0 bg-linear-to-r from-transparent via-background/30 to-transparent animate-shimmer"
             />
           </div>
         </div>
@@ -83,7 +83,7 @@ function ContinueWatchingCard({ item, onClick, onRemove }: ContinueWatchingCardP
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute top-4 right-4 p-2 rounded-full bg-black/50 border border-white/10 text-white/40 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white"
+          className="absolute top-4 right-4 p-2 rounded-full bg-surface-deep/60 backdrop-blur-md border border-border text-muted-foreground opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-primary-foreground"
           title="De-prioritize"
           aria-label="Remove from continue watching"
         >
@@ -128,7 +128,7 @@ export default function ContinueWatching() {
           fontSize={10}
           fontWeight={700}
           letterSpacing="0.4em"
-          className="text-zinc-500 uppercase"
+          className="text-muted-foreground uppercase"
         />
       </div>
 
@@ -145,3 +145,4 @@ export default function ContinueWatching() {
     </section>
   );
 }
+

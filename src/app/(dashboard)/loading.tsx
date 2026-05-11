@@ -6,7 +6,7 @@ export default function Loading() {
     <div className="min-h-screen bg-zinc-950 p-8 pt-24 space-y-12 animate-in fade-in duration-500">
       {/* Hero Skeleton */}
       <div className="h-[40vh] w-full rounded-3xl bg-zinc-900 animate-pulse relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-60" />
+        <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-transparent to-transparent opacity-60" />
       </div>
 
       {/* Content Rails Skeletons */}
@@ -25,3 +25,4 @@ export default function Loading() {
     </div>
   );
 }
+

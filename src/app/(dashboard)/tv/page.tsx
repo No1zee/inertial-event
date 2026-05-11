@@ -150,10 +150,10 @@ export default function TVPage() {
   const activeChannel = channels.find(c => c.id === playingChannel);
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-20 px-4 md:px-8 space-y-8">
+    <div className="min-h-screen bg-transparent pb-20 pt-20 px-4 md:px-8 space-y-8">
       {/* TV Header / Player Placeholder */}
       {playingChannel && activeStatus ? (
-        <div className="relative w-full aspect-video md:aspect-[2.4/1] bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
+        <div className="relative w-full aspect-video md:aspect-2.4/1 bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 group">
           <div className="absolute inset-0">
             {/* Fake "Live" Stream using Helper Image */}
             <Image
@@ -168,7 +168,7 @@ export default function TVPage() {
                 target.src = '/images/placeholder-backdrop.png';
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-transparent" />
           </div>
 
           <div className="absolute bottom-0 left-0 p-8 space-y-4 w-full">
@@ -223,7 +223,7 @@ export default function TVPage() {
           </div>
         </div>
       ) : (
-        <div className="w-full aspect-[2.4/1] bg-card rounded-2xl flex items-center justify-center animate-pulse">
+        <div className="w-full aspect-2.4/1 bg-card rounded-2xl flex items-center justify-center animate-pulse">
           <div className="text-muted-foreground">Tuning in...</div>
         </div>
       )}
@@ -324,3 +324,4 @@ export default function TVPage() {
     </div>
   );
 }
+

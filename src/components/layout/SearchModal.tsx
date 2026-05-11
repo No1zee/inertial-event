@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { X, Sparkles, Film, Tv, Zap, Bookmark, Command, History, Star } from 'lucide-react';
 import { OptimizedImage } from '../ui/OptimizedImage';
 import { useLayoutState, useLayoutActions, useUIStore } from '@/lib/stores/uiStore';
+import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { SearchBar } from '@/components/content/SearchBar';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { useUISounds } from '@/hooks/useUISounds';
 import { cn } from '@/lib/utils';
+import { Play } from 'lucide-react';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
 import { useHydrated } from '@/lib/hooks/useHydrated';
 
@@ -21,6 +23,7 @@ export const SearchModal: React.FC = () => {
   const { playSound } = useUISounds();
 
   const { openContentModal } = useUIStore();
+  const getResumeData = useLocalDataStore(state => state.getResumeData);
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<Content[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
@@ -75,6 +78,28 @@ export const SearchModal: React.FC = () => {
     router.push(`/search?q=${encodeURIComponent(query)}&ai=${isAi}`);
   };
 
+  const handleQuickPlay = (e: React.MouseEvent, item: Content) => {
+    e.stopPropagation();
+    playSound('click');
+    setSearchOpen(false);
+
+    const contentType = item.type || (item.media_type === 'tv' || item.media_type === 'anime' ? item.media_type : 'movie');
+    const resumeData = getResumeData(String(item.id));
+
+    if (resumeData) {
+      const { season, episode, currentTime, completed } = resumeData;
+      if (!completed) {
+        router.push(
+          `/watch?id=${item.id}&type=${contentType}${season ? `&season=${season}` : ''}${episode ? `&episode=${episode}` : ''}&progress=${currentTime}`
+        );
+      } else {
+        router.push(`/watch?id=${item.id}&type=${contentType}&season=${season || 1}&episode=${(episode || 1) + 1}`);
+      }
+    } else {
+      router.push(`/watch?id=${item.id}&type=${contentType}`);
+    }
+  };
+
   const shortcuts = [
     { label: 'Movies', icon: Film, href: '/browse/movies', desc: 'Feature Films' },
     { label: 'TV Shows', icon: Tv, href: '/browse/tv-shows', desc: 'Series' },
@@ -86,7 +111,7 @@ export const SearchModal: React.FC = () => {
   return (
     <AnimatePresence>
       {isHydrated && isSearchOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-start justify-center p-6 md:p-12 pt-24 md:pt-32">
+        <div className="fixed inset-0 z-[1000] flex items-start justify-center p-6 md:p-12 pt-24 md:pt-32 lg:ml-[88px]">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -110,7 +135,7 @@ export const SearchModal: React.FC = () => {
                   src={activeBackground}
                   alt=""
                   fill
-                  className="object-cover blur-[100px] saturate-[1.2] brightness-[0.6]"
+                  className="object-cover blur-[64px] saturate-[1.2] brightness-[0.6]"
                 />
               </motion.div>
             )}
@@ -231,7 +256,7 @@ export const SearchModal: React.FC = () => {
                           data-testid="search-results"
                         >
                           {results.map((item, index) => (
-                            <motion.button
+                            <motion.div
                               key={item.id}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
@@ -243,7 +268,7 @@ export const SearchModal: React.FC = () => {
                                 openContentModal(item);
                               }}
                               data-testid="content-card"
-                              className="w-full flex items-center gap-6 p-4 rounded-[1.5rem] bg-surface-deep/50 hover:bg-surface-elevated border border-white/5 hover:border-primary/20 transition-all group"
+                              className="w-full flex items-center gap-6 p-4 rounded-[1.5rem] bg-surface-deep/50 hover:bg-surface-elevated border border-white/5 hover:border-primary/20 transition-all group cursor-pointer"
                             >
                               <div className="w-16 aspect-video rounded-lg overflow-hidden ring-1 ring-white/10 group-hover:ring-primary/40 transition-all">
                                 <OptimizedImage
@@ -266,11 +291,22 @@ export const SearchModal: React.FC = () => {
                                   {item.releaseDate?.substring(0, 4)} • {item.type}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-500 font-black text-[9px] uppercase tracking-widest">
-                                <Star size={10} fill="currentColor" />
-                                {item.rating?.toFixed(1)}
+                              <div className="flex items-center gap-2">
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => handleQuickPlay(e, item)}
+                                  className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg"
+                                  title="Quick Play"
+                                >
+                                  <Play size={16} fill="currentColor" />
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-500 font-black text-[9px] uppercase tracking-widest">
+                                  <Star size={10} fill="currentColor" />
+                                  {item.rating?.toFixed(1)}
+                                </div>
                               </div>
-                            </motion.button>
+                            </motion.div>
                           ))}
                           {results.length === 0 && !isSearching && (
                             <div className="py-20 text-center">

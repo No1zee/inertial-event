@@ -48,8 +48,8 @@ export function DisneyHero({ item }: DisneyHeroProps) {
           priority
         />
         {/* Disney Blue Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#040714] via-[#040714]/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#040714] via-[#040714]/60 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#040714] via-[#040714]/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-[#040714] via-[#040714]/60 to-transparent" />
       </div>
 
       {/* Content */}
@@ -97,3 +97,4 @@ export function DisneyHero({ item }: DisneyHeroProps) {
     </section>
   );
 }
+

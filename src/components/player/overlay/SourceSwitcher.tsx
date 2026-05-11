@@ -46,6 +46,7 @@ const getTypeBadge = (type: string) => {
     case 'torrent':
     case 'yts':
     case 'webtorrent':
+    case 'magnet':
       return { label: 'SWARM STREAM', color: 'bg-purple-500/15 text-purple-400 border-purple-500/20' };
     case 'embed':
       return { label: 'EMBED', color: 'bg-amber-500/15 text-amber-400 border-amber-500/20' };
@@ -66,6 +67,7 @@ const SourceSwitcher = memo(function SourceSwitcher({
     s.type === 'hls' || 
     s.type === 'mp4' || 
     s.type === 'torrent' || 
+    s.type === 'magnet' ||
     s.type === 'yts' || 
     s.type === 'webtorrent'
   );
@@ -122,7 +124,7 @@ const SourceSwitcher = memo(function SourceSwitcher({
                   <div className="flex items-center gap-2">
                     <Zap size={12} className="text-emerald-500" />
                     <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.4em]">
-                      Direct Streams — Netflix Buffer
+                      Native High-Speed — Zero-Lag Protocol
                     </span>
                   </div>
                   {nativeSources.map((source, idx) => {
@@ -239,7 +241,7 @@ const SourceSwitcher = memo(function SourceSwitcher({
             {/* Footer */}
             <div className="px-8 py-5 border-t border-white/5 bg-white/[0.02]">
               <p className="text-white/20 text-[9px] uppercase tracking-[0.3em] font-bold text-center">
-                Native streams use the 5-minute pre-buffer for zero-lag playback
+                Native streams utilize advanced pre-buffering for institutional-grade stability
               </p>
             </div>
           </motion.div>

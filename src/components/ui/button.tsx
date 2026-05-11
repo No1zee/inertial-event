@@ -16,54 +16,67 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', state = 'default', children, disabled, ...props }, ref) => {
     const variants = {
       primary:
-        'bg-[hsl(var(--brand-primary))] text-white hover:bg-[hsl(var(--brand-primary))]/90 shadow-lg hover:shadow-xl',
+        'bg-linear-to-br from-[var(--brand-gradient-start)] to-[var(--brand-gradient-end)] text-white shadow-[0_0_var(--glow-spread)_rgba(var(--brand-primary-rgb),var(--glow-opacity))] hover:shadow-[0_0_calc(var(--glow-spread)*1.5)_rgba(var(--brand-primary-rgb),calc(var(--glow-opacity)*1.5))] border-t border-[var(--glass-highlight)] transition-all duration-300',
       secondary:
-        'bg-[hsl(var(--surface-deep))] text-[hsl(var(--foreground))] border border-[hsl(var(--brand-primary))]/10 hover:bg-[hsl(var(--surface-muted))]',
+        'glass-card bg-[hsl(var(--surface-deep))]/50 text-[hsl(var(--foreground))] border border-[hsl(var(--brand-primary))]/10 hover:bg-[hsl(var(--surface-muted))] hover:border-[hsl(var(--brand-primary))]/30 hover:scale-[1.02]',
       ghost:
-        'bg-transparent text-[hsl(var(--foreground))]/60 hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-muted))]',
-      danger: 'bg-red-600 text-white hover:bg-red-500 shadow-red-900/20',
+        'bg-transparent text-[hsl(var(--foreground))]/60 hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-muted))] hover:scale-[1.02]',
+      danger: 
+        'bg-red-600 text-white hover:bg-red-500 shadow-[0_10px_30px_rgba(220,38,38,0.2)] border-t border-white/10',
       outline:
-        'bg-transparent border border-[hsl(var(--brand-primary))]/20 text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-muted))]',
+        'bg-transparent border border-[hsl(var(--brand-primary))]/20 text-[hsl(var(--foreground))] hover:bg-[hsl(var(--brand-primary))]/5 hover:border-[hsl(var(--brand-primary))]/40 hover:scale-[1.02]',
     };
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-xs',
+      sm: 'px-4 py-2 text-xs font-medium',
       md: 'px-6 py-3 text-sm font-semibold',
-      lg: 'px-8 py-4 text-base font-bold',
-      icon: 'p-2 aspect-square flex items-center justify-center h-10 w-10',
+      lg: 'px-10 py-4 text-base font-bold tracking-tight',
+      icon: 'p-2.5 aspect-square flex items-center justify-center h-12 w-12',
     };
 
     return (
       <motion.button
         ref={ref}
         className={cn(
-          'relative rounded-full inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden',
+          'relative rounded-full inline-flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-95',
           variants[variant],
           sizes[size],
           className
         )}
         disabled={state === 'loading' || disabled}
-        whileHover={state === 'default' && !disabled ? { scale: 1.02, y: -1 } : {}}
-        whileTap={state === 'default' && !disabled ? { scale: 0.98 } : {}}
-        layout
-        {...(props as Record<string, unknown>)} // Cast to unknown record to avoid complex framer-motion type conflicts with ref
+        whileHover={state === 'default' && !disabled ? { y: -2 } : {}}
+        initial={false}
+        {...(props as Record<string, unknown>)}
       >
-        {state === 'loading' && (
-          <motion.div
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            exit={{ opacity: 0, width: 0 }}
-          >
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          </motion.div>
+        {/* Shimmer Effect for Primary */}
+        {variant === 'primary' && (
+          <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 w-[200%] h-full bg-linear-to-r from-transparent via-white/20 to-transparent -skew-x-[25deg] animate-shimmer" style={{ animationDuration: '3s' }} />
+          </div>
         )}
 
-        {children}
+        {/* Ambient Glow for Primary on Hover */}
+        {variant === 'primary' && (
+          <div className="absolute inset-0 bg-white/0 hover:bg-white/5 transition-colors duration-300" />
+        )}
 
-        {state === 'success' && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-2 text-green-500">
-            <Check size={18} />
+        {state === 'loading' ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
           </motion.div>
+        ) : (
+          <React.Fragment>
+            {children}
+            {state === 'success' && (
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-white">
+                <Check size={18} strokeWidth={3} />
+              </motion.div>
+            )}
+          </React.Fragment>
         )}
       </motion.button>
     );
@@ -71,3 +84,4 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = 'Button';
+

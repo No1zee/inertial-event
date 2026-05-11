@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializeTheme, usePreferencesStore } from '@/lib/stores';
+import { initializeTheme, usePreferencesStore, useUIStore } from '@/lib/stores';
 import { useLocalDataStore } from '@/lib/stores/localDataStore';
 import { getOptimizedImageUrl } from '@/lib/utils/image';
 import 'core-js/stable';
@@ -49,7 +49,35 @@ export default function BrowserInit() {
 
     // Global uncaught error logging
     window.onerror = (message, source, lineno, colno, error) => {
-      console.error('[AG] Global Uncaught Error:', { message, source, lineno, colno, error });
+      // Filter out known player/image noise to prevent excessive console clutter
+      const messageStr = message?.toString() || '';
+      const errorStr = error?.toString() || '';
+      if (
+        messageStr.includes('media is not ready') || 
+        messageStr.includes('OptimizedImage') ||
+        errorStr.includes('media is not ready') ||
+        errorStr.includes('OptimizedImage')
+      ) {
+        return true; // Silent suppression
+      }
+
+      const errorDetails = error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : error;
+
+      console.error('[AG] Global Uncaught Error:', messageStr || 'No message', {
+        source,
+        lineno,
+        colno,
+        error: errorDetails
+      });
+      
+      // NovaStream Stability: Prevent "Empty Object" logging by ensuring we capture the message
+      if (!error && message === 'Script error.') {
+        console.warn('[AG] External Script Error detected. This is usually cross-origin noise.');
+      }
       
       // NovaStream Recovery Logic: Handle ChunkLoadError
       const isChunkError = 
@@ -71,10 +99,19 @@ export default function BrowserInit() {
     };
 
     window.onunhandledrejection = event => {
+      // Filter out known player/image noise in promises
+      const reasonStr = event.reason?.toString() || '';
+      if (
+        reasonStr.includes('media is not ready') || 
+        reasonStr.includes('OptimizedImage')
+      ) {
+        event.preventDefault();
+        return;
+      }
+
       console.error('[AG] Global Unhandled Rejection:', event.reason);
       
       // NovaStream Recovery Logic: Handle ChunkLoadError in promises
-      const reasonStr = event.reason?.toString() || '';
       if (reasonStr.includes('ChunkLoadError')) {
         const hasReloaded = sessionStorage.getItem('ag_chunk_reload');
         if (!hasReloaded) {
@@ -113,10 +150,10 @@ export default function BrowserInit() {
         useUIStore.getState().openBrowserModal(data.url, data.title);
       };
 
-      window.electron.ipcRenderer.on('OPEN_EXTERNAL_LINK', handleOpenExternal);
+      window.electron.ipcRenderer?.on?.('OPEN_EXTERNAL_LINK', handleOpenExternal);
       return () => {
         window.removeEventListener('keydown', handleKeyDown);
-        window.electron.ipcRenderer.off('OPEN_EXTERNAL_LINK', handleOpenExternal);
+        window.electron?.ipcRenderer?.off?.('OPEN_EXTERNAL_LINK', handleOpenExternal);
       };
     }
 

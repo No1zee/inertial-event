@@ -143,7 +143,7 @@ export function SidebarItem({
         <div className="absolute bottom-1 w-full flex justify-center pointer-events-none">
           <span className={cn(
             "text-[7px] font-black uppercase tracking-tighter opacity-0 group-hover/item:opacity-100 transition-opacity",
-            isActive ? "text-primary/80" : "text-zinc-500"
+            isActive ? "text-primary/80" : "text-muted-foreground"
           )}>
             {label.split(' ')[0]}
           </span>

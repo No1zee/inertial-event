@@ -70,12 +70,12 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
             fontSize={20}
             fontWeight={800}
             letterSpacing="-0.01em"
-            className="text-zinc-200 hover:text-white transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           />
           {railId && (
             <Link
               href={`/browse/view-all?id=${railId}&title=${encodeURIComponent(title)}`}
-              className="text-[9px] font-black uppercase tracking-widest text-zinc-700 hover:text-primary transition-all opacity-0 group-hover/header:opacity-100 flex items-center"
+              className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 hover:text-primary transition-all opacity-0 group-hover/header:opacity-100 flex items-center"
             >
               Browse Index <ChevronRight size={10} className="ml-1" />
             </Link>
@@ -89,11 +89,11 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
           onClick={() => scroll('left')}
           aria-label="Scroll left"
           className={cn(
-            'absolute left-0 top-0 bottom-0 z-30 w-12 bg-gradient-to-r from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 disabled:opacity-0',
+            'absolute left-0 top-0 bottom-0 z-30 w-12 bg-linear-to-r from-background/80 to-transparent flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 disabled:opacity-0',
             !showLeftArrow && 'hidden'
           )}
         >
-          <ChevronLeft className="text-white hover:scale-125 transition-transform" size={32} />
+          <ChevronLeft className="text-foreground hover:scale-125 transition-transform" size={32} />
         </button>
 
         {/* Scroll Container */}
@@ -103,7 +103,7 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
           onScroll={e => setShowLeftArrow(e.currentTarget.scrollLeft > 0)}
         >
           {isLoading ? (
-            <div className="w-full h-40 flex items-center justify-center gap-2 text-zinc-500">
+            <div className="w-full h-40 flex items-center justify-center gap-2 text-muted-foreground">
               {/* Simple text or skeleton */}
               <div className="animate-pulse flex items-center gap-2">
                 <span className="text-sm font-medium tracking-wide">Loading...</span>
@@ -127,8 +127,8 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
                 <div
                   key={i}
                   className={cn(
-                    'shrink-0 animate-pulse bg-zinc-900/50 rounded-lg',
-                    aspectRatio === 'portrait' ? 'w-[200px] aspect-[2/3]' : 'w-[350px] aspect-video'
+                    'shrink-0 animate-pulse bg-muted/20 rounded-lg',
+                    aspectRatio === 'portrait' ? 'w-[200px] aspect-2/3' : 'w-[350px] aspect-video'
                   )}
                 />
               ))
@@ -139,11 +139,12 @@ export function ContentRail({ title, items, railId, aspectRatio = 'portrait' }: 
         <button
           onClick={() => scroll('right')}
           aria-label="Scroll right"
-          className="absolute right-0 top-0 bottom-0 z-30 w-12 bg-gradient-to-l from-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/scroll:opacity-100"
+          className="absolute right-0 top-0 bottom-0 z-30 w-12 bg-linear-to-l from-background/80 to-transparent flex items-center justify-center opacity-0 group-hover/scroll:opacity-100"
         >
-          <ChevronRight className="text-white hover:scale-125 transition-transform" size={32} />
+          <ChevronRight className="text-foreground hover:scale-125 transition-transform" size={32} />
         </button>
       </div>
     </div>
   );
 }
+

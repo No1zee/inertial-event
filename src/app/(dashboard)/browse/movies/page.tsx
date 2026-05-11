@@ -193,7 +193,7 @@ export default function MoviesPage() {
                   <BrandBlock
                     text="The Big Screen Experience"
                     subtext="Cinema-quality entertainment, delivered to your screen"
-                    gradient="bg-gradient-to-r from-yellow-950/40 via-red-950/40 to-orange-950/40"
+                    gradient="bg-linear-to-r from-yellow-950/40 via-red-950/40 to-orange-950/40"
                     icon={<Clapperboard className="w-16 h-16 text-yellow-500" />}
                     bgImage="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200"
                   />
@@ -204,7 +204,7 @@ export default function MoviesPage() {
                   <BrandBlock
                     text="Movie Night, Every Night"
                     subtext="From blockbusters to indie gems, your perfect movie awaits"
-                    gradient="bg-gradient-to-r from-purple-950/40 via-pink-950/40 to-red-950/40"
+                    gradient="bg-linear-to-r from-purple-950/40 via-pink-950/40 to-red-950/40"
                     icon={<Popcorn className="w-16 h-16 text-purple-500" />}
                     bgImage="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&q=60&w=1200"
                   />
@@ -216,7 +216,7 @@ export default function MoviesPage() {
 
         {/* Sentinel */}
         {visibleCount < rails.length && (
-          <div ref={sentinelRef} className="h-64 w-full flex items-center justify-center border-t border-white/5 bg-gradient-to-b from-transparent to-zinc-900/10">
+          <div ref={sentinelRef} className="h-64 w-full flex items-center justify-center border-t border-white/5 bg-linear-to-b from-transparent to-zinc-900/10">
             <div className="flex flex-col items-center gap-6">
               <div className="relative">
                 <div className="w-12 h-12 border-2 border-primary/10 border-t-primary rounded-full animate-spin" />
@@ -237,3 +237,4 @@ export default function MoviesPage() {
     </div>
   );
 }
+

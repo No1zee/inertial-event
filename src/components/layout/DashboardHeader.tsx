@@ -31,8 +31,8 @@ export const DashboardHeader: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-white">
-          {greeting}, <span className="text-red-600">{activeProfile.name}</span>
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+          {greeting}, <span className="text-primary">{activeProfile.name}</span>
         </h1>
       </motion.div>
 
@@ -44,19 +44,19 @@ export const DashboardHeader: React.FC = () => {
           className="flex items-center gap-4 group cursor-pointer w-fit"
         >
           <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Ready to finish?</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Ready to finish?</span>
             <div className="flex items-center gap-2">
-              <span className="text-sm md:text-base font-bold text-zinc-300 group-hover:text-white transition-colors">
+              <span className="text-sm md:text-base font-bold text-foreground group-hover:text-primary transition-colors">
                 {lastWatched.title}
               </span>
-              <div className="h-1 w-1 rounded-full bg-zinc-700" />
-              <span className="text-xs font-medium text-zinc-500 italic">
+              <div className="h-1 w-1 rounded-full bg-border" />
+              <span className="text-xs font-medium text-muted-foreground italic">
                 {lastWatched.type === 'tv' ? `S${lastWatched.season} E${lastWatched.episode}` : 'Movie'}
               </span>
             </div>
           </div>
-          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-red-600 group-hover:border-red-500 transition-all duration-300 group-hover:scale-110">
-            <Play size={12} fill="currentColor" className="text-white ml-0.5" />
+          <div className="w-8 h-8 rounded-full bg-surface-elevated/50 border border-border flex items-center justify-center group-hover:bg-primary group-hover:border-primary/50 transition-all duration-300 group-hover:scale-110">
+            <Play size={12} fill="currentColor" className="text-foreground group-hover:text-white ml-0.5" />
           </div>
         </motion.div>
       )}

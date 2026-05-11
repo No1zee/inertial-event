@@ -27,6 +27,7 @@ const navGroups = [
     title: 'Browse',
     items: [
       { label: 'Home', icon: Home, href: '/' },
+      { label: 'Shorts', icon: Zap, href: '/shorts' },
       { label: 'Movies', icon: Film, href: '/browse/movies' },
       { label: 'TV Shows', icon: Tv, href: '/browse/tv-shows' },
       { label: 'Live TV', icon: Tv, href: '/tv' },
@@ -99,7 +100,7 @@ const navGroups = [
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-[400] backdrop-blur-md"
+              className="fixed inset-0 bg-background/60 z-[400] backdrop-blur-md"
               onClick={() => setSidebarOpen(false)}
             />
           )}
@@ -122,9 +123,10 @@ const navGroups = [
           }}
           className={cn(
             'fixed top-0 left-0 z-[500] h-screen flex flex-col',
-            'bg-[hsl(var(--surface-deep))/0.9] border-r border-[hsl(var(--border))] shadow-sm transition-colors duration-500',
-            'backdrop-blur-[20px]',
-            isHovered && 'bg-[hsl(var(--surface-elevated))/0.95]'
+            'bg-[hsl(var(--background))/0.6] border-r border-border transition-colors duration-500',
+            'backdrop-blur-[40px]',
+            'liquid-glass border-none shadow-cinematic',
+            isHovered && 'bg-[hsl(var(--surface-elevated))/0.8]'
           )}
         >
           {/* Header / Logo */}
@@ -142,6 +144,7 @@ const navGroups = [
                 onClick={() => setSidebarOpen(false)}
                 className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-all"
                 aria-label="Close sidebar"
+                data-testid="close-sidebar"
               >
                 <X size={20} />
               </button>
@@ -235,8 +238,10 @@ const navGroups = [
                             : `/watch?id=${item.contentId}&type=tv&season=${item.season || 1}&episode=${item.episode || 1}${item.providerId ? `&provider=${item.providerId}` : ''}`
                         }
                         className="flex items-center gap-3 group/played transition-all duration-300 hover:translate-x-1 pr-6"
+                        aria-label={`Resume ${item.title}`}
+                        data-testid={`resume-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                       >
-                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/5 group-hover/played:border-primary/30 bg-zinc-900">
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-border/10 group-hover/played:border-primary/30 bg-surface-deep">
                           <OptimizedImage
                             src={item.poster || ''}
                             alt={item.title}
@@ -264,19 +269,19 @@ const navGroups = [
                                         ? 'bg-red-600 text-white shadow-[0_0_5px_rgba(220,38,38,0.5)]'
                                         : item.providerId === 'hulu'
                                           ? 'bg-[#1ce783] text-black shadow-[0_0_5px_rgba(28,231,131,0.5)]'
-                                          : 'bg-zinc-800 text-white/50'
+                                          : 'bg-surface-elevated text-foreground/50'
                                   )}
                                 >
                                   {item.providerId === 'acu' ? 'A' : item.providerId.charAt(0)}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[8px] font-bold text-zinc-600 shrink-0">
+                            <span className="text-[8px] font-bold text-muted-foreground shrink-0">
                               {timeSince(item.lastWatched)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <div className="h-0.5 flex-1 bg-white/5 rounded-full overflow-hidden max-w-[60px]">
+                            <div className="h-0.5 flex-1 bg-foreground/5 rounded-full overflow-hidden max-w-[60px]">
                               <motion.div
                                 className="h-full bg-red-600/60"
                                 initial={{ width: 0 }}
@@ -284,7 +289,7 @@ const navGroups = [
                                 transition={{ duration: 0.5 }}
                               />
                             </div>
-                            <span className="text-[8px] font-bold text-zinc-600 uppercase">
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase">
                               {item.progress > 90 ? 'Done' : `${Math.round(item.progress)}%`}
                             </span>
                           </div>
@@ -296,7 +301,7 @@ const navGroups = [
                           e.stopPropagation();
                           removeFromWatchHistory(item.id);
                         }}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover/item:opacity-100 transition-all hover:text-red-500 bg-zinc-950/80 rounded-md backdrop-blur-sm border border-white/5"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover/item:opacity-100 transition-all hover:text-red-500 bg-background/80 rounded-md backdrop-blur-sm border border-border/10"
                         title="Remove from history"
                       >
                         <X size={10} />
@@ -312,7 +317,7 @@ const navGroups = [
         {/* Chassis Footer */}
         <div
           className={cn(
-            'p-6 border-t border-border/30 bg-gradient-to-t from-primary/5 to-transparent shrink-0 transition-all duration-500',
+            'p-6 border-t border-border/30 bg-linear-to-t from-primary/5 to-transparent shrink-0 transition-all duration-500',
             !isExpanded && 'px-0 flex justify-center'
           )}
         >
@@ -332,3 +337,4 @@ const navGroups = [
     </>
   );
 }
+

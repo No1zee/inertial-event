@@ -65,7 +65,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
         if (trailer) {
           setTimeout(() => {
             setTrailerUrl(
-              `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${trailer.key}`
+              `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${trailer.key}&origin=https://www.youtube.com&widget_referrer=https://www.youtube.com`
             );
           }, 800);
         }
@@ -205,8 +205,8 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
             )
           )}
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/80 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-black via-black/40 to-transparent" />
       </div>
 
       {/* CONTENT CANVAS */}
@@ -347,7 +347,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
                 role="button"
                 aria-label={`Select recommendation: ${item.title || item.name}`}
                 className={`
-                                    relative flex-shrink-0 w-72 aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 group/card
+                                    relative flex-shrink-0 w-72 aspect-16/10 rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 group/card
                                     ${selectedItem?.id === item.id ? 'ring-2 ring-primary bg-primary/20' : 'opacity-40 hover:opacity-100'}
                                 `}
               >
@@ -357,7 +357,7 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
                   fill
                   className="object-cover transition-transform duration-700 group-hover/card:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+                <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent opacity-60" />
                 <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
                   <p className="text-sm font-bold truncate tracking-tight">{item.title || item.name}</p>
                   <ChevronRight className="h-4 w-4 opacity-0 -translate-x-4 group-hover/card:opacity-100 group-hover/card:translate-x-0 transition-all" />
@@ -370,3 +370,4 @@ export default function PostPlayOverlay({ show, onClose, currentId, type, onPlay
     </motion.div>
   );
 }
+

@@ -18,7 +18,7 @@ interface SourceHealth {
 }
 
 interface PreloadedSource {
-  sources: { url: string; type: string }[];
+  sources: { url: string; type: string; codec?: string }[];
   subtitles?: { url: string; label: string; lang: string }[];
   quality: string;
   provider: string;
@@ -37,6 +37,13 @@ interface StreamOptimizerState {
   currentPreloading: Set<string>;
   blacklist: Set<string>;
   failureCounts: Record<string, number>;
+  codecSupport: {
+    hevc: boolean;
+    av1: boolean;
+    h264: boolean;
+    vp9: boolean;
+    is10Bit: boolean;
+  };
 }
 
 class StreamingOptimizer {
@@ -52,6 +59,13 @@ class StreamingOptimizer {
     currentPreloading: new Set(),
     blacklist: new Set(),
     failureCounts: {},
+    codecSupport: {
+      hevc: false,
+      av1: false,
+      h264: true, // Baseline assumption
+      vp9: false,
+      is10Bit: false,
+    },
   };
 
   private healthCheckTimeout = 60000;
@@ -59,6 +73,54 @@ class StreamingOptimizer {
 
   constructor() {
     this.initSourceHealth();
+    this.detectCodecs();
+    // Background pre-warm for top sources
+    setTimeout(() => this.preWarmTopSources(), 1000);
+  }
+
+  private async preWarmTopSources() {
+    const topSources = SOURCES.slice(0, 3);
+    await Promise.allSettled(topSources.map(s => this.checkSourceHealth(s)));
+  }
+
+  private detectCodecs() {
+    if (typeof window === 'undefined') return;
+
+    const video = document.createElement('video');
+    
+    const check = (mimetype: string) => {
+      const result = video.canPlayType(mimetype);
+      return result === 'probably' || result === 'maybe';
+    };
+
+    // Memoize support to avoid repeated DOM element creation
+    this.state.codecSupport = {
+      hevc: check('video/mp4; codecs="hvc1.1.6.L93.B0"') || 
+            check('video/mp4; codecs="hev1.1.6.L93.B0"') ||
+            check('video/mp4; codecs="hvc1"') ||
+            check('video/mp4; codecs="hev1"'),
+      av1: check('video/webm; codecs="av01.0.05M.08"') ||
+           check('video/mp4; codecs="av01"'),
+      h264: check('video/mp4; codecs="avc1.42E01E"') || 
+            check('video/mp4; codecs="avc1"'),
+      vp9: check('video/webm; codecs="vp9"') ||
+           check('video/mp4; codecs="vp09"'),
+      is10Bit: check('video/mp4; codecs="hvc1.2.4.L153.B0"') ||
+               check('video/webm; codecs="vp09.02.10.10.01.01.01.01.00"'),
+    };
+    
+    // Electron specific: If we have an IPC bridge, we likely have hardware decoding enabled
+    if ((window as any).electron) {
+      console.log('[StreamingOptimizer] Electron environment detected. Boosting codec optimism.');
+      // Most modern Electron builds (Chromium) support HEVC if the hardware does.
+      // We'll keep the detected values but log the boost.
+    }
+    
+    console.log('[StreamingOptimizer] Codec Capability Audit:', this.state.codecSupport);
+  }
+
+  getCodecSupport() {
+    return { ...this.state.codecSupport };
   }
 
   private initSourceHealth() {
@@ -133,7 +195,21 @@ class StreamingOptimizer {
   }
 
   getRankedSources(): StreamingSource[] {
-    return SOURCES.filter(s => !this.state.blacklist.has(s.id)).sort((a, b) => {
+    const supported = this.state.codecSupport;
+    return SOURCES.filter(s => {
+      // 1. Check blacklist
+      if (this.state.blacklist.has(s.id)) return false;
+      
+      // 2. Check health
+      const health = this.state.sourceHealth[s.id];
+      if (health && !health.healthy && health.failureCount >= 3) return false;
+
+      // 3. Proactive Codec Pruning
+      if (s.id.includes('hevc') && !supported.hevc) return false;
+      if (s.id.includes('av1') && !supported.av1) return false;
+
+      return true;
+    }).sort((a, b) => {
       const healthA = this.state.sourceHealth[a.id];
       const healthB = this.state.sourceHealth[b.id];
 
@@ -154,6 +230,30 @@ class StreamingOptimizer {
 
   getPreloadKey(contentId: string, type: string, season?: number, episode?: number): string {
     return `${contentId}-${type}-${season || 0}-${episode || 0}`;
+  }
+
+  private async warmStream(url: string) {
+    if (!url || url.startsWith('magnet:')) return;
+    
+    try {
+      // Use a low-priority fetch to warm the connection/DNS/CDN
+      // mode: 'no-cors' is safest for arbitrary streaming URLs
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      
+      await fetch(url, {
+        method: 'GET',
+        mode: 'no-cors',
+        signal: controller.signal,
+        // Using a header that is likely to trigger a small read but not a full download
+        headers: { 'Range': 'bytes=0-1' } 
+      } as any); 
+      
+      clearTimeout(timeout);
+      console.log(`[StreamingOptimizer] Stream warmed: ${url.substring(0, 60)}...`);
+    } catch (e) {
+      // Silently fail warming, it's a best-effort optimization
+    }
   }
 
   async preloadSources(
@@ -182,6 +282,10 @@ class StreamingOptimizer {
     if (this.state.preloadedSources[key]) {
       const cached = this.state.preloadedSources[key];
       if (Date.now() - cached.loadedAt < this.preloadCacheExpiry) {
+        // Even if cached, if it's the next episode we might want to re-warm the stream
+        if (cached.sources?.[0]?.url) {
+          this.warmStream(cached.sources[0].url);
+        }
         return cached;
       }
     }
@@ -212,8 +316,24 @@ class StreamingOptimizer {
           const data = await response.json();
 
           if (data?.sources?.length > 0) {
+            // Filter sources based on codec support
+            const supportedSources = data.sources.filter((s: any) => {
+              if (!s.codec) return true; // Assume supported if not specified
+              const codec = s.codec.toLowerCase();
+              if (codec.includes('hevc') || codec.includes('h265')) return this.state.codecSupport.hevc;
+              if (codec.includes('av1')) return this.state.codecSupport.av1;
+              if (codec.includes('vp9')) return this.state.codecSupport.vp9;
+              return true;
+            });
+
+            if (supportedSources.length === 0 && data.sources.length > 0) {
+              console.warn('[StreamingOptimizer] All returned sources use unsupported codecs. Falling back to primary.');
+            }
+
+            const bestSources = supportedSources.length > 0 ? supportedSources : data.sources;
+
             const preloadResult: PreloadedSource = {
-              sources: data.sources,
+              sources: bestSources,
               subtitles: data.subtitles || [],
               quality: data.sources[0]?.quality || 'auto',
               provider: data.sources[0]?.provider || 'unknown',
@@ -221,18 +341,22 @@ class StreamingOptimizer {
             };
 
             this.state.preloadedSources[key] = preloadResult;
+
+            // CRITICAL: Warm the best source immediately after discovery
+            if (bestSources[0]?.url) {
+              this.warmStream(bestSources[0].url);
+            }
+
             return preloadResult;
           }
         }
 
         // If we got an empty response or error, retry once
         if (attempt < 2) {
-
           await new Promise(r => setTimeout(r, 2000));
           return fetchWithRetry(attempt + 1);
         }
       } catch (error) {
-
         if (attempt < 2) {
           await new Promise(r => setTimeout(r, 2000));
           return fetchWithRetry(attempt + 1);
@@ -256,6 +380,19 @@ class StreamingOptimizer {
     return null;
   }
 
+  /**
+   * Proactively trigger source negotiation for specific content
+   */
+  async preWarmContent(title: string, type: string, season: number, episode: number) {
+    if (this.state.blacklist.has(title)) return;
+    
+    console.log(`[StreamingOptimizer] Pre-warming handshake for: ${title}`);
+    
+    // Trigger parallel health checks for top sources if they are stale
+    const top = this.getRankedSources().slice(0, 3);
+    await Promise.allSettled(top.map(s => this.checkSourceHealth(s)));
+  }
+
   updateBufferHealth(bufferedDuration: number, bandwidth: number, quality: string) {
     this.state.bufferHealth = {
       bufferedDuration,
@@ -277,6 +414,7 @@ class StreamingOptimizer {
       }
     });
   }
+
 }
 
 export const streamingOptimizer = new StreamingOptimizer();

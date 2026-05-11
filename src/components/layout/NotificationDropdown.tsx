@@ -105,6 +105,7 @@ export function NotificationDropdown() {
       <Menu.Button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-zinc-400 hover:text-white transition-colors relative outline-none"
+        aria-label="Notifications"
       >
         <Bell size={20} />
         {hasUnread && (

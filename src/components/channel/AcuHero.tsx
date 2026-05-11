@@ -37,8 +37,8 @@ export function AcuHero({ item }: AcuHeroProps) {
         )}
 
         {/* Advanced Scrim Architecture */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-[#0a0a0a]/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0a] via-transparent to-[#0a0a0a]/30" />
+        <div className="absolute inset-0 bg-linear-to-r from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
 
         {/* Color Grading: ACU Deep Amber & Obsidian */}
         <div className="absolute inset-0 bg-[#ea580c]/5 mix-blend-color" />
@@ -55,11 +55,11 @@ export function AcuHero({ item }: AcuHeroProps) {
         className="absolute top-0 left-0 right-0 z-30 pt-32 px-6 md:px-12 pointer-events-none"
       >
         <div className="flex items-center gap-6 overflow-hidden">
-          <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-amber-500/50 to-amber-500" />
+          <div className="h-[1px] w-24 bg-linear-to-r from-transparent via-amber-500/50 to-amber-500" />
           <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.6em] whitespace-nowrap">
             Preserving The Narrative Heritage
           </span>
-          <div className="h-[1px] flex-grow bg-gradient-to-r from-amber-500 to-transparent opacity-20" />
+          <div className="h-[1px] flex-grow bg-linear-to-r from-amber-500 to-transparent opacity-20" />
         </div>
       </motion.div>
 
@@ -76,7 +76,7 @@ export function AcuHero({ item }: AcuHeroProps) {
             <div className="flex items-center gap-4">
               <div className="relative w-12 h-12">
                 <OptimizedImage
-                  src="/providers/acu.svg"
+                  src="/providers/acu.png"
                   alt="ACU"
                   fill
                   className="object-contain filter brightness-125 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]"
@@ -176,7 +176,7 @@ export function AcuHero({ item }: AcuHeroProps) {
 
       {/* 4. Heritage Pattern Reveal (Bottom) */}
       <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-white/5" />
 
         {/* Scroll Indicator */}
@@ -185,10 +185,11 @@ export function AcuHero({ item }: AcuHeroProps) {
           transition={{ duration: 2, repeat: Infinity }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30"
         >
-          <div className="w-[1px] h-10 bg-gradient-to-b from-amber-500 to-transparent" />
+          <div className="w-[1px] h-10 bg-linear-to-b from-amber-500 to-transparent" />
           <span className="text-[8px] font-bold text-amber-500 uppercase tracking-[0.4em]">Scroll</span>
         </motion.div>
       </div>
     </section>
   );
 }
+

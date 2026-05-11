@@ -85,6 +85,15 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
   }, [rawText]);
 
   const layoutResult = useMemo<LayoutResult>(() => {
+    // SSR Safety: return fallback immediately if window is not defined
+    if (typeof window === 'undefined') {
+      return {
+        width: maxWidth || 800,
+        height: (fontSize || 32) * (lineHeight || 1.2),
+        lines: [{ text: text || '', x: 0, y: 0 }],
+      };
+    }
+
     // Absolute safety check: if non-string or empty, return early
     if (typeof text !== 'string' || !text.trim()) {
       return { width: 0, height: 0, lines: [] };
@@ -129,6 +138,7 @@ export const PretextHeadline: React.FC<PretextHeadlineProps> = ({
       };
     }
   }, [text, fontSize, lineHeight, fontFamily, fontWeight, maxWidth]);
+
 
 
   useEffect(() => {

@@ -64,9 +64,9 @@ export function CinematicHero({ item }: CinematicHeroProps) {
         />
 
         {/* Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent h-32" />
+        <div className="absolute inset-0 bg-linear-to-r from-black via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#141414] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/60 to-transparent h-32" />
       </div>
 
       {/* Content - Left Aligned "Billboard" */}
@@ -127,3 +127,4 @@ export function CinematicHero({ item }: CinematicHeroProps) {
     </section>
   );
 }
+

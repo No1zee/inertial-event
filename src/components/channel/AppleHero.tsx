@@ -27,7 +27,7 @@ export function AppleHero({ item }: AppleHeroProps) {
           priority
         />
         {/* Ultra-subtle Apple Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent" />
       </div>
 
       {/* Content - Apple-style center-bottom alignment or left-aligned with extreme whitespace */}
@@ -81,7 +81,8 @@ export function AppleHero({ item }: AppleHeroProps) {
       </div>
 
       {/* Apple "Glass" Bottom Bar Overlay */}
-      <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black via-black/80 to-transparent z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-24 bg-linear-to-t from-black via-black/80 to-transparent z-10 pointer-events-none" />
     </section>
   );
 }
+

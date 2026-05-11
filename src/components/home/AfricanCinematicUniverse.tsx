@@ -34,7 +34,7 @@ export function AfricanCinematicUniverse() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full lg:w-1/2 aspect-[4/5] md:aspect-square rounded-[4rem] overflow-hidden group/lens border border-white/5 shadow-2xl"
+          className="relative w-full lg:w-1/2 aspect-4/5 md:aspect-square rounded-[4rem] overflow-hidden group/lens border border-white/5 shadow-2xl"
         >
           <OptimizedImage
             src="/images/acu_majesty.png"
@@ -42,7 +42,7 @@ export function AfricanCinematicUniverse() {
             fill
             className="object-cover group-hover/lens:scale-105 transition-transform [transition-duration:2000ms] ease-out"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent" />
           
           {/* Internal Overlay */}
           <div className="absolute inset-x-8 bottom-8 p-8 rounded-[2.5rem] bg-black/40 backdrop-blur-2xl border border-white/10 flex flex-col gap-4">
@@ -117,3 +117,4 @@ export function AfricanCinematicUniverse() {
     </section>
   );
 }
+

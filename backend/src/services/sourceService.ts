@@ -41,7 +41,8 @@ class SourceService {
         episodeNumber: number,
         title: string,
         type: 'movie' | 'tv' | 'anime' | 'series',
-        audioPreference?: string
+        audioPreference?: string,
+        disabledProviders: string[] = []
     ): Promise<IProviderResponse> {
         try {
             const mappedType: 'movie' | 'tv' = (type === 'tv' || type === 'anime' || type === 'series') ? 'tv' : 'movie';
@@ -53,9 +54,25 @@ class SourceService {
                 { name: 'Vidlink', fn: () => vidlinkService.getSources(contentId, seasonNumber, episodeNumber, type, audioPreference) },
                 { name: 'Consumet', fn: () => consumetService.getStreamingLinks(contentId, episodeNumber, seasonNumber, type, title) },
                 { name: 'Torrent', fn: () => torrentService.getSources(contentId, episodeNumber, seasonNumber, type) },
-                { name: 'Vidsrc Mirrors', fn: () => VidsrcResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber) },
-                { name: 'EmbedSu', fn: () => EmbedSuResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber) }
-            ];
+                { name: 'Vidsrc Mirrors', fn: () => VidsrcResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber).then(r => ({
+                    sources: r.sources.map((s: any) => ({
+                        url: s.url,
+                        quality: s.quality || 'auto',
+                        type: (s.isM3U8 ? 'hls' : 'mp4') as 'hls' | 'mp4',
+                        provider: 'Vidsrc (Direct)'
+                    })),
+                    subtitles: r.subtitles.map((s: any) => ({ lang: s.lang, url: s.url }))
+                })) },
+                { name: 'EmbedSu', fn: () => EmbedSuResolver.resolve(contentId, mappedType, seasonNumber, episodeNumber).then((r: any) => ({
+                    sources: (r.sources || []).map((s: any) => ({
+                        url: s.url,
+                        quality: s.quality || 'auto',
+                        type: (s.isM3U8 ? 'hls' : s.type || 'mp4') as 'hls' | 'mp4' | 'embed',
+                        provider: s.provider || 'EmbedSu (Direct)'
+                    })),
+                    subtitles: (r.subtitles || []).map((s: any) => ({ lang: s.lang, url: s.url }))
+                })) }
+            ].filter(p => !disabledProviders.includes(p.name));
 
             const results = await Promise.allSettled(providers.map(p => p.fn()));
 
@@ -81,6 +98,9 @@ class SourceService {
                     }
                 } else if (result.status === 'rejected') {
                     console.error(`[SourceService] [${name}] REJECTED:`, result.reason);
+                    if (result.reason?.stack) {
+                        console.error(`[SourceService] [${name}] Stack:`, result.reason.stack);
+                    }
                 } else {
                     console.warn(`[SourceService] [${name}] EMPTY or NULL response`);
                 }
@@ -109,7 +129,7 @@ class SourceService {
                 new Map(aggregated.sources.map((s) => [s.url, s])).values()
             );
 
-            // Sorting logic: HLS/MP4 first, then by quality
+            // Sorting logic: HLS/MP4 first, then Torrents, then Embeds
             uniqueSources.sort((a, b) => {
                 // Priority 1: Audio Preference (for Anime)
                 if (type === 'anime' && audioPreference === 'dub') {
@@ -117,15 +137,25 @@ class SourceService {
                     if (!a.isDub && b.isDub) return 1;
                 }
 
-                // Priority 2: Type (HLS/MP4 > Embed/Torrent)
-                const typePriority = (t: string) => {
+                // Priority 2: Type (HLS/MP4 > Torrent > Embed)
+                const typePriority = (s: IStreamSource) => {
+                    const t = s.type;
+                    const p = s.provider || '';
+                    
                     if (t === 'hls' || t === 'mp4') return 1;
-                    if (t === 'embed') return 2;
-                    return 3; // torrent
+                    if (t === 'torrent' || (t as string) === 'magnet') return 2;
+                    
+                    // Embeds are lower priority
+                    if (t === 'embed') {
+                        // Specifically deprioritize Vidlink embeds as requested by user
+                        if (p.includes('Vidlink')) return 10; 
+                        return 5;
+                    }
+                    return 20;
                 };
                 
-                const pA = typePriority(a.type);
-                const pB = typePriority(b.type);
+                const pA = typePriority(a);
+                const pB = typePriority(b);
                 
                 if (pA !== pB) return pA - pB;
 
@@ -139,7 +169,14 @@ class SourceService {
                     return 6;
                 };
 
-                return qPriority(a.quality || '') - qPriority(b.quality || '');
+                const qualityDiff = qPriority(a.quality || '') - qPriority(b.quality || '');
+                if (qualityDiff !== 0) return qualityDiff;
+
+                // Priority 4: Specific provider preference within same type/quality
+                if (a.provider.includes('Vidsrc') && !b.provider.includes('Vidsrc')) return -1;
+                if (!a.provider.includes('Vidsrc') && b.provider.includes('Vidsrc')) return 1;
+
+                return 0;
             });
 
 
@@ -159,10 +196,12 @@ class SourceService {
                 subtitles: aggregated.subtitles
             };
 
-        } catch (error) {
-
+        } catch (error: any) {
             // Fail open with empty result rather than crashing
-            console.warn("Critical source error, returning empty sources.");
+            console.error("[SourceService] CRITICAL ERROR in getAllSources:", error.message);
+            if (error.stack) {
+                console.error("[SourceService] Stack Trace:", error.stack);
+            }
             return {
                 sources: [],
                 subtitles: []

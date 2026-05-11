@@ -126,7 +126,7 @@ export function AdultSwimHero({ item }: AdultSwimHeroProps) {
         >
           <div className="space-y-1">
             <h2 className="text-zinc-600 text-[10px] uppercase tracking-[0.6em] font-black">Playing Tonight</h2>
-            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent mb-4" />
+            <div className="h-[1px] w-full bg-linear-to-r from-transparent via-zinc-800 to-transparent mb-4" />
             <p className="text-white text-4xl md:text-6xl font-black tracking-tighter uppercase italic drop-shadow-lg">
               {item.title}
             </p>
@@ -171,7 +171,8 @@ export function AdultSwimHero({ item }: AdultSwimHeroProps) {
       </div>
 
       {/* Bottom Fade to Dashboard */}
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black to-transparent z-20" />
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-linear-to-t from-black to-transparent z-20" />
     </section>
   );
 }
+

@@ -20,19 +20,33 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /.*electron-playback\.spec\.ts/,
     },
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: /.*electron-playback\.spec\.ts/,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: /.*electron-playback\.spec\.ts/,
+    },
+    {
+      name: 'electron',
+      testMatch: /.*electron-playback\.spec\.ts/,
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: 'npm run server',
+      url: 'http://localhost:5000/api/health',
+      reuseExistingServer: !process.env.CI,
+    }
+  ],
 })

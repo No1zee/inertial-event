@@ -124,7 +124,7 @@ export default function AnimePage() {
                 <BrandBlock
                   text="Your Gateway to Japan"
                   subtext="From shonen battles to slice-of-life moments, adventure awaits"
-                  gradient="bg-gradient-to-r from-pink-950/40 via-rose-950/40 to-red-950/40"
+                  gradient="bg-linear-to-r from-pink-950/40 via-rose-950/40 to-red-950/40"
                   icon={<Bird className="w-16 h-16 text-pink-500" />}
                   bgImage="https://images.unsplash.com/photo-1578632738908-4521bd8c7cd9?auto=format&fit=crop&q=60&w=1200"
                 />
@@ -135,7 +135,7 @@ export default function AnimePage() {
                 <BrandBlock
                   text="Immerse. Dream. Believe."
                   subtext="Where art meets storytelling in the most vibrant way"
-                  gradient="bg-gradient-to-r from-violet-950/40 via-fuchsia-950/40 to-pink-950/40"
+                  gradient="bg-linear-to-r from-violet-950/40 via-fuchsia-950/40 to-pink-950/40"
                   icon={<Star className="w-16 h-16 text-violet-400" />}
                   bgImage="https://images.unsplash.com/photo-1541562232579-512a21359920?auto=format&fit=crop&q=60&w=1200"
                 />
@@ -159,3 +159,4 @@ export default function AnimePage() {
     </div>
   );
 }
+

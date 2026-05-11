@@ -47,6 +47,7 @@ export interface PlayerMedia {
   season?: number;
   episode?: number;
   source?: string;
+  fileIndex?: number; // Added for torrent packs
 }
 
 interface PlayerStore extends PlaybackState, AudioState, VideoState, UIState {
@@ -82,8 +83,8 @@ interface PlayerStore extends PlaybackState, AudioState, VideoState, UIState {
   setError: (error: string | null) => void;
 
   // Actions - Media
-  loadMedia: (media: PlayerMedia) => void;
-  updateMediaSource: (source: string) => void;
+  loadMedia: (media: PlayerMedia, startTime?: number) => void;
+  updateMediaSource: (source: string, fileIndex?: number) => void;
   unloadMedia: () => void;
 
   // Actions - Reset
@@ -204,24 +205,37 @@ export const usePlayerStore = createWithEqualityFn<PlayerStore>()(
         setError: error => set({ error }),
 
         // Media actions
-        loadMedia: media => {
-          const { volume, muted } = get();
+        loadMedia: (media, startTime) => {
+          const { volume, muted, currentMedia: prevMedia, currentTime: prevTime } = get();
+          
+          // Check if it's the exact same media (including fileIndex)
+          const isResuming = prevMedia && 
+                            prevMedia.id === media.id && 
+                            prevMedia.season === media.season && 
+                            prevMedia.episode === media.episode &&
+                            prevMedia.fileIndex === media.fileIndex;
+
           set({
             currentMedia: media,
             error: null,
             loading: false,
             ...defaultPlaybackState,
+            currentTime: isResuming ? prevTime : (startTime || 0),
             // Force unmute and full volume if currently muted or at zero
             volume: (volume === 0 || muted) ? 1 : volume,
             muted: false,
           });
         },
 
-        updateMediaSource: source => {
+        updateMediaSource: (source, fileIndex) => {
           const { currentMedia } = get();
           if (currentMedia) {
             set({
-              currentMedia: { ...currentMedia, source }
+              currentMedia: { 
+                ...currentMedia, 
+                source,
+                fileIndex: fileIndex !== undefined ? fileIndex : currentMedia.fileIndex 
+              }
             });
           }
         },
@@ -258,10 +272,12 @@ export const usePlayerStore = createWithEqualityFn<PlayerStore>()(
         },
       }),
       {
-        name: 'NovaStream-player',
-        storage: createJSONStorage(() => sessionStorage), // Session-based persistence
+        name: 'NovaStream-player-v2', // Incremented version name for migration safety
+        storage: createJSONStorage(() => localStorage), // Global persistence
         partialize: state => ({
-          // Only persist preferences, not current state
+          // Now persisting currentMedia and currentTime for "Institutional Continuity"
+          currentMedia: state.currentMedia,
+          currentTime: state.currentTime,
           volume: state.volume,
           muted: state.muted,
           playbackRate: state.playbackRate,

@@ -67,7 +67,6 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white mb-1">Hardware Acceleration</label>
@@ -76,6 +75,29 @@ export default function SettingsPage() {
                 <span className="text-sm text-zinc-300">Enable Acceleration</span>
                 <Switch checked={preferences.hardwareAcceleration} onChange={actions.setHardwareAcceleration} />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">Advanced Diagnostics</label>
+              <p className="text-xs text-zinc-500 mb-3">Show real-time engine logs during playback.</p>
+              <div className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-lg border border-white/5">
+                <span className="text-sm text-zinc-300">Enable Monitoring</span>
+                <Switch checked={preferences.diagnosticsEnabled} onChange={actions.setDiagnosticsEnabled} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-1">Buffer Strategy</label>
+              <p className="text-xs text-zinc-500 mb-3">Optimize engine for bandwidth or performance.</p>
+              <Select
+                value={preferences.bufferStrategy}
+                onChange={e => actions.setBufferStrategy(e.target.value as any)}
+                options={[
+                  { value: 'standard', label: 'Standard (Balanced)' },
+                  { value: 'aggressive', label: 'Aggressive (Pre-cache)' },
+                  { value: 'minimal', label: 'Minimal (Data Saver)' },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -132,36 +154,77 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { id: 'Mai', name: 'Type Mai', colors: 'bg-zinc-900 border-rose-600' },
-                { id: 'ocean', name: 'Oceanic', colors: 'bg-slate-900 border-sky-500' },
-                { id: 'cyberpunk', name: 'Cyberpunk', colors: 'bg-[#1a0b2e] border-yellow-400' },
-                { id: 'oled', name: 'True Black', colors: 'bg-black border-white' },
+                { id: 'Nova', name: 'Nova Stream', color: '#E50914', subtitle: 'Cinematic Dark' },
+                { id: 'ocean', name: 'Oceanic', color: '#0EA5E9', subtitle: 'Deep Blue Calm' },
+                { id: 'cyberpunk', name: 'Cyberpunk', color: '#FF00BB', subtitle: 'Neon Streets' },
+                { id: 'oled', name: 'Pure OLED', color: '#FFFFFF', subtitle: 'True Black' },
+                { id: 'heritage', name: 'Heritage', color: '#FFB700', subtitle: 'Royal Gold' },
+                { id: 'aurora', name: 'Aurora', color: '#00FF80', subtitle: 'Northern Lights' },
+                { id: 'titanium', name: 'Titanium', color: '#A9ADB6', subtitle: 'Industrial Steel' },
+                { id: 'ghost', name: 'Ghost', color: '#F5F5F5', subtitle: 'Light Mode' },
               ].map(themeItem => (
                 <button
                   key={themeItem.id}
                   onClick={() => actions.setTheme(themeItem.id as Theme)}
                   className={`
-                                        relative p-4 rounded-xl border-2 text-left transition-all duration-200
-                                        ${
-                                          preferences.theme === themeItem.id
-                                            ? 'border-primary bg-accent/20 ring-2 ring-primary/20'
-                                            : 'border-border bg-card hover:bg-accent/10 hover:border-accent'
-                                        }
-                                    `}
+                    relative p-4 rounded-xl border-2 text-left transition-all duration-200
+                    ${
+                      preferences.theme === themeItem.id
+                        ? 'border-primary bg-accent/20 ring-2 ring-primary/20'
+                        : 'border-border bg-card hover:bg-accent/10 hover:border-accent'
+                    }
+                  `}
                 >
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-1">
                     <div
-                      className={`w-6 h-6 rounded-full border ${themeItem.colors.split(' ')[1].replace('border-', 'bg-')}`}
-                    ></div>
+                      className="w-5 h-5 rounded-full ring-1 ring-foreground/15"
+                      style={{ backgroundColor: themeItem.color }}
+                    />
                     <span
-                      className={`font-medium ${preferences.theme === themeItem.id ? 'text-primary' : 'text-foreground'}`}
+                      className={`font-medium text-sm ${preferences.theme === themeItem.id ? 'text-primary' : 'text-foreground'}`}
                     >
                       {themeItem.name}
                     </span>
                   </div>
-                  <div className={`h-2 w-full rounded-full opacity-30 ${themeItem.colors.split(' ')[0]}`}></div>
+                  <span className="text-[10px] text-muted-foreground tracking-wider pl-8">
+                    {themeItem.subtitle}
+                  </span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Atmosphere Intensity</label>
+              <p className="text-xs text-muted-foreground mb-4">Adjust the strength of the cinematic background aura.</p>
+              
+              <div className="flex items-center gap-4 bg-card p-4 rounded-2xl border border-border">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={preferences.atmosphereIntensity || 0.6}
+                  onChange={(e) => actions.setAtmosphereIntensity(parseFloat(e.target.value))}
+                  className="flex-1 accent-primary h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                />
+                <span className="text-sm font-black text-primary w-8 text-center">
+                  {Math.round((preferences.atmosphereIntensity || 0.6) * 100)}%
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Visual Boost</label>
+              <p className="text-xs text-muted-foreground mb-4">Enhanced color grading and contrast for HDR-like feel.</p>
+              <div className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border">
+                <span className="text-sm text-foreground/70">Enable HDR Simulation</span>
+                <Switch 
+                  checked={preferences.visualBoost || false} 
+                  onChange={actions.setVisualBoost} 
+                />
+              </div>
             </div>
           </div>
         </div>

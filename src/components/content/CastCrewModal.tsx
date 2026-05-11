@@ -76,7 +76,7 @@ export const CastCrewModal: React.FC = () => {
                   {/* Profile Header */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 p-10 lg:p-20">
                     <div className="lg:col-span-3">
-                      <div className="aspect-[2/3] relative rounded-[2rem] overflow-hidden ring-1 ring-white/10 shadow-2xl group">
+                      <div className="aspect-2/3 relative rounded-[2rem] overflow-hidden ring-1 ring-white/10 shadow-2xl group">
                         <OptimizedImage
                           src={
                             details?.profile_path
@@ -195,3 +195,4 @@ export const CastCrewModal: React.FC = () => {
     </AnimatePresence>
   );
 };
+

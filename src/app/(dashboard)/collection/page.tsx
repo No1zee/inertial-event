@@ -47,7 +47,7 @@ function UniverseContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -60,7 +60,7 @@ function UniverseContent() {
   const progress = Math.round((watchedCount / collection.parts.length) * 100);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-transparent pb-20">
       {/* Hero Section */}
       <div className="relative w-full h-[60vh] md:h-[70vh]">
         <div className="absolute inset-0">
@@ -72,8 +72,8 @@ function UniverseContent() {
             priority
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-r from-background via-transparent to-transparent" />
         </div>
 
         <div className="absolute bottom-0 left-0 p-8 md:p-16 max-w-4xl space-y-6">
@@ -125,7 +125,7 @@ function UniverseContent() {
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 1, delay: 0.5 }}
-                  className="h-full bg-gradient-to-r from-primary to-purple-600 shadow-[0_0_10px_rgba(225,29,72,0.5)]"
+                  className="h-full bg-linear-to-r from-primary to-purple-600 shadow-[0_0_10px_rgba(225,29,72,0.5)]"
                 />
               </div>
             </div>
@@ -146,7 +146,7 @@ function UniverseContent() {
             >
               {/* Connector Line */}
               {index !== collection.parts.length - 1 && (
-                <div className="absolute left-[3.25rem] md:left-[9rem] top-24 bottom-[-3rem] w-0.5 bg-gradient-to-b from-primary/50 to-transparent group-last:hidden" />
+                <div className="absolute left-[3.25rem] md:left-[9rem] top-24 bottom-[-3rem] w-0.5 bg-linear-to-b from-primary/50 to-transparent group-last:hidden" />
               )}
 
               {/* Year / Date */}
@@ -158,7 +158,7 @@ function UniverseContent() {
               </div>
 
               {/* Poster / Node */}
-              <div className="relative shrink-0 w-28 md:w-48 aspect-[2/3] rounded-xl overflow-hidden shadow-2xl transition-transform duration-300 group-hover:scale-105 ring-2 ring-transparent group-hover:ring-primary/50">
+              <div className="relative shrink-0 w-28 md:w-48 aspect-2/3 rounded-xl overflow-hidden shadow-2xl transition-transform duration-300 group-hover:scale-105 ring-2 ring-transparent group-hover:ring-primary/50">
                 <Image
                   src={getOptimizedImageUrl(movie.poster, 'w500')}
                   alt={movie.title}
@@ -211,8 +211,9 @@ function UniverseContent() {
 
 export default function UniversePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
       <UniverseContent />
     </Suspense>
   );
 }
+

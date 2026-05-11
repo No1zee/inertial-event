@@ -130,7 +130,7 @@ export const ProfileAuthModal: React.FC<ProfileAuthModalProps> = ({
           <div className="mb-12 text-center">
             <motion.div 
               animate={isSuccess ? { scale: [1, 1.2, 1] } : {}}
-              className="w-24 h-24 rounded-full mx-auto mb-6 p-1 bg-gradient-to-br from-primary to-purple-600 shadow-2xl"
+              className="w-24 h-24 rounded-full mx-auto mb-6 p-1 bg-linear-to-br from-primary to-purple-600 shadow-2xl"
             >
               <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden border-4 border-black">
                 <div className="text-3xl">🛡️</div>
@@ -216,3 +216,4 @@ export const ProfileAuthModal: React.FC<ProfileAuthModalProps> = ({
     </AnimatePresence>
   );
 };
+

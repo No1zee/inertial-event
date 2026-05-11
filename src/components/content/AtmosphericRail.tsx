@@ -108,12 +108,12 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
       ref={containerRef}
       className={cn(
         'relative group/rail space-y-8 py-16 min-h-[300px] overflow-hidden',
-        provider?.slug === 'netflix' && 'bg-gradient-to-b from-red-600/5 to-transparent',
-        provider?.slug === 'hulu' && 'bg-gradient-to-b from-[#1ce783]/5 to-transparent',
-        provider?.slug === 'disney' && 'bg-gradient-to-b from-[#113ccf]/10 to-transparent',
+        provider?.slug === 'netflix' && 'bg-linear-to-b from-red-600/5 to-transparent',
+        provider?.slug === 'hulu' && 'bg-linear-to-b from-[#1ce783]/5 to-transparent',
+        provider?.slug === 'disney' && 'bg-linear-to-b from-[#113ccf]/10 to-transparent',
         provider?.slug === 'peacock' &&
           'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/10 via-transparent to-transparent',
-        providerId === 'acu' && 'acu-glow bg-gradient-to-b from-amber-600/10 to-transparent',
+        providerId === 'acu' && 'acu-glow bg-linear-to-b from-amber-600/10 to-transparent',
         className
       )}
     >
@@ -241,8 +241,8 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
             Array(6)
               .fill(0)
               .map((_, i) => (
-                <div key={i} className={cn('shrink-0 animate-pulse bg-zinc-900 rounded-[2rem] relative overflow-hidden', getCardWidth(), aspectRatio === 'poster' ? 'aspect-[2/3]' : 'aspect-video')}>
-                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
+                <div key={i} className={cn('shrink-0 animate-pulse bg-zinc-900 rounded-[2rem] relative overflow-hidden', getCardWidth(), aspectRatio === 'poster' ? 'aspect-2/3' : 'aspect-video')}>
+                   <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
                 </div>
               ))
           )}
@@ -252,3 +252,4 @@ export const AtmosphericRail = React.memo(function AtmosphericRail({
     </section>
   );
 });
+

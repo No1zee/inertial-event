@@ -29,6 +29,8 @@ window.AG_CTX = null;
 window.LAST_AG_SOURCE = null;
 window.AG_PLAYED = false;
 window.AG_VISUAL_BOOST = false;
+window.AG_USER_PAUSED = false;
+window.AG_ENDED_FIRED = false;
 
 // 4. Video Discovery (Shazam) - Enhanced
 const findVideo = (root, depth = 0) => {
@@ -69,12 +71,16 @@ const updateState = () => {
                 window.AG_VIDEO.hasAGListeners = true;
                 window.AG_VIDEO.addEventListener('ended', () => ipcRenderer.sendToHost('AG_ENDED'));
                 window.AG_VIDEO.addEventListener('play', () => { 
+                    window.AG_USER_PAUSED = false;
                     if (!window.AG_PLAYED) {
                         window.AG_PLAYED = true;
                         ipcRenderer.sendToHost('AG_PLAYBACK_STARTED');
                     }
                     window.AG_VIDEO.muted = false; 
                     window.AG_VIDEO.volume = 1.0;
+                });
+                window.AG_VIDEO.addEventListener('pause', () => {
+                    window.AG_USER_PAUSED = true;
                 });
                 
                 // Initial check for play state
@@ -88,7 +94,7 @@ const updateState = () => {
 
     if (window.AG_VIDEO) {
         // Aggressive Autoplay Fallback
-        if (window.AG_VIDEO.paused && !window.AG_VIDEO.ended) {
+        if (window.AG_VIDEO.paused && !window.AG_VIDEO.ended && !window.AG_USER_PAUSED) {
             // Attempt muted playback first (bypasses most policies)
             window.AG_VIDEO.muted = true;
             window.AG_VIDEO.play().then(() => {
@@ -97,7 +103,7 @@ const updateState = () => {
             }).catch(e => {
                 // Truly blocked. We'll wait for user interaction.
             });
-        } else if (!window.AG_VIDEO.paused && window.AG_VIDEO.muted) {
+        } else if (!window.AG_VIDEO.paused && window.AG_VIDEO.muted && !window.AG_USER_PAUSED) {
             // If playing but muted, try to unmute
             window.AG_VIDEO.muted = false;
             window.AG_VIDEO.volume = 1.0;
@@ -113,8 +119,9 @@ const updateState = () => {
 
         // Aegis Source Interceptor
         const currentSrc = window.AG_VIDEO.currentSrc || window.AG_VIDEO.src;
-        if (currentSrc && (currentSrc.includes('.m3u8') || currentSrc.includes('.mp4')) && !currentSrc.startsWith('blob:')) {
-            if (window.LAST_AG_SOURCE !== currentSrc) {
+        if (currentSrc && !currentSrc.startsWith('blob:')) {
+            const isNative = /\.(m3u8|mp4|mkv|webm|avi|mov|ts|m4s)(\?|$)/i.test(currentSrc);
+            if (isNative && window.LAST_AG_SOURCE !== currentSrc) {
                 window.LAST_AG_SOURCE = currentSrc;
                 ipcRenderer.sendToHost('AG_SOURCE_FOUND', { 
                     url: currentSrc,
@@ -130,6 +137,14 @@ const updateState = () => {
             volume: window.AG_VIDEO.volume,
             isMuted: window.AG_VIDEO.muted
         });
+
+        // Robust Ended Detection (in case native event is hijacked)
+        if (window.AG_VIDEO.duration > 10 && !window.AG_ENDED_FIRED) {
+            if (window.AG_VIDEO.ended || window.AG_VIDEO.currentTime >= window.AG_VIDEO.duration - 1) {
+                window.AG_ENDED_FIRED = true;
+                ipcRenderer.sendToHost('AG_ENDED');
+            }
+        }
     }
 };
 setInterval(updateState, 500);
@@ -144,10 +159,12 @@ ipcRenderer.on('AG_SET_TIME', (event, time) => {
 });
 
 ipcRenderer.on('AG_PLAY', () => {
+    window.AG_USER_PAUSED = false;
     if (window.AG_VIDEO) window.AG_VIDEO.play().catch(() => {});
 });
 
 ipcRenderer.on('AG_PAUSE', () => {
+    window.AG_USER_PAUSED = true;
     if (window.AG_VIDEO) window.AG_VIDEO.pause();
 });
 
@@ -190,7 +207,7 @@ if (document.readyState === 'loading') {
 
 const relayActivity = () => { 
     ipcRenderer.sendToHost('AG_WAKE'); 
-    if (window.AG_VIDEO && window.AG_VIDEO.paused) {
+    if (window.AG_VIDEO && window.AG_VIDEO.paused && !window.AG_USER_PAUSED) {
         window.AG_VIDEO.play().catch(() => {});
     }
 };

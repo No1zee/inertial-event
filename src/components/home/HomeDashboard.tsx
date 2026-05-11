@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useActiveProfile, useContinueWatching, type ContinueWatchingItem } from '@/lib/stores/localDataStore';
 import { Play, TrendingUp, History, Sparkles } from 'lucide-react';
@@ -11,9 +12,17 @@ import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@/lib/api/content';
 import { Content } from '@/lib/types/content';
 import { EditorialSpotlight } from './EditorialSpotlight';
-import { AfricanCinematicUniverse } from './AfricanCinematicUniverse';
+const AfricanCinematicUniverse = dynamic(() => import('./AfricanCinematicUniverse').then(mod => mod.AfricanCinematicUniverse), {
+  loading: () => <div className="h-96 w-full animate-pulse bg-white/[0.02] rounded-3xl mt-12" />,
+  ssr: false
+});
 
-export const HomeDashboard: React.FC = () => {
+const NovaShortsRow = dynamic(() => import('./NovaShortsRow').then(mod => mod.NovaShortsRow), {
+  loading: () => <div className="h-64 w-full animate-pulse bg-white/[0.02] rounded-3xl mt-12" />,
+  ssr: false
+});
+
+export const HomeDashboard: React.FC<{ salt?: number }> = ({ salt = 0.5 }) => {
   const activeProfile = useActiveProfile();
   const continueWatching = useContinueWatching();
   const router = useRouter();
@@ -24,16 +33,23 @@ export const HomeDashboard: React.FC = () => {
   }, []);
 
   const { data: trending } = useQuery<Content[]>({
-    queryKey: ['trending_pulse', activeProfile?.preferences],
+    queryKey: ['trending_pulse', activeProfile?.preferences, salt],
     queryFn: async () => {
-      const baseTrending = await contentApi.getTrending(Math.floor(Math.random() * 3) + 1);
+      // Use salt to pick a stable page for this session
+      const page = Math.floor(salt * 3) + 1;
+      const baseTrending = await contentApi.getTrending(page);
       if (activeProfile?.preferences?.genres?.length || activeProfile?.preferences?.vibes?.length) {
         return contentApi.getPersonalizedMix(baseTrending, activeProfile.preferences);
       }
-      return [...baseTrending].sort(() => Math.random() - 0.5);
+      // Stable shuffle based on salt
+      return [...baseTrending].sort((a, b) => {
+        const hashA = (a.id.toString().length * salt) % 1;
+        const hashB = (b.id.toString().length * salt) % 1;
+        return hashA - hashB;
+      });
     },
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    refetchOnWindowFocus: false,
   });
 
   const greeting = useMemo(() => {
@@ -181,7 +197,7 @@ export const HomeDashboard: React.FC = () => {
           >
             <div className="flex items-center gap-3 mb-8">
               <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.4em]">Recommended for You</span>
-              <div className="h-[1px] w-24 bg-gradient-to-r from-amber-500/50 to-transparent" />
+              <div className="h-[1px] w-24 bg-linear-to-r from-amber-500/50 to-transparent" />
             </div>
             <EditorialSpotlight 
               item={trending[0]} 
@@ -191,7 +207,10 @@ export const HomeDashboard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 4. The ACU Advance (African Cinematic Universe) */}
+      {/* 4. Nova Shorts Discovery */}
+      <NovaShortsRow />
+
+      {/* 5. The ACU Advance (African Cinematic Universe) */}
       <AfricanCinematicUniverse />
     </section>
   );
@@ -217,7 +236,17 @@ const ContinueWatchingCard = ({ item, index, onClick }: { item: ContinueWatching
         setIsNavigating(true);
         onClick();
       }}
-      className="relative flex-shrink-0 w-[280px] aspect-[21/9] rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 hover:border-amber-500/30 transition-all duration-500 cursor-pointer group/card"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setIsNavigating(true);
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Continue watching ${item.title}`}
+      className="relative flex-shrink-0 w-[280px] aspect-21/9 rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 hover:border-amber-500/30 transition-all duration-500 cursor-pointer group/card outline-none focus:ring-2 focus:ring-amber-500"
     >
     <OptimizedImage
       src={item.backdrop || item.poster || ''}
@@ -225,7 +254,7 @@ const ContinueWatchingCard = ({ item, index, onClick }: { item: ContinueWatching
       fill
       className="object-cover opacity-40 group-hover/card:opacity-80 transition-all duration-700 group-hover/card:scale-110"
     />
-    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent p-5 flex flex-col justify-end">
+    <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent p-5 flex flex-col justify-end">
       <div className="flex items-center justify-between">
         <div className="max-w-[70%]">
           <PretextHeadline
@@ -267,7 +296,16 @@ const TrendingCard = ({ item, index, onClick }: { item: Content; index: number; 
       transition={{ delay: index * 0.1 + 0.5, duration: 0.8 }}
       onMouseEnter={() => router.prefetch(`/watch?id=${item.id}&type=${item.type || 'movie'}`)}
       onClick={onClick}
-      className="relative flex-shrink-0 w-[220px] aspect-[16/9] rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 hover:border-red-500/30 transition-all duration-500 cursor-pointer group/card"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Trending: ${item.title}`}
+      className="relative flex-shrink-0 w-[220px] aspect-16/9 rounded-[1.5rem] overflow-hidden bg-black/40 border border-white/5 hover:border-red-500/30 transition-all duration-500 cursor-pointer group/card outline-none focus:ring-2 focus:ring-red-500"
     >
     <OptimizedImage
       src={item.backdrop_path || item.poster_path || ''}
@@ -279,7 +317,7 @@ const TrendingCard = ({ item, index, onClick }: { item: Content; index: number; 
       <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
       <span className="text-[8px] font-black text-white uppercase tracking-tighter">Hot Now</span>
     </div>
-    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent p-5 flex flex-col justify-end">
+    <div className="absolute inset-0 bg-linear-to-t from-black via-black/10 to-transparent p-5 flex flex-col justify-end">
       <PretextHeadline
         text={item.title || ''}
         fontSize={10}
@@ -296,4 +334,5 @@ const TrendingCard = ({ item, index, onClick }: { item: Content; index: number; 
     </motion.div>
   );
 };
+
 

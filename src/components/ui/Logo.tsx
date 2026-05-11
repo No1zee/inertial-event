@@ -3,7 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { Palmtree } from 'lucide-react';
+import { Play, Sparkles } from 'lucide-react';
 
 interface LogoProps {
   className?: string;
@@ -22,30 +22,43 @@ export function Logo({ className, size = 'md', showText = true, animated = true 
 
   const textSizes = {
     sm: 'text-sm',
-    md: 'text-lg',
-    lg: 'text-2xl',
-    xl: 'text-4xl',
+    md: 'text-xl',
+    lg: 'text-3xl',
+    xl: 'text-5xl',
   };
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <motion.div
-        whileHover={animated ? { scale: 1.05 } : {}}
+        whileHover={animated ? { 
+          scale: 1.1,
+          rotate: [0, -10, 10, 0],
+          transition: { duration: 0.5 }
+        } : {}}
         className={cn(
-          'bg-white rounded-full flex items-center justify-center shadow-md border border-[hsl(var(--border))]',
+          'bg-linear-to-tr from-primary to-accent rounded-[var(--radius-theme)] flex items-center justify-center shadow-lg shadow-primary/20 transition-all duration-700',
           sizes[size]
         )}
       >
         <div className="relative flex items-center justify-center">
-          <Palmtree className="w-[70%] h-[70%] text-primary -rotate-12 absolute -translate-x-1" />
-          <Palmtree className="w-[70%] h-[70%] text-primary rotate-12 absolute translate-x-1" />
+          <Play fill="white" className="w-[50%] h-[50%] text-white ml-0.5" />
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <Sparkles className="w-full h-full text-white/50" />
+          </motion.div>
         </div>
       </motion.div>
 
       {showText && (
         <div className={cn('flex flex-col leading-none font-display', textSizes[size])}>
-          <span className="font-black text-primary uppercase tracking-tight">
-            Nova<span className="text-white">Stream</span>
+          <span className="font-black text-foreground uppercase tracking-tighter italic">
+            NOVA<span className="text-primary">STREAM</span>
           </span>
         </div>
       )}

@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, session, shell, dialog, protocol, net } = require('electron');
+console.log('[Main Process] STARTING CORE ENGINE...');
+
 const { autoUpdater } = require('electron-updater');
 const { fork } = require('child_process');
 const path = require('path');
@@ -51,6 +53,7 @@ ipcMain.on('frontend-log', (event, msg) => {
 
 const log = (msg, ...args) => console.log(`[Main] ${msg}`, ...args);
 let mainWindow;
+let torrentStatusInterval = null;
 
 // --- NovaSync Core Handlers (Must be Global/Sync) ---
 const getPreloadPath = () => {
@@ -94,41 +97,91 @@ function createWindow() {
     initAutoUpdater();
 
     // 4. Header Spoofing (Universal Referer Control)
-    // 4. Header Spoofing (Universal Referer Control)
+    const originMap = new Map();
+
     const applyRequestHeaders = (sess) => {
         sess.webRequest.onBeforeSendHeaders(
-            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.vidsrc.to/*', '*://*.vidsrc.xyz/*', '*://*.vidsrc.cc/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*'] },
+            { urls: ['*://*.vidlink.pro/*', '*://*.vidsrc.me/*', '*://*.vidsrc.icu/*', '*://*.vidsrc.to/*', '*://*.vidsrc.xyz/*', '*://*.vidsrc.cc/*', '*://*.tmdb.org/*', '*://*.themoviedb.org/*', '*://*.youtube.com/*', '*://*.youtube-nocookie.com/*', '*://*.googlevideo.com/*', '*://*.vsource.to/*', '*://*.superembed.stream/*', '*://*.2embed.cc/*'] },
             (details, callback) => {
                 const url = new URL(details.url);
                 const domain = url.hostname;
+                const urlStr = details.url;
 
-                if (domain.includes('tmdb.org') || domain.includes('themoviedb.org')) {
-                    details.requestHeaders['Referer'] = 'https://www.themoviedb.org/';
-                } else if (domain.includes('youtube.com') || domain.includes('googlevideo.com')) {
-                    // Critical Fix for Error 152: 
-                    // DO NOT send Origin. Sending a fake 'youtube.com' Origin triggers strict CORS checks.
-                    // Sending NO Origin allows the embed to play as if it were a direct browser nav.
-                    details.requestHeaders['Referer'] = 'https://www.youtube.com/';
-                    if (details.requestHeaders['Origin']) delete details.requestHeaders['Origin'];
-                    // [DEBUG] Log packet to help user debug functionality
-                    console.log(`[AG Debug] YouTube Req: ${url.pathname} | Ref: ${details.requestHeaders['Referer']} | Origin: ${details.requestHeaders['Origin'] || 'REMOVED'}`);
-                } else {
-                    details.requestHeaders['Referer'] = `${url.protocol}//${url.hostname}/`;
-                    details.requestHeaders['Origin'] = `${url.protocol}//${url.hostname}`;
+                // Track the actual request origin for echoing in Response headers (CORS)
+                const actualOrigin = details.requestHeaders['Origin'] || details.requestHeaders['origin'];
+                if (actualOrigin) {
+                    originMap.set(details.id, actualOrigin);
                 }
 
-                // Comprehensive browser identity (Downgraded to Chrome 120)
-                details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+                // Helper to manage headers case-insensitively
+                const setReqHeader = (name, value) => {
+                    const lowName = name.toLowerCase();
+                    Object.keys(details.requestHeaders).forEach(k => {
+                        if (k.toLowerCase() === lowName) delete details.requestHeaders[k];
+                    });
+                    details.requestHeaders[name] = value;
+                };
+
+                const deleteReqHeader = (name) => {
+                    const lowName = name.toLowerCase();
+                    Object.keys(details.requestHeaders).forEach(k => {
+                        if (k.toLowerCase() === lowName) delete details.requestHeaders[k];
+                    });
+                };
+
+                // 1. YouTube & GoogleVideo Spoofing (Critical for playback and CORS)
+                if (domain.includes('youtube.com') || domain.includes('youtube-nocookie.com') || domain.includes('googlevideo.com')) {
+                    // Force Origin and Referer to youtube.com to satisfy server checks
+                    setReqHeader('Origin', 'https://www.youtube.com');
+                    setReqHeader('Referer', 'https://www.youtube.com/');
+                    
+                    // Specific headers for embeds
+                    if (urlStr.includes('/embed/') || urlStr.includes('/v/')) {
+                        setReqHeader('Sec-Fetch-Dest', 'iframe');
+                        setReqHeader('Sec-Fetch-Mode', 'navigate');
+                        setReqHeader('Sec-Fetch-Site', 'cross-site');
+                    }
+                } 
+                // 2. TMDB/TheMovieDB
+                else if (domain.includes('tmdb.org') || domain.includes('themoviedb.org')) {
+                    setReqHeader('Referer', 'https://www.themoviedb.org/');
+                }
+                // 3. VidSrc, VidLink, and Source Ecosystem
+                else if (urlStr.includes('vidsrc') || urlStr.includes('vidlink.pro') || urlStr.includes('vsource.to') || urlStr.includes('superembed.stream') || urlStr.includes('2embed.cc')) {
+                    let spoofOrigin = '';
+                    if (urlStr.includes('vidlink.pro')) spoofOrigin = 'https://vidlink.pro';
+                    else if (urlStr.includes('vsource.to') || urlStr.includes('superembed.stream')) spoofOrigin = 'https://vsource.to';
+                    else if (urlStr.includes('2embed.cc')) spoofOrigin = 'https://www.2embed.cc';
+                    else spoofOrigin = 'https://vidsrc.xyz';
+
+                    setReqHeader('Origin', spoofOrigin);
+                    setReqHeader('Referer', spoofOrigin + '/');
+                }
+                // 4. Default fallback for filtered URLs
+                else {
+                    setReqHeader('Referer', `${url.protocol}//${url.hostname}/`);
+                    setReqHeader('Origin', `${url.protocol}//${url.hostname}`);
+                }
+
+                // Global Identity Overrides (Standardized to Chrome 133 - Feb 2025)
+                const modernUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36';
+                setReqHeader('User-Agent', modernUA);
                 
-                // Remove 'sec-ch-ua-form-factors' request header
-                if (details.requestHeaders['sec-ch-ua-form-factors']) delete details.requestHeaders['sec-ch-ua-form-factors'];
-                
+                // Add Client Hints for modern YouTube validation
+                setReqHeader('Sec-CH-UA', '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"');
+                setReqHeader('Sec-CH-UA-Mobile', '?0');
+                setReqHeader('Sec-CH-UA-Platform', '"Windows"');
+
+                deleteReqHeader('sec-ch-ua-form-factors');
+
                 callback({ requestHeaders: details.requestHeaders });
             }
         );
     };
 
+    // Apply to all relevant sessions
     applyRequestHeaders(session.defaultSession);
+    applyRequestHeaders(session.fromPartition('persist:novastream'));
     applyRequestHeaders(session.fromPartition('persist:youtube-player'));
 
     // 5. Response Header Cleaning (Agreesive Fix for "Unrecognized feature" & CSP)
@@ -137,6 +190,10 @@ function createWindow() {
     // 5. Consolidated Response Header Handling
     // Handles BOTH YouTube Policy Stripping (Fix Error 153/Unrecognized Feature) AND General CSP Injection
     const applyResponseHeaders = (sess) => {
+        // Cleanup Map to prevent memory leaks
+        sess.webRequest.onCompleted({ urls: ['<all_urls>'] }, (details) => originMap.delete(details.id));
+        sess.webRequest.onErrorOccurred({ urls: ['<all_urls>'] }, (details) => originMap.delete(details.id));
+
         sess.webRequest.onHeadersReceived(
             { urls: ['<all_urls>'] },
             (details, callback) => {
@@ -147,6 +204,7 @@ function createWindow() {
 
                     // 1. YouTube/Google Video/Providers - Remove restrictive policies to allow embedding and scripting
                     const isProvider = domain.includes('youtube.com') || 
+                                     domain.includes('youtube-nocookie.com') ||
                                      domain.includes('googlevideo.com') ||
                                      domain.includes('vidlink.pro') ||
                                      domain.includes('vidsrc') ||
@@ -161,18 +219,51 @@ function createWindow() {
                             'x-frame-options',
                             'report-to',
                             'nel',
-                            'accept-ch'
+                            'accept-ch',
+                            'cross-origin-resource-policy',
+                            'cross-origin-embedder-policy',
+                            'cross-origin-opener-policy'
                         ];
+
                         Object.keys(newHeaders).forEach(header => {
                             if (keysToDelete.includes(header.toLowerCase())) {
                                 delete newHeaders[header];
                             }
                         });
                         
-                        // For non-YouTube providers, we also want to allow framing from our app specifically
-                        if (!domain.includes('youtube.com')) {
-                            newHeaders['Access-Control-Allow-Origin'] = ['*'];
+                        // Universal CORS Fix (Bulletproof):
+                        // 1. Determine safe origin based on environment
+                        const appOrigin = isDev ? 'http://localhost:3000' : 'app://-';
+                        
+                        // 2. Helper to set headers case-insensitively on newHeaders
+                        const setHeader = (name, value) => {
+                            const lowName = name.toLowerCase();
+                            Object.keys(newHeaders).forEach(k => {
+                                if (k.toLowerCase() === lowName) delete newHeaders[k];
+                            });
+                            newHeaders[name] = value;
+                        };
+
+                        // 3. Inject CORS headers
+                        if (domain.includes('googlevideo.com') || domain.includes('youtube.com')) {
+                            // For YouTube/GoogleVideo, we echo the origin if it exists, otherwise use appOrigin
+                            // This ensures that if it's from an iframe (youtube.com) or our app, it works.
+                            // We prioritize the tracked origin from onBeforeSendHeaders
+                            const trackedOrigin = originMap.get(details.id);
+                            const finalOrigin = trackedOrigin || appOrigin;
+                            
+                            setHeader('Access-Control-Allow-Origin', [finalOrigin]);
+                            setHeader('Access-Control-Allow-Credentials', ['true']);
+                            
+                            // log(`[AG Debug] YouTube CORS: ${domain} | Origin: ${finalOrigin}`);
+                        } else {
+                            setHeader('Access-Control-Allow-Origin', ['*']);
                         }
+
+                        setHeader('Access-Control-Allow-Methods', ['GET, POST, OPTIONS, PUT, DELETE, FETCH']);
+                        setHeader('Access-Control-Allow-Headers', ['*']);
+                        setHeader('Access-Control-Max-Age', ['86400']); 
+                        setHeader('Timing-Allow-Origin', ['*']);
                     }
 
 // 2. Inject Robust CSP for ALL domains to allow NovaStream features (Torrent/Sources/Proxy)
@@ -182,7 +273,7 @@ if (isDev) {
     csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 ws://localhost:3000 http://127.0.0.1:3000 ws://127.0.0.1:3000;";
 } else {
     // Production: NO unsafe-eval, strict origin
-    csp = "default-src 'self' 'unsafe-inline' https: http://127.0.0.1:* http://localhost:*;";
+    csp = "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: https: http:;";
 }
 
 const domains = "https://inertial-event.vercel.app https://novastream.app https://*.themoviedb.org https://*.tmdb.org https://*.vidlink.pro https://*.vidsrc.me https://*.vidsrc.icu https://*.vidsrc.to https://*.vidsrc.cc https://*.vidsrc.xyz http://127.0.0.1:5000 http://localhost:5000";
@@ -190,14 +281,14 @@ const domains = "https://inertial-event.vercel.app https://novastream.app https:
 // Rebuild script-src
 const scriptSrc = isDev 
     ? `'self' 'unsafe-inline' 'unsafe-eval' https: blob: app: proxy: file: http://localhost:3000` 
-    : `'self' 'unsafe-inline' https: blob: app: proxy: file:`;
+    : `'self' 'unsafe-inline' 'unsafe-eval' https: blob: app: proxy: file:`;
 csp += ` script-src ${scriptSrc} ${domains};`;
 
                     // Add styles, connect, img, media, frame, font (Condensed)
                     csp += ` style-src 'self' 'unsafe-inline' https: app: proxy: file: http://localhost:3000 ${domains};`;
-                    csp += ` connect-src 'self' ws: wss: http: https: proxy: app: file: http: ${domains} http://localhost:3000 ws://localhost:3000;`;
+                    csp += ` connect-src 'self' ws: wss: http: https: magnet: proxy: app: file: http: ${domains} http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*;`;
                     csp += ` img-src 'self' data: blob: proxy: app: file: http: https: https://* http://localhost:3000;`;
-                    csp += ` media-src 'self' blob: proxy: app: file: http: https: http://localhost:3000;`;
+                    csp += ` media-src 'self' blob: proxy: app: file: http: https: http://localhost:* http://127.0.0.1:*;`;
                     csp += ` frame-src 'self' 'unsafe-inline' https: http: data: blob: app: file: http://localhost:3000;`;
                     csp += ` font-src 'self' https://fonts.gstatic.com data: app: proxy: file: http://localhost:3000 ${domains};`;
                     csp += ` worker-src 'self' blob:;`;
@@ -209,13 +300,25 @@ csp += ` script-src ${scriptSrc} ${domains};`;
                     newHeaders['content-security-policy'] = [csp];
                     callback({ responseHeaders: newHeaders });
                 } else {
-                    callback({ responseHeaders: details.responseHeaders });
+                    // For non-provider responses or responses without headers, still inject permissive CSP
+                    const newHeaders = details.responseHeaders ? { ...details.responseHeaders } : {};
+                    const existingCspKey = Object.keys(newHeaders).find(k => k.toLowerCase() === 'content-security-policy');
+                    if (existingCspKey) delete newHeaders[existingCspKey];
+                    
+                    // Minimal CSP that allows torrent localhost streams and blob URLs
+                    let baseCsp = "default-src * 'unsafe-inline' 'unsafe-eval' data: blob: https: http:;";
+                    baseCsp += " media-src 'self' blob: http: https: http://localhost:* http://127.0.0.1:*;";
+                    baseCsp += " connect-src 'self' ws: wss: http: https: blob: magnet: http://localhost:* http://127.0.0.1:*;";
+                    newHeaders['content-security-policy'] = [baseCsp];
+                    
+                    callback({ responseHeaders: newHeaders });
                 }
             }
         );
     };
 
     applyResponseHeaders(session.defaultSession);
+    applyResponseHeaders(session.fromPartition('persist:novastream'));
     applyResponseHeaders(session.fromPartition('persist:youtube-player'));
 
 
@@ -287,7 +390,7 @@ csp += ` script-src ${scriptSrc} ${domains};`;
     mainWindow.webContents.on('will-frame-navigate', (event, url) => {
         const allowedHostnames = [
             'localhost', 'vidlink.pro', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.to', 'vidsrc.pro',
-            'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 
+            'tmdb.org', 'themoviedb.org', 'google.com', 'gstatic.com', 'youtube.com', 'youtube-nocookie.com',
             'dicebear.com', 'googlevideo.com', 'ytimg.com', 'cloudflare.com'
         ];
         
@@ -563,7 +666,7 @@ app.on('ready', async () => {
         server.use(express.static(staticPath));
         
         // SPA Fallback: Any 404 goes to index.html, but NOT for static assets (js, css, png, etc.)
-        server.get('*', (req, res) => {
+        server.use((req, res) => {
             // If the path has a file extension, it's an asset that's truly missing
             if (req.path.includes('.') && !req.path.endsWith('.html')) {
                 res.status(404).send('Not Found');
@@ -620,8 +723,11 @@ app.on('ready', async () => {
                 
                 response = await net.fetch(IMG_URL, {
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                        'Referer': 'https://www.themoviedb.org/'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+                        'Referer': 'https://www.themoviedb.org/',
+                        'Sec-CH-UA': '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
+                        'Sec-CH-UA-Mobile': '?0',
+                        'Sec-CH-UA-Platform': '"Windows"'
                     }
                 });
             }
@@ -729,7 +835,8 @@ app.on('ready', async () => {
             }
 
             // 2. Allow-list
-            if (urlLower.startsWith('app://') || urlLower.startsWith('proxy://') || urlLower.startsWith('http://localhost') || 
+            if (urlLower.startsWith('app://') || urlLower.startsWith('proxy://') || 
+                urlLower.startsWith('http://localhost') || urlLower.startsWith('http://127.0.0.1') ||
                 urlLower.includes('tmdb.org') || urlLower.includes('themoviedb.org') || 
                 urlLower.includes('vidlink.pro') || urlLower.includes('vidsrc.me') || urlLower.includes('vidsrc.icu') ||
                 urlLower.includes('youtube.com') || urlLower.includes('googlevideo.com') || urlLower.includes('ytimg.com') || urlLower.includes('youtube-nocookie.com') || urlLower.includes('ggpht.com') ||
@@ -748,7 +855,8 @@ app.on('ready', async () => {
                 'luckyorange', 'hotjar', 'histats', 'statcounter', 'quantserve',
                 'disqus', 'sharethis', 'addthis', 'clouddn', 'cloudfront',
                 'fastlane', 'adsystem', 'adservice', 'traffic', 'deliver', 'monetize',
-                'proads', 'ad-shield', 'anti-ad', 'popunder', 'click-under', 'best-ads'
+                'proads', 'ad-shield', 'anti-ad', 'popunder', 'click-under', 'best-ads',
+                'vercel.app', 'speed-insights', 'vital', 'telemetry'
             ].join('|'), 'i');
 
             // Surgical Exception: Allow DoubleClick if it's for YouTube (Referrer check)
@@ -769,8 +877,8 @@ app.on('ready', async () => {
         // ---------------------------------------------------
         
         // Skip license validation in development mode
-        if (isDev) {
-            log('Development mode: Skipping license validation');
+        if (isDev || process.env.ELECTRON_TEST_MODE === 'true') {
+            log('Development/Test mode: Skipping license validation');
         } else {
             log('Validating license...');
             let validationResult;
@@ -888,7 +996,7 @@ app.on('ready', async () => {
         const errorMsg = `FATAL BOOT ERROR: ${error.stack}`;
         if (log) log(errorMsg); else console.error(errorMsg);
         
-        dialog.showErrorBox('MaiWatch Boot Failure', 
+        dialog.showErrorBox('NovaStream Boot Failure',
             `The application failed to start.\n\nError: ${error.message}\n\nCheck logs at: ${app.getPath('userData')}\\startup.log`
         );
         app.quit();
@@ -966,12 +1074,21 @@ app.on('activate', () => {
 // Torrent: Start
 ipcMain.handle('torrent:start-stream', async (event, payload) => {
     try {
-        const { magnetUri } = payload;
-        const result = await torrentService.startStream(magnetUri);
+        console.log('[Main] Received torrent:start-stream request');
+        const { magnetUri, season, episode, bufferStrategy, fileIndex, audioTrackIndex } = payload;
+        console.log(`[Main] Magnet: ${magnetUri.substring(0, 50)}...`);
+        const result = await torrentService.startStream(magnetUri, season, episode, bufferStrategy, fileIndex, audioTrackIndex);
+        console.log('[Main] Torrent service returned result:', JSON.stringify({ url: result?.url?.substring(0, 60), filename: result?.filename }));
 
+        if (!result || result.success === false) {
+            return { success: false, error: result?.error || 'Torrent stream resolved but produced no playable URL.' };
+        }
+
+        console.log('[Main] Stream initialized successfully');
+        
         // Start status updates
-        if (this.statusInterval) clearInterval(this.statusInterval);
-        this.statusInterval = setInterval(() => {
+        if (torrentStatusInterval) clearInterval(torrentStatusInterval);
+        torrentStatusInterval = setInterval(() => {
             const stats = torrentService.getStats();
             if (stats && mainWindow) {
                 mainWindow.webContents.send('torrent:status', stats);
@@ -985,16 +1102,33 @@ ipcMain.handle('torrent:start-stream', async (event, payload) => {
     }
 });
 
+// Torrent: Get Metadata
+ipcMain.handle('torrent:get-metadata', async (event, magnetUri) => {
+    try {
+        const metadata = await torrentService.getTorrentMetadata(magnetUri);
+        return { success: true, metadata };
+    } catch (error) {
+        console.error('IPC torrent:get-metadata error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // Torrent: Stop
 ipcMain.handle('torrent:stop-stream', async () => {
-    if (this.statusInterval) clearInterval(this.statusInterval);
+    if (torrentStatusInterval) {
+        clearInterval(torrentStatusInterval);
+        torrentStatusInterval = null;
+    }
     await torrentService.stopStream();
     return { success: true };
 });
 
 // Just in case: Clean up interval on window close
 ipcMain.on('stop-status-updates', () => {
-    if (this.statusInterval) clearInterval(this.statusInterval);
+    if (torrentStatusInterval) {
+        clearInterval(torrentStatusInterval);
+        torrentStatusInterval = null;
+    }
 });
 // --- Auto Updater Logic ---
 async function initAutoUpdater() {

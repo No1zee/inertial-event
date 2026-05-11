@@ -62,13 +62,13 @@ export function AtmosphericAsyncRail({ config, type = 'global', salt }: Atmosphe
               className={cn(
                 'glass-card border-white/5 rounded-2xl relative overflow-hidden shrink-0',
                 config.aspectRatio === '21:9' || config.aspectRatio === 'ultrawide'
-                  ? 'w-[350px] md:w-[420px] aspect-[21/9]'
+                  ? 'w-[350px] md:w-[420px] aspect-21/9'
                   : config.aspectRatio === '16:9' || config.aspectRatio === 'landscape'
                     ? 'w-[280px] md:w-[350px] aspect-video'
-                    : 'w-[160px] md:w-[200px] aspect-[2/3]'
+                    : 'w-[160px] md:w-[200px] aspect-2/3'
               )}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
             </div>
           ))}
         </div>
@@ -102,7 +102,7 @@ export function AtmosphericAsyncRail({ config, type = 'global', salt }: Atmosphe
   if (!data || data.length === 0) {
     return (
       <div className="px-10 lg:px-24 py-16 group relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-900/5 via-transparent to-zinc-900/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="absolute inset-0 bg-linear-to-r from-zinc-900/5 via-transparent to-zinc-900/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
         <div className="flex flex-col gap-6 relative z-10">
           <div className="flex items-center gap-4">
             <div className="h-[1px] w-8 bg-zinc-800 group-hover:w-12 transition-all duration-500" />
@@ -132,3 +132,4 @@ export function AtmosphericAsyncRail({ config, type = 'global', salt }: Atmosphe
     />
   );
 }
+

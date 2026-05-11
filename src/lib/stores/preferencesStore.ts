@@ -11,7 +11,7 @@ import { SOURCES } from '@/lib/config/sources';
 import { createIDBStorage } from '@/lib/utils/storage';
 
 // Types
-export type Theme = 'Nova' | 'ocean' | 'cyberpunk' | 'oled';
+export type Theme = 'Nova' | 'ocean' | 'cyberpunk' | 'oled' | 'heritage' | 'aurora' | 'titanium' | 'ghost';
 export type Language = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ko' | 'zh';
 export type Quality = 'auto' | '4k' | '1080p' | '720p' | '480p' | '360p';
 export type SortOrder = 'recent' | 'az' | 'za' | 'rating' | 'year';
@@ -29,7 +29,10 @@ export interface PlayerPreferences {
   skipCredits: boolean;
   pipVisualBoost: boolean;
   visualBoost: boolean;
+  atmosphereIntensity: number;
   stillWatchingEnabled: boolean;
+  diagnosticsEnabled: boolean;
+  bufferStrategy: 'standard' | 'aggressive' | 'minimal';
 }
 
 export interface SubtitlePreferences {
@@ -72,6 +75,7 @@ export interface ContentPreferences {
   librarySort: SortOrder;
   continueWatchingEnabled: boolean;
   recommendationsEnabled: boolean;
+  disabledProviders: string[];
 }
 
 export interface PrivacyPreferences {
@@ -122,7 +126,10 @@ interface UserPreferencesStore
   setSkipCredits: (enabled: boolean) => void;
   setPipVisualBoost: (enabled: boolean) => void;
   setVisualBoost: (enabled: boolean) => void;
+  setAtmosphereIntensity: (intensity: number) => void;
   setStillWatchingEnabled: (enabled: boolean) => void;
+  setDiagnosticsEnabled: (enabled: boolean) => void;
+  setBufferStrategy: (strategy: 'standard' | 'aggressive' | 'minimal') => void;
 
   // Actions - UI Preferences
   setTheme: (theme: Theme) => void;
@@ -156,6 +163,8 @@ interface UserPreferencesStore
   setLibrarySort: (sort: SortOrder) => void;
   setContinueWatchingEnabled: (enabled: boolean) => void;
   setRecommendationsEnabled: (enabled: boolean) => void;
+  setDisabledProviders: (providers: string[]) => void;
+  toggleProvider: (provider: string) => void;
 
   // Actions - Privacy Preferences
   setWatchHistoryEnabled: (enabled: boolean) => void;
@@ -209,7 +218,10 @@ const defaultPlayerPreferences: PlayerPreferences = {
   skipCredits: false,
   pipVisualBoost: true,
   visualBoost: false,
+  atmosphereIntensity: 0.6,
   stillWatchingEnabled: true,
+  diagnosticsEnabled: false,
+  bufferStrategy: 'standard',
 };
 
 const defaultUIPreferences: UIPreferences = {
@@ -244,6 +256,7 @@ const defaultContentPreferences: ContentPreferences = {
   librarySort: 'recent',
   continueWatchingEnabled: true,
   recommendationsEnabled: true,
+  disabledProviders: [],
 };
 
 const defaultPrivacyPreferences: PrivacyPreferences = {
@@ -306,7 +319,10 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
         setSkipCredits: skipCredits => set({ skipCredits }),
         setPipVisualBoost: pipVisualBoost => set({ pipVisualBoost }),
         setVisualBoost: visualBoost => set({ visualBoost }),
+        setAtmosphereIntensity: atmosphereIntensity => set({ atmosphereIntensity }),
         setStillWatchingEnabled: stillWatchingEnabled => set({ stillWatchingEnabled }),
+        setDiagnosticsEnabled: diagnosticsEnabled => set({ diagnosticsEnabled }),
+        setBufferStrategy: bufferStrategy => set({ bufferStrategy }),
 
         // UI Preferences Actions
         setTheme: theme => {
@@ -315,7 +331,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           // Apply theme to DOM immediately
           if (typeof document !== 'undefined') {
             const root = document.documentElement;
-            root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+            root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled', 'theme-heritage', 'theme-aurora', 'theme-titanium', 'theme-ghost');
             if (theme !== 'Nova') {
               root.classList.add(`theme-${theme}`);
             }
@@ -390,6 +406,13 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
         setLibrarySort: librarySort => set({ librarySort }),
         setContinueWatchingEnabled: continueWatchingEnabled => set({ continueWatchingEnabled }),
         setRecommendationsEnabled: recommendationsEnabled => set({ recommendationsEnabled }),
+        setDisabledProviders: disabledProviders => set({ disabledProviders }),
+        toggleProvider: provider =>
+          set(state => ({
+            disabledProviders: state.disabledProviders.includes(provider)
+              ? state.disabledProviders.filter(p => p !== provider)
+              : [...state.disabledProviders, provider],
+          })),
 
         // Privacy Preferences Actions
         setWatchHistoryEnabled: watchHistoryEnabled => set({ watchHistoryEnabled }),
@@ -436,7 +459,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           // Apply theme to DOM
           if (typeof document !== 'undefined') {
             const root = document.documentElement;
-            root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+            root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled', 'theme-heritage', 'theme-aurora', 'theme-titanium', 'theme-ghost');
           }
         },
 
@@ -447,7 +470,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               // Apply theme to DOM
               if (typeof document !== 'undefined') {
                 const root = document.documentElement;
-                root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+                root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled', 'theme-heritage', 'theme-aurora', 'theme-titanium', 'theme-ghost');
               }
               break;
             case 'defaultQuality':
@@ -485,6 +508,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               skipCredits: state.skipCredits,
               pipVisualBoost: state.pipVisualBoost,
               visualBoost: state.visualBoost,
+              atmosphereIntensity: state.atmosphereIntensity,
               stillWatchingEnabled: state.stillWatchingEnabled,
             },
             ui: {
@@ -508,6 +532,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               librarySort: state.librarySort,
               continueWatchingEnabled: state.continueWatchingEnabled,
               recommendationsEnabled: state.recommendationsEnabled,
+              disabledProviders: state.disabledProviders,
             },
             privacy: {
               watchHistoryEnabled: state.watchHistoryEnabled,
@@ -555,7 +580,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
               // Apply theme to DOM
               if (preferences.ui.theme && typeof document !== 'undefined') {
                 const root = document.documentElement;
-                root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled');
+                root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled', 'theme-heritage', 'theme-aurora', 'theme-titanium', 'theme-ghost');
                 if (preferences.ui.theme !== 'Nova') {
                   root.classList.add(`theme-${preferences.ui.theme}`);
                 }
@@ -587,7 +612,10 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           skipCredits: state.skipCredits,
           pipVisualBoost: state.pipVisualBoost,
           visualBoost: state.visualBoost,
+          atmosphereIntensity: state.atmosphereIntensity,
           stillWatchingEnabled: state.stillWatchingEnabled,
+          diagnosticsEnabled: state.diagnosticsEnabled,
+          bufferStrategy: state.bufferStrategy,
 
           theme: state.theme,
           language: state.language,
@@ -611,6 +639,7 @@ export const usePreferencesStore = createWithEqualityFn<UserPreferencesStore>()(
           librarySort: state.librarySort,
           continueWatchingEnabled: state.continueWatchingEnabled,
           recommendationsEnabled: state.recommendationsEnabled,
+          disabledProviders: state.disabledProviders,
 
           watchHistoryEnabled: state.watchHistoryEnabled,
           analyticsEnabled: state.analyticsEnabled,
@@ -657,6 +686,7 @@ export const usePreferencesActions = () =>
       setSkipIntro: state.setSkipIntro,
       setSkipCredits: state.setSkipCredits,
       setVisualBoost: state.setVisualBoost,
+      setAtmosphereIntensity: state.setAtmosphereIntensity,
       setStillWatchingEnabled: state.setStillWatchingEnabled,
       setTheme: state.setTheme,
       setLanguage: state.setLanguage,
@@ -684,6 +714,8 @@ export const usePreferencesActions = () =>
       setLibrarySort: state.setLibrarySort,
       setContinueWatchingEnabled: state.setContinueWatchingEnabled,
       setRecommendationsEnabled: state.setRecommendationsEnabled,
+      setDisabledProviders: state.setDisabledProviders,
+      toggleProvider: state.toggleProvider,
       setWatchHistoryEnabled: state.setWatchHistoryEnabled,
       setAnalyticsEnabled: state.setAnalyticsEnabled,
       setCrashReportsEnabled: state.setCrashReportsEnabled,
@@ -708,6 +740,9 @@ export const usePreferencesActions = () =>
       setOledOptimization: state.setOledOptimization,
       setAdaptiveColorSpace: state.setAdaptiveColorSpace,
       setHasCompletedOnboarding: state.setHasCompletedOnboarding,
+      setDiagnosticsEnabled: state.setDiagnosticsEnabled,
+      setPipVisualBoost: state.setPipVisualBoost,
+      setBufferStrategy: state.setBufferStrategy,
     }),
     shallow
   );
@@ -728,7 +763,10 @@ export const usePlayerPreferences = () =>
       skipCredits: state.skipCredits,
       pipVisualBoost: state.pipVisualBoost,
       visualBoost: state.visualBoost,
+      atmosphereIntensity: state.atmosphereIntensity,
       stillWatchingEnabled: state.stillWatchingEnabled,
+      diagnosticsEnabled: state.diagnosticsEnabled,
+      bufferStrategy: state.bufferStrategy,
     }),
     shallow
   );
@@ -767,6 +805,7 @@ export const useContentPreferences = () =>
       librarySort: state.librarySort,
       continueWatchingEnabled: state.continueWatchingEnabled,
       recommendationsEnabled: state.recommendationsEnabled,
+      disabledProviders: state.disabledProviders,
     }),
     shallow
   );

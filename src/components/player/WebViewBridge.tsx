@@ -44,6 +44,8 @@ export function WebViewBridge({
   const initialProgressRef = useRef(initialProgress);
   const pipBoostRef = useRef(pipBoost);
   const transitionTriggeredRef = useRef(false);
+  const [isSourceReady, setIsSourceReady] = useState(!src.startsWith('http://127.0.0.1:'));
+  const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     initialProgressRef.current = initialProgress;
@@ -60,7 +62,50 @@ export function WebViewBridge({
   useEffect(() => {
     transitionTriggeredRef.current = false;
     setIsPlaybackActive(false);
-  }, [tmdbId, season, episode]);
+    setIsSourceReady(!src.startsWith('http://127.0.0.1:'));
+  }, [tmdbId, season, episode, src]);
+
+  // P0: Local Stream Verification Bridge
+  // Prevents the webview from loading a 404 page if the internal torrent server
+  // is still binding or initializing the transcode pipeline.
+  useEffect(() => {
+    if (src.startsWith('http://127.0.0.1:')) {
+      console.log(`[VidlinkPlayer] Local stream detected: ${src}. Verifying server health...`);
+      setIsSourceReady(false);
+      let attempts = 0;
+      const maxAttempts = 40; // 20 seconds total
+      
+      const poll = async () => {
+        try {
+          // Use HEAD request to check availability without downloading data
+          const response = await fetch(src, { 
+            method: 'HEAD',
+            mode: 'no-cors' // We just need to know if the port is open
+          });
+          
+          console.log(`[VidlinkPlayer] Server Health Check: Reachable`);
+          setIsSourceReady(true);
+        } catch (e) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            pollTimeoutRef.current = setTimeout(poll, 500);
+          } else {
+            console.error(`[VidlinkPlayer] Server Health Check Failed after ${attempts} attempts.`);
+            setInitFailed(true);
+            setInitMessage('STREAM ENGINE TIMEOUT');
+          }
+        }
+      };
+      
+      poll();
+    } else {
+      setIsSourceReady(true);
+    }
+    
+    return () => {
+      if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
+    };
+  }, [src]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.electron?.ipcRenderer) {
@@ -320,13 +365,13 @@ export function WebViewBridge({
       )}
 
       {typeof window !== 'undefined' && window.electron ? (
-        !preloadPath ? (
+        (!preloadPath || !isSourceReady) ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md z-20 transition-all duration-1000">
             <div className="relative">
-              <Loader2 className="w-12 h-12 text-primary animate-spin mb-8 opacity-40" />
-              <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse rounded-full" />
+              <Loader2 className={`w-12 h-12 ${initFailed ? 'text-red-500' : 'text-primary'} animate-spin mb-8 opacity-40`} />
+              <div className={`absolute inset-0 blur-xl ${initFailed ? 'bg-red-500/20' : 'bg-primary/20'} animate-pulse rounded-full`} />
             </div>
-            <PretextHeadline text="PREPARING LINK BRIDGE" className="text-[10px] font-black tracking-[0.6em] text-white/40 uppercase" />
+            <PretextHeadline text={initFailed ? initMessage : "PREPARING LINK BRIDGE"} className={`text-[10px] font-black tracking-[0.6em] ${initFailed ? 'text-red-500/60' : 'text-white/40'} uppercase`} />
           </div>
         ) : (
           <webview
@@ -336,11 +381,13 @@ export function WebViewBridge({
             preload={preloadPath || undefined}
             className="flex-1 w-full h-full"
             allowFullScreen
-            allowpopups
-            allowRunningInsecureContent
-            webpreferences="contextIsolation=no, nodeIntegration=no, webSecurity=no, nodeIntegrationInSubFrames=true, autoplayPolicy=no-user-gesture-required"
-            partition="persist:novastream"
-            useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            {...{
+              allowpopups: "true",
+              allowrunninginsecurecontent: "true",
+              webpreferences: "contextIsolation=no, nodeIntegration=no, webSecurity=no, nodeIntegrationInSubFrames=true, autoplayPolicy=no-user-gesture-required",
+              partition: "persist:novastream",
+              useragent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+            } as any}
             data-testid="video-player"
           />
         )

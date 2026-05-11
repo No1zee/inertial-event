@@ -64,8 +64,8 @@ export function Hero({ items = [] }: HeroProps) {
           <div className="absolute inset-0">
             <ParallaxBackground src={getOptimizedImageUrl(currentItem.backdrop || currentItem.backdrop_path, 'original') || '/images/hero_placeholder.jpg'} />
             {/* Gradients for readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
-            <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/40 to-transparent opacity-100" />
+            <div className="absolute inset-0 bg-linear-to-t from-background via-background/40 to-transparent opacity-100 transition-colors duration-1000" />
+            <div className="absolute inset-0 bg-linear-to-r from-background via-background/40 to-transparent opacity-100 transition-colors duration-1000" />
           </div>
         </motion.div>
       </AnimatePresence>
@@ -109,7 +109,7 @@ export function Hero({ items = [] }: HeroProps) {
                 />
               </motion.div>
 
-              <div className="flex items-center gap-3 text-sm md:text-base font-medium text-zinc-300">
+              <div className="flex items-center gap-3 text-sm md:text-base font-medium text-muted-foreground">
                 <span className="flex items-center gap-1 text-green-400 font-bold">
                   <Star size={14} fill="currentColor" />
                   {Math.round((currentItem.rating || 0) * 10)}% Match
@@ -117,13 +117,13 @@ export function Hero({ items = [] }: HeroProps) {
                 <span>•</span>
                 <span>{currentItem.releaseDate?.substring(0, 4)}</span>
                 <span>•</span>
-                <span className="uppercase tracking-widest text-xs border border-zinc-600 px-2 py-0.5 rounded text-zinc-400 bg-black/40">
+                <span className="uppercase tracking-widest text-xs border border-border px-2 py-0.5 rounded text-muted-foreground bg-surface-elevated/40">
                   {currentItem?.type === 'tv' ? 'Series' : 'Movie'}
                 </span>
               </div>
 
               <motion.p
-                className="hidden sm:block text-zinc-100 text-base md:text-xl font-medium leading-relaxed max-w-2xl drop-shadow-lg line-clamp-3 text-shadow-sm opacity-90"
+                className="hidden sm:block text-foreground text-base md:text-xl font-medium leading-relaxed max-w-2xl drop-shadow-lg line-clamp-3 text-shadow-sm opacity-90"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
@@ -158,7 +158,8 @@ export function Hero({ items = [] }: HeroProps) {
                 >
                   <Button
                     size="lg"
-                    className="pl-6 sm:pl-10 pr-8 sm:pr-12 h-12 sm:h-14 md:h-16 text-sm sm:text-lg md:text-xl font-bold bg-white text-black hover:bg-zinc-200 transition-all rounded-xl shadow-[0_0_50px_-10px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-95 duration-300"
+                    aria-label={`Play ${currentItem.title}`}
+                    className="pl-6 sm:pl-10 pr-8 sm:pr-12 h-12 sm:h-14 md:h-16 text-sm sm:text-lg md:text-xl font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all rounded-xl shadow-[0_0_50px_-10px_rgba(var(--primary-rgb),0.4)] hover:scale-105 active:scale-95 duration-300"
                   >
                     <Play size={20} fill="currentColor" className="sm:mr-3" />
                     Watch Now
@@ -168,7 +169,8 @@ export function Hero({ items = [] }: HeroProps) {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 text-sm sm:text-lg md:text-xl font-medium bg-zinc-800/20 backdrop-blur-xl border border-white/10 hover:bg-white/10 hover:border-white/30 text-white rounded-xl hover:scale-105 transition-all duration-300 shadow-2xl"
+                  aria-label={`View details for ${currentItem.title}`}
+                  className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 text-sm sm:text-lg md:text-xl font-medium bg-surface-elevated/20 backdrop-blur-xl border border-border hover:bg-surface-elevated/40 hover:border-primary/30 text-foreground rounded-xl hover:scale-105 transition-all duration-300 shadow-2xl"
                 >
                   <Info size={20} className="sm:mr-3" />
                   Details
@@ -208,7 +210,8 @@ export function Hero({ items = [] }: HeroProps) {
 function HeroSkeleton() {
   return (
     <section className="relative h-[70vh] w-full rounded-2xl overflow-hidden mx-auto bg-zinc-900 animate-pulse">
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
+      <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent z-10" />
     </section>
   );
 }
+

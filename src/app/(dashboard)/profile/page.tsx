@@ -56,7 +56,7 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-4xl mx-auto space-y-8"
       >
-        <div className="relative h-48 md:h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-red-600 to-red-900 shadow-2xl">
+        <div className="relative h-48 md:h-64 rounded-3xl overflow-hidden bg-linear-to-br from-red-600 to-red-900 shadow-2xl">
           <div className="absolute inset-0 bg-black/20" />
           <div className="absolute bottom-8 left-8 flex items-end gap-6 w-full pr-16">
             <div className="relative group">
@@ -230,3 +230,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 
 interface AmbientSyncProps {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
   active: boolean;
 }
 

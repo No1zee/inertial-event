@@ -17,7 +17,7 @@ const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 export function getOptimizedImageUrl(path: string | null | undefined, size: string = 'w500'): string {
   if (!path || path === '') return '/images/placeholder.png';
 
-  // Normalize protocol-relative or malformed absolute paths
+  // Normalize path and ensure it starts with / for local check, but keep original for external URLs
   let workingPath = path;
   if (workingPath.startsWith('//')) {
     workingPath = 'https:' + workingPath;
@@ -25,24 +25,24 @@ export function getOptimizedImageUrl(path: string | null | undefined, size: stri
     workingPath = workingPath.substring(1);
   }
 
+  const normalizedPath = workingPath.startsWith('/') ? workingPath : `/${workingPath}`;
+  const isLocalAsset = 
+    normalizedPath.startsWith('/images/') ||
+    normalizedPath.startsWith('/providers/') ||
+    normalizedPath.startsWith('/brand/') ||
+    normalizedPath.startsWith('/avatars/') ||
+    normalizedPath.startsWith('/icons/') ||
+    normalizedPath.includes('placeholder');
+
+  if (isLocalAsset) {
+    return normalizedPath;
+  }
+
   // If it's already a wsrv.nl URL, return as-is
   if (workingPath.includes('wsrv.nl')) {
     return workingPath;
   }
 
-  // Handle local/internal paths or placeholders
-  if (workingPath.startsWith('/') && !workingPath.startsWith('/t/p/')) {
-    if (
-      workingPath.startsWith('/images/') ||
-      workingPath.startsWith('/providers/') ||
-      workingPath.startsWith('/brand/') ||
-      workingPath.startsWith('/avatars/') ||
-      workingPath.startsWith('/icons/') ||
-      workingPath.includes('placeholder')
-    ) {
-      return workingPath;
-    }
-  }
 
   // Handle full URLs
   if (workingPath.startsWith('http')) {

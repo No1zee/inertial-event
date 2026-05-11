@@ -124,7 +124,7 @@ export default function TVShowsPage() {
                 <BrandBlock
                   text="Your Next Obsession"
                   subtext="Epic series. Unforgettable characters. Endless episodes."
-                  gradient="bg-gradient-to-r from-blue-950/40 via-indigo-950/40 to-purple-950/40"
+                  gradient="bg-linear-to-r from-blue-950/40 via-indigo-950/40 to-purple-950/40"
                   icon={<Tv2 className="w-16 h-16 text-blue-500" />}
                   bgImage="https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?auto=format&fit=crop&q=60&w=1200"
                 />
@@ -135,7 +135,7 @@ export default function TVShowsPage() {
                 <BrandBlock
                   text="Binge. Repeat. Discover."
                   subtext="From sitcoms to epics, your series journey starts here"
-                  gradient="bg-gradient-to-r from-cyan-950/40 via-teal-950/40 to-emerald-950/40"
+                  gradient="bg-linear-to-r from-cyan-950/40 via-teal-950/40 to-emerald-950/40"
                   icon={<Zap className="w-16 h-16 text-cyan-500" />}
                   bgImage="https://images.unsplash.com/photo-1461151351179-8143666f09ad?auto=format&fit=crop&q=60&w=1200"
                 />
@@ -159,3 +159,4 @@ export default function TVShowsPage() {
     </div>
   );
 }
+

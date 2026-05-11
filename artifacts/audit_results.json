@@ -1,0 +1,24 @@
+{
+  "pages": [
+    {
+      "name": "Home",
+      "route": "/",
+      "metrics": {
+        "loadTime": 16627.30000001192,
+        "domReady": 7392
+      },
+      "screenshot": "C:\\Projects\\nova_v2\\artifacts\\audit_home.png"
+    },
+    {
+      "name": "Shorts",
+      "route": "/shorts",
+      "metrics": {
+        "loadTime": 0,
+        "domReady": 711.5
+      },
+      "screenshot": "C:\\Projects\\nova_v2\\artifacts\\audit_shorts.png"
+    }
+  ],
+  "errors": [],
+  "performance": {}
+}

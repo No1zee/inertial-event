@@ -25,7 +25,7 @@ export const ContentList: React.FC<ContentListProps> = ({ title, items, onItemCl
             className="group relative cursor-pointer transition-transform duration-200 hover:scale-105"
             onClick={() => onItemClick(item)}
           >
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-neutral-800">
+            <div className="aspect-2/3 w-full overflow-hidden rounded-lg bg-neutral-800">
               <div className="relative w-full h-full">
                 <OptimizedImage
                   src={item.poster}
@@ -48,3 +48,4 @@ export const ContentList: React.FC<ContentListProps> = ({ title, items, onItemCl
 };
 
 export default ContentList;
+

@@ -1,5 +1,7 @@
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
+const ffprobePath = require('@ffprobe-installer/ffprobe').path;
+ffmpeg.setFfprobePath(ffprobePath);
 
 class VideoMetadataService {
   constructor() {
@@ -16,19 +18,34 @@ class VideoMetadataService {
       ffmpeg.ffprobe(filePath, (err, metadata) => {
         if (err) {
           console.warn(`[VideoMetadata] Error reading metadata for ${filePath}:`, err.message);
-          // Return basic info if probe fails
           resolve({
             duration: 0,
-            format: 'unknown'
+            format: 'unknown',
+            codec: 'unknown',
+            width: 0,
+            height: 0,
+            audioTracks: []
           });
           return;
         }
 
         const format = metadata.format || {};
+        const videoStream = metadata.streams.find(s => s.codec_type === 'video') || {};
+        const audioStreams = metadata.streams.filter(s => s.codec_type === 'audio');
+        
         resolve({
             duration: format.duration || 0,
             format: format.format_name || 'unknown',
-            size: format.size || 0
+            size: format.size || 0,
+            codec: videoStream.codec_name || 'unknown',
+            width: videoStream.width || 0,
+            height: videoStream.height || 0,
+            audioTracks: audioStreams.map((s, i) => ({
+                index: i,
+                language: s.tags?.language || 'und',
+                codec: s.codec_name,
+                channels: s.channels
+            }))
         });
       });
     });

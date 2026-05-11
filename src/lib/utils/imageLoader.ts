@@ -7,7 +7,7 @@
 export default function imageLoader({ src, width, quality }: { src: string; width: number; quality?: number }) {
   if (!src) return '';
 
-  // Normalize protocol-relative or malformed absolute paths
+  // Normalize path and ensure it starts with / for local check, but keep original for external URLs
   let workingPath = src;
   if (workingPath.startsWith('//')) {
     workingPath = 'https:' + workingPath;
@@ -15,19 +15,18 @@ export default function imageLoader({ src, width, quality }: { src: string; widt
     workingPath = workingPath.substring(1);
   }
 
-  // Handle local assets (must be served as-is in Electron/Static)
-  if (
-    workingPath.startsWith('/') && 
-    !workingPath.startsWith('/t/p/') && 
-    (workingPath.startsWith('/_next/') || 
-     workingPath.startsWith('/images/') || 
-     workingPath.startsWith('/icons/') || 
-     workingPath.startsWith('/providers/') || 
-     workingPath.startsWith('/brand/') ||
-     workingPath.startsWith('/avatars/') ||
-     workingPath.includes('placeholder'))
-  ) {
-    return workingPath;
+  const normalizedPath = workingPath.startsWith('/') ? workingPath : `/${workingPath}`;
+  const isLocalAsset = 
+    normalizedPath.startsWith('/_next/') || 
+    normalizedPath.startsWith('/images/') || 
+    normalizedPath.startsWith('/icons/') || 
+    normalizedPath.startsWith('/providers/') || 
+    normalizedPath.startsWith('/brand/') ||
+    normalizedPath.startsWith('/avatars/') ||
+    normalizedPath.includes('placeholder');
+
+  if (isLocalAsset) {
+    return normalizedPath;
   }
 
   // If it's already a full URL, proxy it if it's not already proxied

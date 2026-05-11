@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Zap, Monitor, Sliders, X, Gauge, Cpu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PretextHeadline } from '@/components/Common/PretextHeadline';
-import { useUIStore, useLayoutState, useLayoutActions } from '@/lib/stores/uiStore';
+import { useUIStore } from '@/lib/stores/uiStore';
+import { useUserPreferencesStore, usePreferencesActions } from '@/lib/stores/preferencesStore';
 import { useActiveProfile } from '@/lib/stores/localDataStore';
 import { usePlayerPlayback, useCurrentMedia } from '@/lib/stores/playerStore';
 
@@ -14,8 +15,8 @@ export const StreamHealthHUD: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const activeProfile = useActiveProfile();
   
-  const { atmosphereIntensity, visualBoost } = useLayoutState();
-  const { setAtmosphereIntensity, setVisualBoost } = useLayoutActions();
+  const { atmosphereIntensity, visualBoost } = useUserPreferencesStore();
+  const { setAtmosphereIntensity, setVisualBoost } = usePreferencesActions();
   const { currentTime, duration, isPlaying } = usePlayerPlayback();
   const currentMedia = useCurrentMedia();
 

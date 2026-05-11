@@ -56,8 +56,6 @@ export interface LayoutState {
   isRailExpanded: boolean;
   isSearchOpen: boolean;
   isSettingsOpen: boolean;
-  atmosphereIntensity: number;
-  visualBoost: boolean;
   playerBarDismissed: boolean;
   hasInitialized: boolean;
 }
@@ -121,8 +119,6 @@ interface UIStore extends ModalState, NavigationState, LayoutState, Notification
   clearChannelState: (channelId: string) => void;
 
   // New Layout actions
-  setAtmosphereIntensity: (intensity: number) => void;
-  setVisualBoost: (boost: boolean) => void;
   setPlayerBarDismissed: (dismissed: boolean) => void;
   setHasInitialized: (initialized: boolean) => void;
 
@@ -155,8 +151,6 @@ const defaultLayoutState: LayoutState = {
   isRailExpanded: false,
   isSearchOpen: false,
   isSettingsOpen: false,
-  atmosphereIntensity: 0.4,
-  visualBoost: false,
   playerBarDismissed: false,
   hasInitialized: false,
 };
@@ -342,8 +336,6 @@ export const useUIStore = createWithEqualityFn<UIStore>()(
             };
           }),
 
-        setAtmosphereIntensity: atmosphereIntensity => set({ atmosphereIntensity }),
-        setVisualBoost: visualBoost => set({ visualBoost }),
         setPlayerBarDismissed: playerBarDismissed => set({ playerBarDismissed }),
         setHasInitialized: hasInitialized => set({ hasInitialized }),
 
@@ -406,8 +398,6 @@ export const useLayoutState = () =>
       isRailExpanded: state.isRailExpanded,
       isSearchOpen: state.isSearchOpen,
       isSettingsOpen: state.isSettingsOpen,
-      atmosphereIntensity: state.atmosphereIntensity,
-      visualBoost: state.visualBoost,
       playerBarDismissed: state.playerBarDismissed,
       hasInitialized: state.hasInitialized,
     }),
@@ -422,8 +412,6 @@ export const useLayoutActions = () =>
       toggleSearch: state.toggleSearch,
       setSettingsOpen: state.setSettingsOpen,
       setIsRailExpanded: state.setIsRailExpanded,
-      setAtmosphereIntensity: state.setAtmosphereIntensity,
-      setVisualBoost: state.setVisualBoost,
       setPlayerBarDismissed: state.setPlayerBarDismissed,
       setHasInitialized: state.setHasInitialized,
     }),

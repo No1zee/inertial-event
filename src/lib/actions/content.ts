@@ -38,9 +38,15 @@ function transformToContent(item: TMDBItem, type?: string): Content {
     backdrop: item.backdrop_path
       ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
       : '/images/hero_placeholder.jpg',
+    poster_path: item.poster_path || null,
+    backdrop_path: item.backdrop_path || null,
     rating: item.vote_average || 0,
     releaseDate: item.release_date || item.first_air_date || '',
-    type: mediaType === 'movie' ? 'movie' : mediaType === 'tv' ? 'tv' : 'anime',
+    type: (() => {
+      const t = String(mediaType).toLowerCase();
+      if (t === 'movie' || t === 'tv' || t === 'anime' || t === 'series') return t;
+      return 'movie';
+    })(),
     genres: [],
     originCountry: item.origin_country || [],
     originalLanguage: item.original_language || 'en',
@@ -48,6 +54,7 @@ function transformToContent(item: TMDBItem, type?: string): Content {
     isAdult: false,
   };
 }
+
 
 export async function searchContentServer(query: string, page: number = 1): Promise<Content[]> {
   if (!query) return [];

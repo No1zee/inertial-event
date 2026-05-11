@@ -73,14 +73,15 @@ export function PlaybackHeader({
       {/* High-Sensitivity Trigger Zone (Top 15%) - Increased height for Electron */}
       <div
         className={cn(
-          'absolute inset-x-0 top-0 h-48 pointer-events-auto cursor-none group/trigger',
-          isElectron ? 'bg-white/[0.01]' : '' // Almost invisible but helps with event capturing
+          'absolute inset-x-0 top-0 h-48 pointer-events-auto group/trigger',
+          isElectron ? 'bg-white/[0.01]' : '',
+          !show ? 'cursor-none' : 'cursor-default'
         )}
       />
 
       <div
         className={cn(
-          'max-w-[1800px] mx-auto p-6 lg:p-10 flex items-start justify-between transition-all duration-500',
+          'relative z-10 max-w-[1800px] mx-auto p-6 lg:p-10 flex items-start justify-between transition-all duration-500',
           isElectron ? 'pt-14 lg:pt-16' : ''
         )}
       >
@@ -208,10 +209,11 @@ export function PlaybackHeader({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 -z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none h-48"
+            className="absolute inset-0 -z-10 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none h-48"
           />
         )}
       </AnimatePresence>
     </div>
   );
 }
+

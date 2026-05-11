@@ -37,7 +37,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, isFocused, onFoc
     <div
       ref={cardRef}
       tabIndex={0}
-      className={`flex-none w-64 aspect-[2/3] group cursor-pointer snap-start relative outline-none transition-transform duration-300 ${
+      className={`flex-none w-64 aspect-2/3 group cursor-pointer snap-start relative outline-none transition-transform duration-300 ${
         isFocused ? 'scale-110 z-10 ring-4 ring-red-500 shadow-2xl' : 'scale-100 hover:scale-105'
       }`}
       onClick={handleClick}
@@ -59,7 +59,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, isFocused, onFoc
 
         {/* Overlay Gradient */}
         <div
-          className={`absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent transition-opacity duration-300 ${
+          className={`absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent transition-opacity duration-300 ${
             isFocused ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         />
@@ -90,3 +90,4 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, isFocused, onFoc
 };
 
 export default ContentCard;
+

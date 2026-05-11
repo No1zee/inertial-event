@@ -72,7 +72,7 @@ export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) 
         <iframe
           title="Trailer"
           ref={videoRef}
-          src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=0&controls=0&loop=1&playlist=${trailerKey}&rel=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}`}
+          src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=0&controls=0&loop=1&playlist=${trailerKey}&rel=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com&widget_referrer=https://www.youtube.com`}
           className={cn(
             "w-full h-full object-cover transition-opacity duration-1000",
             isReady ? "opacity-100" : "opacity-0"
@@ -82,7 +82,7 @@ export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) 
         />
         
         {/* Cinematic Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent opacity-60" />
         <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
       </div>
 
@@ -103,3 +103,4 @@ export function AtmosphericPreview({ id, type, show }: AtmosphericPreviewProps) 
     </motion.div>
   );
 }
+

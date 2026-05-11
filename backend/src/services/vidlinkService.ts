@@ -35,6 +35,8 @@ class VidlinkService {
 
             // 0. Primary Extraction: Attempt Direct M3U8 (Ad-Free)
             const subtitles: any[] = [];
+            /* 
+            // Disabling Vidlink Direct Extraction as requested - Resolver is unreliable for native playback
             try {
                 console.log(`[Vidlink] Attempting Direct HLS Extraction for ${type}/${numericId} (Pref: ${audioPreference})`);
                 const preferDub = audioPreference === 'dub';
@@ -67,6 +69,7 @@ class VidlinkService {
             } catch (error) {
                 console.warn(`[Vidlink] Direct extraction failed:`, error);
             }
+            */
 
             // Vidlink Customization Props
             const params = new URLSearchParams({

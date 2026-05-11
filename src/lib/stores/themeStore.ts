@@ -1,7 +1,7 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'Nova' | 'ocean' | 'cyberpunk' | 'oled' | 'heritage';
+export type Theme = 'Nova' | 'ocean' | 'cyberpunk' | 'oled' | 'heritage' | 'aurora' | 'titanium' | 'ghost';
 
 interface ThemeState {
   theme: Theme;
@@ -17,11 +17,9 @@ export const useThemeStore = createWithEqualityFn<ThemeState>()(
         if (typeof document !== 'undefined') {
           const root = document.documentElement;
           // Remove all possible theme classes
-          root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled', 'theme-heritage');
-          // Add new theme class (except for default Nova)
-          if (theme !== 'Nova') {
-            root.classList.add(`theme-${theme}`);
-          }
+          root.classList.remove('theme-Nova', 'theme-ocean', 'theme-cyberpunk', 'theme-oled', 'theme-heritage', 'theme-aurora', 'theme-titanium', 'theme-ghost');
+          // Add new theme class
+          root.classList.add(`theme-${theme}`);
         }
       },
     }),
@@ -42,9 +40,12 @@ export const initializeTheme = () => {
     const storage = localStorage.getItem('NovaStream-theme');
     if (storage) {
       const { state } = JSON.parse(storage);
-      if (state && state.theme && state.theme !== 'Nova') {
+      if (state && state.theme) {
         document.documentElement.classList.add(`theme-${state.theme}`);
       }
+    } else {
+      // Default to Nova
+      document.documentElement.classList.add('theme-Nova');
     }
   } catch (e) {
     console.warn('[ThemeStore] Failed to initialize theme:', e);

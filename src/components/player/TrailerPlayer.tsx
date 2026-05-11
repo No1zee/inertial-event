@@ -38,9 +38,9 @@ export function TrailerPlayer({ trailerKey, title, isOpen, onClose }: TrailerPla
       try {
         // Send YouTube Player API commands
         const commands = [
-          { event: 'command', func: 'unMute' },
+          { event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] },
           { event: 'command', func: 'setVolume', args: [100] },
-          { event: 'command', func: 'playVideo' }
+          { event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo', args: [] }
         ];
 
         commands.forEach(cmd => {
@@ -91,9 +91,9 @@ export function TrailerPlayer({ trailerKey, title, isOpen, onClose }: TrailerPla
           <iframe
             ref={iframeRef}
             title={`Trailer: ${title}`}
-            src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&controls=0&modestbranding=1&rel=0&showinfo=0&mute=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+            src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&controls=0&modestbranding=1&rel=0&showinfo=0&mute=0&enablejsapi=1&origin=https://www.youtube.com&widget_referrer=https://www.youtube.com`}
             className={cn(
-              "w-full h-full object-cover transition-opacity duration-1000",
+              "w-full h-full object-cover transition-opacity duration-1000 pointer-events-none",
               isReady ? "opacity-100" : "opacity-0"
             )}
             onLoad={() => setIsReady(true)}
@@ -102,7 +102,7 @@ export function TrailerPlayer({ trailerKey, title, isOpen, onClose }: TrailerPla
           />
 
           {/* Institutional Control Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
           {/* Top Bar */}
           <div className="absolute top-0 left-0 right-0 p-8 flex items-center justify-between z-20 pointer-events-auto">
@@ -140,7 +140,8 @@ export function TrailerPlayer({ trailerKey, title, isOpen, onClose }: TrailerPla
                   setIsPlaying(!isPlaying);
                   iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ 
                     event: 'command', 
-                    func: isPlaying ? 'pauseVideo' : 'playVideo' 
+                    func: isPlaying ? 'pauseVideo' : 'playVideo',
+                    args: []
                   }), '*');
                 }}
                 title={isPlaying ? "Pause" : "Play"}
@@ -156,7 +157,8 @@ export function TrailerPlayer({ trailerKey, title, isOpen, onClose }: TrailerPla
                   setIsMuted(nextMute);
                   iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ 
                     event: 'command', 
-                    func: nextMute ? 'mute' : 'unMute' 
+                    func: nextMute ? 'mute' : 'unMute',
+                    args: []
                   }), '*');
                 }}
                 title={isMuted ? "Unmute" : "Mute"}
@@ -198,4 +200,5 @@ export function TrailerPlayer({ trailerKey, title, isOpen, onClose }: TrailerPla
     </AnimatePresence>
   );
 }
+
 

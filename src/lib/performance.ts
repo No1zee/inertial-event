@@ -252,7 +252,7 @@ export const measureSync = <T>(name: string, fn: () => T, metadata?: Record<stri
 
 // React Hook for performance monitoring
 export const usePerformanceMonitor = () => {
-  const startTime = React.useRef<number>();
+  const startTime = React.useRef<number | undefined>(undefined);
 
   const startMeasurement = React.useCallback((name: string) => {
     startTime.current = performance.now();

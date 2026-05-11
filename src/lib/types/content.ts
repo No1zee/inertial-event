@@ -6,9 +6,10 @@ export interface Content {
   description?: string;
   overview?: string;
   poster: string | null;
-  backdrop?: string | null;
-  poster_path?: string;
-  backdrop_path?: string;
+  backdrop: string | null;
+  poster_path: string | null;
+  backdrop_path: string | null;
+
   posterUrl?: string; // Legacy/Store compatibility
   backdropUrl?: string; // Legacy/Store compatibility
   rating: number;

@@ -11,9 +11,7 @@ class TorrentService {
     
     // YTS Mirror List (Sequential fallback for DNS/ISP blocks)
     private readonly YTS_MIRRORS = [
-        'https://yts.mx',
         'https://yts.rs',
-        'https://yts.pm',
         'https://yts.lt',
         'https://yify-movies.net'
     ];
@@ -157,28 +155,35 @@ class TorrentService {
                 this.log(`Torrentio streams raw: ${streams.length}`);
 
                 const torrentioSources = streams.map((stream: any) => {
-                    const qualityMatch = stream.title.match(/4k|2160p|1080p|720p|480p/i);
-                    const quality = qualityMatch ? qualityMatch[0].toLowerCase() : 'unknown';
-                    
-                    let magnetUri = '';
-                    if (stream.infoHash) {
-                        magnetUri = `magnet:?xt=urn:btih:${stream.infoHash}&dn=${encodeURIComponent(stream.title || 'video')}`;
-                    } else if (stream.url && stream.url.startsWith('magnet:')) {
-                        magnetUri = stream.url;
+                    try {
+                        if (!stream || !stream.title) return null;
+                        
+                        const qualityMatch = stream.title.match(/4k|2160p|1080p|720p|480p/i);
+                        const quality = qualityMatch ? qualityMatch[0].toLowerCase() : 'unknown';
+                        
+                        let magnetUri = '';
+                        if (stream.infoHash) {
+                            magnetUri = `magnet:?xt=urn:btih:${stream.infoHash}&dn=${encodeURIComponent(stream.title || 'video')}`;
+                        } else if (stream.url && stream.url.startsWith('magnet:')) {
+                            magnetUri = stream.url;
+                        }
+
+                        if (!magnetUri) return null;
+
+                        return {
+                            url: magnetUri,
+                            quality: quality,
+                            type: 'torrent',
+                            provider: 'Torrentio',
+                            title: stream.title, // Critical: Include title for tier classification
+                            // Metadata for UI
+                            size: stream.title.match(/[\d\.]+(GB|MB)/)?.[0] || '',
+                            seeders: stream.title.match(/👤 (\d+)/)?.[1] || '0' // Torrentio specific parsing
+                        };
+                    } catch (e) {
+                        console.error(`[TorrentService] Error parsing Torrentio stream:`, e);
+                        return null;
                     }
-
-                    if (!magnetUri) return null;
-
-                    return {
-                        url: magnetUri,
-                        quality: quality,
-                        type: 'torrent',
-                        provider: 'Torrentio',
-                        title: stream.title, // Critical: Include title for tier classification
-                        // Metadata for UI
-                        size: stream.title.match(/[\d\.]+(GB|MB)/)?.[0] || '',
-                        seeders: stream.title.match(/👤 (\d+)/)?.[1] || '0' // Torrentio specific parsing
-                    };
                 }).filter((s: any) => s !== null);
                 
                 this.log(`Torrentio streams parsed: ${torrentioSources.length}`);
@@ -265,8 +270,10 @@ class TorrentService {
             };
 
         } catch (error: any) {
-            console.error(`[TorrentService] Error fetching sources: ${error.message}`);
-            this.log(`CRITICAL ERROR: ${error.message}`);
+            console.error(`[TorrentService] CRITICAL: Failure in getSources`, {
+                message: error.message,
+                stack: error.stack
+            });
             return { sources: [], subtitles: [] };
         }
     }

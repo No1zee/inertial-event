@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, ChevronRight, Check, Type } from 'lucide-react';
+import { X, ChevronRight, Check, Type, Activity } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useUserPreferencesStore } from '@/lib/stores/preferencesStore';
 
 interface SettingsOverlayProps {
@@ -37,7 +38,8 @@ function SettingsOverlay({
     subtitleSize, setSubtitleSize,
     subtitleColor, setSubtitleColor,
     subtitleFont, setSubtitleFont,
-    subtitleOpacity, setSubtitleOpacity
+    subtitleOpacity, setSubtitleOpacity,
+    diagnosticsEnabled, setDiagnosticsEnabled,
   } = useUserPreferencesStore();
 
   // React.useEffect(() => {
@@ -121,6 +123,26 @@ function SettingsOverlay({
         <div className="flex items-center gap-2 text-[hsl(var(--foreground))]/40">
           <span>{playbackSpeed}x</span>
           <ChevronRight className="w-4 h-4" />
+        </div>
+      </button>
+
+      <button
+        onClick={() => setDiagnosticsEnabled(!diagnosticsEnabled)}
+        aria-label="Toggle technical diagnostics"
+        className="flex items-center justify-between p-3 rounded hover:bg-[hsl(var(--surface-muted))] text-[hsl(var(--foreground))] text-sm transition-colors group"
+      >
+        <div className="flex items-center gap-2">
+          <Activity size={14} className={cn("transition-colors", diagnosticsEnabled ? "text-primary" : "text-zinc-500")} />
+          <span>Nerd Stats</span>
+        </div>
+        <div className={cn(
+          "w-8 h-4 rounded-full relative transition-colors duration-300",
+          diagnosticsEnabled ? "bg-primary" : "bg-zinc-700"
+        )}>
+          <div className={cn(
+            "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all duration-300",
+            diagnosticsEnabled ? "left-4" : "left-0.5"
+          )} />
         </div>
       </button>
     </div>
@@ -240,7 +262,7 @@ function SettingsOverlay({
 
       {/* Preview */}
       <div className="mt-4 p-6 rounded-lg bg-black relative flex items-center justify-center overflow-hidden border border-[hsl(var(--foreground))]/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 opacity-50" />
+        <div className="absolute inset-0 bg-linear-to-br from-zinc-800 to-zinc-900 opacity-50" />
         <span 
           className="relative z-10 font-bold drop-shadow-lg text-center px-2 py-0.5 rounded dynamic-font dynamic-color dynamic-size dynamic-bg"
           ref={el => {
@@ -307,3 +329,4 @@ function SettingsOverlay({
 }
 
 export default React.memo(SettingsOverlay);
+

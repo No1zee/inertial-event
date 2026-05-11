@@ -6,10 +6,11 @@ export async function generateStaticParams() {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   const searchParams = request.nextUrl.searchParams;
-  const path = params.path.join('/');
+  const { path: pathSegments } = await params;
+  const path = pathSegments.join('/');
   
   // Construct the target URL (local bridge)
   const targetUrl = new URL(`http://localhost:5000/${path}`);

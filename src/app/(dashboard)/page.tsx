@@ -21,7 +21,7 @@ import { getOptimizedImageUrl } from '@/lib/utils/image';
 
 const BrandBlock = dynamic(() => import('@/components/brand/BrandBlock').then(mod => mod.BrandBlock), {
   ssr: false,
-  loading: () => <div className="h-[600px] animate-pulse bg-zinc-900 mx-10 lg:mx-24 rounded-[4rem]" />
+  loading: () => <div className="h-[600px] animate-pulse bg-[hsl(var(--surface-deep))] mx-10 lg:mx-24 rounded-[4rem]" />
 });
 
 interface RailConfig {
@@ -66,7 +66,7 @@ const RAIL_CONFIGS: RailConfig[] = [
   {
     id: 'adult_swim',
     title: 'Adult Swim Collection',
-    fetcher: () => contentApi.discover({ with_networks: '80', page: Math.floor(Math.random() * 10) + 1 }, 'tv'),
+    fetcher: () => contentApi.getAdultSwimOriginals(),
     aspectRatio: '16:9' as const,
     providerId: 'adult-swim',
   },
@@ -150,7 +150,7 @@ const RAIL_CONFIGS: RailConfig[] = [
   {
     id: 'anime',
     title: 'Anime Spotlight',
-    fetcher: () => contentApi.discover({ with_keywords: '210024', sort_by: 'popularity.desc', page: Math.floor(Math.random() * 150) + 1 }, 'tv'),
+    fetcher: () => contentApi.getAdultSwimAnime(),
     aspectRatio: 'poster' as const,
   },
   {
@@ -301,17 +301,17 @@ export default function DashboardPage() {
   });
 
   if (!hydrated) {
-    return <div className="min-h-screen bg-black" />;
+    return <div className="min-h-screen bg-transparent" />;
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-transparent">
       {/* 1. Cinematic Hero Section */}
       <CinemaMarquee items={trending} />
 
       <div className="relative z-10 -mt-44 pb-32">
         {/* 1. Home Dashboard (Greeting + Pipeline + Pulse) */}
-        <HomeDashboard />
+        <HomeDashboard salt={serendipitySalt} />
 
         {/* 2. Studio / Brand Shortcuts */}
         <StudioRail />
@@ -410,7 +410,7 @@ export default function DashboardPage() {
           <div ref={sentinelRef} className="h-40 w-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[hsl(var(--foreground)/.4)]">
                 Loading more...
               </span>
             </div>

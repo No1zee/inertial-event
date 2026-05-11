@@ -33,8 +33,8 @@ export function MaxHero({ item }: MaxHeroProps) {
           priority
         />
         {/* Max Signature Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#000510] via-[#000510]/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#000510] via-[#000510]/60 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#000510] via-[#000510]/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-[#000510] via-[#000510]/60 to-transparent" />
 
         {/* Vertical Stripe Pattern (Subtle) */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(90deg,#fff_1px,transparent_1px)] bg-[size:40px_100%]" />
@@ -105,3 +105,4 @@ export function MaxHero({ item }: MaxHeroProps) {
     </section>
   );
 }
+

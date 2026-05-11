@@ -89,7 +89,7 @@ export const SeriesTracker: React.FC = () => {
             >
               <div className="absolute inset-0 z-0">
                 <OptimizedImage src={discovery.backdrop} alt="" fill className="object-cover opacity-20" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-r from-black via-black/40 to-transparent" />
               </div>
 
               <div className="relative z-10 w-20 h-28 m-3 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
@@ -169,3 +169,4 @@ export const SeriesTracker: React.FC = () => {
 
   return null;
 };
+

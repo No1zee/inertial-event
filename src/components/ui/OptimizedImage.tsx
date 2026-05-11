@@ -39,17 +39,16 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const hasValidSrc = src && src !== '' && !error;
   const finalSrc = hasValidSrc ? src : (fallbackSrc || '');
 
-  // Local assets should be unoptimized and NOT use the custom loader
+  // Normalize path for robust local asset detection
+  const normalizedFinalSrc = finalSrc.startsWith('/') ? finalSrc : `/${finalSrc}`;
   const isLocalAsset = 
-    finalSrc.startsWith('/') && 
-    !finalSrc.startsWith('/t/p/') &&
-    (finalSrc.startsWith('/_next/') || 
-     finalSrc.startsWith('/images/') || 
-     finalSrc.startsWith('/icons/') || 
-     finalSrc.startsWith('/providers/') || 
-     finalSrc.startsWith('/brand/') ||
-     finalSrc.startsWith('/avatars/') ||
-     finalSrc.includes('placeholder'));
+    normalizedFinalSrc.startsWith('/_next/') || 
+    normalizedFinalSrc.startsWith('/images/') || 
+    normalizedFinalSrc.startsWith('/icons/') || 
+    normalizedFinalSrc.startsWith('/providers/') || 
+    normalizedFinalSrc.startsWith('/brand/') ||
+    normalizedFinalSrc.startsWith('/avatars/') ||
+    normalizedFinalSrc.includes('placeholder');
 
   const isAlreadyProxied = finalSrc.includes('wsrv.nl');
   const isUnoptimized = isLocalAsset || (unoptimized && isAlreadyProxied);
@@ -57,12 +56,12 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   // Use a hash-based color for the error gradient to make it feel more "intended"
   const getBrandGradient = () => {
     const gradients = [
-      'from-zinc-900 via-zinc-950 to-black',
-      'from-slate-900 via-zinc-950 to-black',
-      'from-neutral-900 via-zinc-950 to-black',
-      'from-stone-900 via-zinc-950 to-black',
-      'from-red-950/20 via-zinc-950 to-black', // Subtle Nova Red accent
-      'from-blue-950/20 via-zinc-950 to-black',
+      'from-muted/20 via-muted/10 to-background',
+      'from-surface-deep via-muted/5 to-background',
+      'from-surface-elevated via-muted/20 to-background',
+      'from-primary/5 via-muted/10 to-background',
+      'from-brand-accent/5 via-muted/10 to-background',
+      'from-muted/10 via-surface-deep to-background',
     ];
     // Use alt text as a seed for stable variety
     const seed = (alt || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -76,14 +75,14 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   return (
     <div
       className={cn(
-        'overflow-hidden bg-[#0a0a0a] relative group/img',
+        'overflow-hidden bg-muted/5 relative group/img',
         isFillMode ? 'absolute inset-0' : 'w-full h-full',
         containerClassName
       )}
     >
       {/* Background Layer: Gradient Fallback (always present but hidden by image) */}
       <div className={cn(
-        "absolute inset-0 z-0 bg-gradient-to-br transition-opacity duration-1000",
+        "absolute inset-0 z-0 bg-linear-to-br transition-opacity duration-1000",
         getBrandGradient(),
         isLoaded && hasValidSrc ? "opacity-0" : "opacity-100"
       )}>
@@ -91,11 +90,11 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         
         {(!hasValidSrc || error) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-             <div className="w-12 h-[1px] bg-white/10 mb-4 scale-x-0 group-hover/img:scale-x-100 transition-transform duration-700" />
-             <span className="text-[10px] font-black tracking-[0.5em] text-white/5 uppercase select-none group-hover/img:text-white/10 transition-colors duration-500">
+             <div className="w-12 h-[1px] bg-foreground/10 mb-4 scale-x-0 group-hover/img:scale-x-100 transition-transform duration-700" />
+             <span className="text-[10px] font-black tracking-[0.5em] text-foreground/5 uppercase select-none group-hover/img:text-foreground/10 transition-colors duration-500">
                NovaStream
              </span>
-             <div className="w-12 h-[1px] bg-white/10 mt-4 scale-x-0 group-hover/img:scale-x-100 transition-transform duration-700" />
+             <div className="w-12 h-[1px] bg-foreground/10 mt-4 scale-x-0 group-hover/img:scale-x-100 transition-transform duration-700" />
           </div>
         )}
       </div>
@@ -114,7 +113,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           }}
           onError={() => {
             if (!error) {
-              console.error(`[OptimizedImage] Failed to load: ${finalSrc} (Alt: ${alt})`);
+              console.debug(`[OptimizedImage] Failed to load: ${finalSrc} (Alt: ${alt})`);
               setError(true);
             }
           }}
@@ -132,9 +131,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {/* Cinematic Shimmer Placeholder (while loading) */}
       {!isLoaded && hasValidSrc && !error && (
         <div className="absolute inset-0 z-20 bg-transparent flex items-center justify-center overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
         </div>
       )}
     </div>
   );
 };
+

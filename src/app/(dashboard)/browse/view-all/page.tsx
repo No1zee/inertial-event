@@ -135,7 +135,7 @@ export default function ViewAllPage() {
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[180px] opacity-40 mix-blend-screen animate-pulse [animation-duration:10s]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-red-900/10 rounded-full blur-[200px] opacity-30 mix-blend-screen" />
         <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#0a0a0a]/90 to-black" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/80 via-[#0a0a0a]/90 to-black" />
       </div>
 
       {/* STICKY GLASS HEADER */}
@@ -160,7 +160,7 @@ export default function ViewAllPage() {
             <motion.h1
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-200 to-zinc-500 tracking-tight"
+              className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-linear-to-br from-white via-zinc-200 to-zinc-500 tracking-tight"
             >
               {title}
             </motion.h1>
@@ -174,7 +174,7 @@ export default function ViewAllPage() {
           // HIGH-FIDELITY SKELETON
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-6 gap-y-12">
             {[...Array(12)].map((_, i) => (
-              <div key={i} className="aspect-[2/3] rounded-xl bg-zinc-900/50 animate-pulse ring-1 ring-white/5" />
+              <div key={i} className="aspect-2/3 rounded-xl bg-zinc-900/50 animate-pulse ring-1 ring-white/5" />
             ))}
           </div>
         ) : (
@@ -206,7 +206,7 @@ export default function ViewAllPage() {
             </span>
           ) : items.length > 0 ? (
             <div className="flex flex-col items-center gap-2 opacity-30 mt-10">
-              <div className="h-px w-20 bg-gradient-to-r from-transparent via-white to-transparent" />
+              <div className="h-px w-20 bg-linear-to-r from-transparent via-white to-transparent" />
               <span className="text-[10px] uppercase tracking-[0.3em] font-medium text-zinc-400">End of Content</span>
             </div>
           ) : (

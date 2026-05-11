@@ -1,5 +1,14 @@
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
+import { 
+  Outfit, 
+  Inter, 
+  Playfair_Display, 
+  Bebas_Neue, 
+  Montserrat, 
+  Raleway, 
+  PT_Sans, 
+  Koulen 
+} from 'next/font/google';
 import './globals.css';
 import BrowserInit from '../components/Common/BrowserInit';
 import { AppProviders } from '../components/providers/AppProviders';
@@ -11,61 +20,53 @@ import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
-const outfit = localFont({
-  src: '../../node_modules/@fontsource/outfit/files/outfit-latin-400-normal.woff2',
+const outfit = Outfit({
+  subsets: ['latin'],
   variable: '--font-outfit',
   display: 'swap',
 });
 
-const playfair = localFont({
-  src: '../../node_modules/@fontsource/playfair-display/files/playfair-display-latin-400-normal.woff2',
+const playfair = Playfair_Display({
+  subsets: ['latin'],
   variable: '--font-playfair',
   display: 'swap',
 });
 
-const inter = localFont({
-  src: '../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2',
+const inter = Inter({
+  subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
 });
 
-const bebas = localFont({
-  src: '../../node_modules/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2',
+const bebas = Bebas_Neue({
+  weight: '400',
+  subsets: ['latin'],
   variable: '--font-bebas',
   display: 'swap',
 });
 
-const montserrat = localFont({
-  src: '../../node_modules/@fontsource/montserrat/files/montserrat-latin-400-normal.woff2',
+const montserrat = Montserrat({
+  subsets: ['latin'],
   variable: '--font-montserrat',
   display: 'swap',
 });
 
-const raleway = localFont({
-  src: '../../node_modules/@fontsource/raleway/files/raleway-latin-400-normal.woff2',
+const raleway = Raleway({
+  subsets: ['latin'],
   variable: '--font-raleway',
   display: 'swap',
 });
 
-const ptsans = localFont({
-  src: [
-    {
-      path: '../../node_modules/@fontsource/pt-sans/files/pt-sans-latin-400-normal.woff2',
-      weight: '400',
-      style: 'normal',
-    },
-    {
-      path: '../../node_modules/@fontsource/pt-sans/files/pt-sans-latin-700-normal.woff2',
-      weight: '700',
-      style: 'normal',
-    },
-  ],
+const ptsans = PT_Sans({
+  weight: ['400', '700'],
+  subsets: ['latin'],
   variable: '--font-ptsans',
   display: 'swap',
 });
 
-const koulen = localFont({
-  src: '../../node_modules/@fontsource/koulen/files/koulen-latin-400-normal.woff2',
+const koulen = Koulen({
+  weight: '400',
+  subsets: ['latin'],
   variable: '--font-koulen',
   display: 'swap',
 });
@@ -142,7 +143,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-outfit selection:bg-primary selection:text-white antialiased bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <body className="font-outfit selection:bg-primary selection:text-white antialiased text-[hsl(var(--foreground))]">
         <script
           dangerouslySetInnerHTML={{
             __html: `

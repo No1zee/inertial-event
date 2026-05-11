@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Plus, Lock, Check, Trash2 } from 'lucide-react';
+import { User, Plus, Lock, Check, Trash2, Settings } from 'lucide-react';
 import { useProfiles, useActiveProfile, useProfileActions, UserProfile } from '@/lib/stores/localDataStore';
 import { ProfileAuthModal } from '@/components/auth/ProfileAuthModal';
+import { ProfileManagementModal } from '@/components/profile/ProfileManagementModal';
 import { cn } from '@/lib/utils';
 import { useUISounds } from '@/hooks/useUISounds';
 
@@ -15,7 +16,9 @@ export const ProfileSwitcher: React.FC = () => {
   const { playSound } = useUISounds();
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [managementModalOpen, setManagementModalOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState<{ id: string; name: string } | null>(null);
+  const [editingProfile, setEditingProfile] = useState<UserProfile | undefined>(undefined);
   const [isEditing, setIsEditing] = useState(false);
 
   const handleProfileSelect = (profile: UserProfile) => {
@@ -41,8 +44,8 @@ export const ProfileSwitcher: React.FC = () => {
     <div className="w-full">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">Switch Profile</h4>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Select a profile to start watching</p>
+          <h4 className="text-sm font-black text-[hsl(var(--foreground))] uppercase tracking-widest mb-1">Switch Profile</h4>
+          <p className="text-[10px] text-[hsl(var(--foreground)/.4)] font-bold uppercase tracking-widest">Select a profile to start watching</p>
         </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
@@ -50,7 +53,7 @@ export const ProfileSwitcher: React.FC = () => {
             "px-4 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-widest transition-all",
             isEditing 
               ? "bg-primary text-black border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" 
-              : "bg-white/5 text-zinc-400 border-white/5 hover:border-white/10"
+              : "bg-foreground/5 text-[hsl(var(--foreground)/.4)] border-border/10 hover:border-border/20"
           )}
         >
           {isEditing ? 'Finish' : 'Manage'}
@@ -71,19 +74,19 @@ export const ProfileSwitcher: React.FC = () => {
                 "relative w-full aspect-square rounded-[2rem] border-2 flex flex-col items-center justify-center gap-4 transition-all duration-500 overflow-hidden",
                 profile.id === activeProfile?.id
                   ? "bg-primary/10 border-primary shadow-[0_0_40px_rgba(var(--primary-rgb),0.1)]"
-                  : "bg-zinc-900/50 border-white/5 hover:border-white/20 hover:bg-zinc-800/50"
+                  : "bg-surface-deep/50 border-border/10 hover:border-border/20 hover:bg-surface-elevated/50"
               )}
             >
               <div className="relative">
                 <div className={cn(
                   "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500",
-                  profile.id === activeProfile?.id ? "bg-primary text-black" : "bg-zinc-800 text-zinc-500"
+                  profile.id === activeProfile?.id ? "bg-primary text-black" : "bg-surface-elevated text-[hsl(var(--foreground)/.4)]"
                 )}>
                   <User size={32} />
                 </div>
                 
                 {profile.isLocked && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-lg bg-zinc-950 border border-white/10 flex items-center justify-center text-primary shadow-xl">
+                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-lg bg-[hsl(var(--background))] border border-border/10 flex items-center justify-center text-primary shadow-xl">
                     <Lock size={12} />
                   </div>
                 )}
@@ -92,7 +95,7 @@ export const ProfileSwitcher: React.FC = () => {
               <div className="text-center px-4">
                 <span className={cn(
                   "text-xs font-black uppercase tracking-widest block truncate",
-                  profile.id === activeProfile?.id ? "text-primary" : "text-zinc-400"
+                  profile.id === activeProfile?.id ? "text-primary" : "text-[hsl(var(--foreground)/.4)]"
                 )}>
                   {profile.name}
                 </span>
@@ -121,16 +124,29 @@ export const ProfileSwitcher: React.FC = () => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-[2rem]"
                 >
-                  <button
-                    title="Delete Profile"
-                    onClick={() => {
-                      playSound('click');
-                      deleteProfile(profile.id);
-                    }}
-                    className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      title="Edit Profile"
+                      onClick={() => {
+                        playSound('click');
+                        setEditingProfile(profile);
+                        setManagementModalOpen(true);
+                      }}
+                      className="w-12 h-12 rounded-2xl bg-primary text-black flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                    >
+                      <Settings size={20} />
+                    </button>
+                    <button
+                      title="Delete Profile"
+                      onClick={() => {
+                        playSound('click');
+                        deleteProfile(profile.id);
+                      }}
+                      className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -141,14 +157,25 @@ export const ProfileSwitcher: React.FC = () => {
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="aspect-square rounded-[2rem] border-2 border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 flex flex-col items-center justify-center gap-3 transition-all group"
+          onClick={() => {
+            playSound('click');
+            setEditingProfile(undefined);
+            setManagementModalOpen(true);
+          }}
+          className="aspect-square rounded-[2rem] border-2 border-dashed border-border/10 hover:border-border/30 hover:bg-foreground/5 flex flex-col items-center justify-center gap-3 transition-all group"
         >
-          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-500 group-hover:text-white group-hover:scale-110 transition-all">
+          <div className="w-12 h-12 rounded-2xl bg-surface-deep border border-border/10 flex items-center justify-center text-[hsl(var(--foreground)/.4)] group-hover:text-[hsl(var(--foreground))] group-hover:scale-110 transition-all">
             <Plus size={24} />
           </div>
-          <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-widest">Add Profile</span>
+          <span className="text-[10px] font-black text-[hsl(var(--foreground)/.4)] group-hover:text-[hsl(var(--foreground))] uppercase tracking-widest">Add Profile</span>
         </motion.button>
       </div>
+
+      <ProfileManagementModal
+        isOpen={managementModalOpen}
+        onClose={() => setManagementModalOpen(false)}
+        profile={editingProfile}
+      />
 
       <ProfileAuthModal
         isOpen={authModalOpen}

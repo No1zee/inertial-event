@@ -97,7 +97,7 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 + i * 0.1 }}
-              className="p-8 rounded-3xl bg-gradient-to-br from-white/[0.05] to-transparent border border-white/5 relative group"
+              className="p-8 rounded-3xl bg-linear-to-br from-white/[0.05] to-transparent border border-white/5 relative group"
             >
               <div className="absolute top-4 left-4 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
                 {i + 1}
@@ -355,7 +355,7 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                  className="absolute inset-0 z-[90] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-12"
                >
                   <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                     <div className="aspect-[3/4] rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
+                     <div className="aspect-3/4 rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
                         {selectedPerson.profile_path ? (
                           <OptimizedImage src={`https://image.tmdb.org/t/p/original${selectedPerson.profile_path}`} alt={selectedPerson.name} fill className="object-cover" />
                         ) : (
@@ -363,7 +363,7 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
                              {selectedPerson.name?.charAt(0)}
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent" />
                         <div className="absolute bottom-8 left-8 right-8">
                            <PretextHeadline 
                              text={selectedPerson.name} 
@@ -423,3 +423,4 @@ export const XRayOverlay: React.FC<XRayOverlayProps> = ({
     </AnimatePresence>
   );
 };
+

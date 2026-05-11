@@ -28,9 +28,10 @@ export function RouteInterceptor() {
   useEffect(() => {
     if (!mounted || !hydrated) return;
 
-    if (!hasCompletedOnboarding && pathname !== '/onboarding') {
+    const shouldBypass = typeof window !== 'undefined' && (window as any).NOVA_TEST_BYPASS_ONBOARDING;
+    if (!hasCompletedOnboarding && pathname !== '/onboarding' && !shouldBypass) {
       router.push('/onboarding');
-    } else if (hasCompletedOnboarding && pathname === '/onboarding') {
+    } else if (hasCompletedOnboarding && pathname === '/onboarding' && !shouldBypass) {
       router.push('/');
     }
   }, [mounted, hydrated, hasCompletedOnboarding, pathname, router]);

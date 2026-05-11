@@ -70,7 +70,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
     return (
       <div className="h-[70vh] sm:h-[80vh] lg:h-[88vh] w-full px-4 py-2">
         <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] lg:rounded-[3.5rem] bg-zinc-900 animate-pulse">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
           <div className="absolute bottom-24 lg:bottom-32 left-10 lg:left-24 space-y-6">
             <div className="h-4 w-32 bg-zinc-800 rounded-full" />
             <div className="h-16 lg:h-24 w-[300px] lg:w-[600px] bg-zinc-800 rounded-2xl" />
@@ -123,8 +123,8 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
               className="w-full h-full object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-r from-black via-black/20 to-transparent" />
           </motion.div>
         </AnimatePresence>
 
@@ -169,6 +169,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
             <Button
               onClick={handlePlay}
               size="lg"
+              aria-label={`Play ${currentItem.title}`}
               className="bg-white hover:bg-zinc-200 text-black font-black px-8 py-7 rounded-2xl flex items-center gap-3 transition-all active:scale-95 group/btn"
             >
               <div className="bg-black rounded-full p-1 group-hover/btn:scale-110 transition-transform">
@@ -181,6 +182,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
               onClick={() => openContentModal(currentItem)}
               variant="outline"
               size="lg"
+              aria-label={`View details for ${currentItem.title}`}
               className="bg-zinc-950/40 hover:bg-zinc-900 border-white/10 hover:border-white/20 text-white font-bold px-8 py-7 rounded-2xl backdrop-blur-xl flex items-center gap-3 transition-all active:scale-95"
             >
               <Info size={20} />
@@ -209,6 +211,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeDasharray="126"
+                initial={{ strokeDashoffset: 126 }}
                 animate={{ strokeDashoffset: 126 - (126 * scrollingProgress) / 100 }}
                 transition={{ duration: 0.5 }}
                 className="text-red-600"
@@ -221,6 +224,7 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
 
           <button
             onClick={() => setIsMuted(!isMuted)}
+            aria-label={isMuted ? "Unmute background audio" : "Mute background audio"}
             className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 flex items-center justify-center text-white hover:bg-white/10 transition-all active:scale-90 group"
           >
             <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-0 group-hover:opacity-100 transition-all mr-2">
@@ -247,3 +251,4 @@ export function CinemaMarquee({ items = [] }: CinemaMarqueeProps) {
     </section>
   );
 }
+

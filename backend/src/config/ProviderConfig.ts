@@ -13,6 +13,14 @@ export const ProviderConfig = {
         enabled: process.env.ENABLE_TORRENT !== 'false',
         timeout: 15000
     },
+    vidsrc: {
+        enabled: process.env.ENABLE_VIDSRC !== 'false',
+        timeout: 10000
+    },
+    embedsu: {
+        enabled: process.env.ENABLE_EMBEDSU !== 'false',
+        timeout: 10000
+    },
     global: {
         maxRetries: 2,
         cacheTtl: 3600 // 1 hour

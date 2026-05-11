@@ -95,7 +95,7 @@ export function CriticsChoice() {
             fill
             className="object-cover transition-transform duration-1000 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent p-12 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-linear-to-t from-black via-black/20 to-transparent p-12 flex flex-col justify-end">
             <div className="flex items-center gap-4 mb-4">
               <span className="px-3 py-1 rounded-full bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest">
                 {masterpiece.rating?.toFixed(1)} Rating
@@ -209,3 +209,4 @@ export function CriticsChoice() {
     </section>
   );
 }
+

@@ -19,6 +19,7 @@ import {
   Search,
   Info,
   Users,
+  List,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Seekbar from './Seekbar';
@@ -73,6 +74,7 @@ interface PlayerControlsProps {
   onToggleSource?: () => void;
   onToggleXRay?: () => void;
   onToggleDialogueSearch: () => void;
+  onToggleTorrentFiles?: () => void;
 
   // UI Control
   hideBottom?: boolean;
@@ -114,6 +116,7 @@ const PlayerControls = memo(function PlayerControls({
   onToggleSource,
   onToggleXRay,
   onToggleDialogueSearch,
+  onToggleTorrentFiles,
   hideBottom,
   episodeDetails,
 }: PlayerControlsProps) {
@@ -154,7 +157,7 @@ const PlayerControls = memo(function PlayerControls({
           show ? 'translate-y-0' : 'translate-y-full'
         )}
       >
-        <div className="bg-gradient-to-t from-black via-black/95 to-transparent pt-40 pb-10 px-8 flex flex-col gap-8">
+        <div className="bg-linear-to-t from-black via-black/95 to-transparent pt-40 pb-10 px-8 flex flex-col gap-8">
           {/* Metadata & Quick Selection Row */}
           <div className="flex items-end justify-between">
             <div className="flex items-center gap-4">
@@ -182,11 +185,25 @@ const PlayerControls = memo(function PlayerControls({
                 <Download size={22} />
               </button>
               {(type === 'torrent' || isTorrent) && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl backdrop-blur-md shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-                  <Zap size={18} className="text-emerald-500 fill-emerald-500" />
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                    Stream Direct
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl backdrop-blur-md shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                    <Zap size={18} className="text-emerald-500 fill-emerald-500" />
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                      Stream Direct
+                    </span>
+                  </div>
+                  {onToggleTorrentFiles && (
+                    <button
+                      onClick={onToggleTorrentFiles}
+                      className="group flex items-center gap-2.5 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl backdrop-blur-md transition-all duration-300 shadow-xl"
+                      aria-label="Select Torrent File"
+                    >
+                      <List size={18} className="text-white/60 group-hover:text-white transition-colors" />
+                      <span className="text-[10px] font-black text-white/40 group-hover:text-white uppercase tracking-widest transition-colors">
+                        Files
+                      </span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -209,13 +226,43 @@ const PlayerControls = memo(function PlayerControls({
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-8">
-                  <button
-                    onClick={onTogglePlay}
-                    className="p-4 bg-white text-black rounded-2xl transition-all hover:scale-110 active:scale-90 shadow-2xl"
-                    aria-label={isPaused ? 'Play' : 'Pause'}
-                  >
-                    {isPaused ? <Play size={28} fill="currentColor" /> : <Pause size={28} fill="currentColor" />}
-                  </button>
+                  <div className="flex items-center gap-6">
+                    <button
+                      onClick={onPrev}
+                      disabled={!onPrev}
+                      className={cn(
+                        "p-3 rounded-xl transition-all duration-300",
+                        onPrev 
+                          ? "bg-white/5 text-white/60 hover:text-white hover:bg-white/10 active:scale-90" 
+                          : "text-white/10 cursor-not-allowed"
+                      )}
+                      aria-label="Previous Episode"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+
+                    <button
+                      onClick={onTogglePlay}
+                      className="p-4 bg-white text-black rounded-2xl transition-all hover:scale-110 active:scale-95 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+                      aria-label={isPaused ? 'Play' : 'Pause'}
+                    >
+                      {isPaused ? <Play size={28} fill="currentColor" /> : <Pause size={28} fill="currentColor" />}
+                    </button>
+
+                    <button
+                      onClick={onNext}
+                      disabled={!onNext}
+                      className={cn(
+                        "p-3 rounded-xl transition-all duration-300",
+                        onNext 
+                          ? "bg-white/5 text-white/60 hover:text-white hover:bg-white/10 active:scale-90" 
+                          : "text-white/10 cursor-not-allowed"
+                      )}
+                      aria-label="Next Episode"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  </div>
 
                   <div className="flex items-center gap-4 group/vol">
                     <button 
@@ -260,15 +307,7 @@ const PlayerControls = memo(function PlayerControls({
                   >
                     <Info size={22} />
                   </button>
-                  {onToggleSource && (
-                    <button
-                      onClick={onToggleSource}
-                      className="p-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                      aria-label="Switch Content Source"
-                    >
-                      <Shuffle size={22} />
-                    </button>
-                  )}
+                  {/* Source switching moved to PlaybackHeader for reduced UI density */}
                   <button
                     onClick={onToggleLounge}
                     className="p-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-all"
@@ -316,3 +355,4 @@ const PlayerControls = memo(function PlayerControls({
 });
 
 export default PlayerControls;
+

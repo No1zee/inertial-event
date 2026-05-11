@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, Suspense, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { AlertCircle, ArrowLeft, Settings, Info, ChevronRight, ChevronLeft, Play } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Play } from 'lucide-react';
 import PostPlayOverlay from '@/components/player/overlay/PostPlayOverlay';
 
 import dynamic from 'next/dynamic';
@@ -35,6 +35,7 @@ function WatchContent() {
   const type = (searchParams.get('type') as 'movie' | 'tv' | 'anime' | 'series') || 'movie';
   const initialSeason = Number(searchParams.get('season')) || 1;
   const initialEpisode = Number(searchParams.get('episode')) || 1;
+  const source = searchParams.get('source');
 
   const [currentSeason, setCurrentSeason] = useState(initialSeason);
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
@@ -45,6 +46,8 @@ function WatchContent() {
 
 
   const uiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Guard against double-fires from concurrent countdown auto-advance + manual button click
+  const isNavigatingRef = useRef(false);
 
   // Sync state with URL if URL changes (back/forward nav)
   useEffect(() => {
@@ -54,14 +57,19 @@ function WatchContent() {
     if (e && e !== currentEpisode) setCurrentEpisode(e);
   }, [searchParams, currentSeason, currentEpisode]);
 
-  // Unified Navigation Utility
+  // Unified Navigation Utility — zero-remount via state mutation + silent URL sync
   const navigateToEpisode = React.useCallback((s: number, e: number) => {
+    setCurrentSeason(s);
+    setCurrentEpisode(e);
+    isNavigatingRef.current = false; // release guard after state update
+    // Sync the URL silently without triggering a router navigation / remount
     const params = new URLSearchParams(searchParams.toString());
     params.set('season', s.toString());
     params.set('episode', e.toString());
-    // Use replace to avoid polluting history with every episode jump
-    router.replace(`/watch?${params.toString()}`, { scroll: false });
-  }, [router, searchParams]);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/watch?${params.toString()}`);
+    }
+  }, [searchParams]);
 
   // Redirect if no ID or missing params (Canonical Enforcement)
   useEffect(() => {
@@ -128,8 +136,11 @@ function WatchContent() {
   const { data: seasonData } = useSeasonDetails(id || '', currentSeason, type, type !== 'movie');
   const seasonDetails = seasonData as SeasonDetails | null;
 
-  const handleNext = React.useCallback(async () => {
+  const handleNext = React.useCallback(() => {
     if (type === 'movie') return;
+    // Idempotency guard — prevents double-fire from simultaneous countdown expiry + button click
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
 
     let nextSeason = currentSeason;
     let nextEpisode = currentEpisode + 1;
@@ -146,7 +157,8 @@ function WatchContent() {
           nextSeason = currentSeason + 1;
           nextEpisode = 1;
         } else {
-          setShowPostPlay(true); // Series completed
+          isNavigatingRef.current = false;
+          setShowPostPlay(true); // Series completed — show recommendations
           return;
         }
       }
@@ -159,17 +171,18 @@ function WatchContent() {
           nextSeason = currentSeason + 1;
           nextEpisode = 1;
         } else {
+          isNavigatingRef.current = false;
           setShowPostPlay(true);
           return;
         }
       }
     }
-    // 3. Last Resort: If we know a next season exists, allow jumping to it even if current season length is unknown
+    // 3. Season-crossing fallback: if current season count unknown but more seasons exist, go to next S E1
     else if (currentSeason < totalSeasons) {
-       // We don't know the episode count, but we know there's another season.
-       // We'll let the user continue incrementing episodes until they hit a known boundary.
-       // But if they are at some high number, we might want to offer the next season.
-       // For now, just allow the increment.
+      // Optimistic: assume current season ended and jump to S+1 E1
+      // This only fires when seasonDetails has not yet loaded.
+      nextSeason = currentSeason + 1;
+      nextEpisode = 1;
     }
 
     navigateToEpisode(nextSeason, nextEpisode);
@@ -217,9 +230,29 @@ function WatchContent() {
     return false;
   }, [type, seasonDetails, currentEpisode, currentSeason, content]);
 
+  // Compute authoritative next episode coords for PostPlayOverlay & CinematicEndCredits
+  const nextEpisodeCoords = useMemo(() => {
+    if (type === 'movie') return null;
+    const s = currentSeason;
+    const e = currentEpisode;
+    const totalSeasons = content?.seasons || content?.seasonsList?.length || 0;
+    if (seasonDetails?.episodes?.length) {
+      if (e < seasonDetails.episodes.length) return { season: s, episode: e + 1 };
+      if (s < totalSeasons) return { season: s + 1, episode: 1 };
+      return null; // series end
+    }
+    if (content?.seasonsList) {
+      const cur = content.seasonsList.find(m => m.season_number === s);
+      if (cur && e < cur.episode_count) return { season: s, episode: e + 1 };
+      if (s < totalSeasons) return { season: s + 1, episode: 1 };
+      return null;
+    }
+    return { season: s, episode: e + 1 }; // optimistic
+  }, [type, currentSeason, currentEpisode, seasonDetails, content]);
+
   const hasPrev = type !== 'movie' && (currentEpisode > 1 || currentSeason > 1);
 
-  if (contentLoading) {
+  if (contentLoading && !source) {
     return (
       <div className="relative h-screen w-full flex items-center justify-center bg-black overflow-hidden">
         {/* Cinematic Backdrop during loading */}
@@ -231,7 +264,7 @@ function WatchContent() {
               fill
               className="object-cover blur-[50px] scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-transparent" />
           </div>
         )}
         
@@ -326,6 +359,7 @@ function WatchContent() {
           onSeasonChange={(s) => navigateToEpisode(s, 1)}
           onEpisodeChange={(e) => navigateToEpisode(currentSeason, Number(e))}
           showUI={showUI}
+          initialSource={source}
         />
       </main>
 
@@ -337,6 +371,7 @@ function WatchContent() {
             onClose={() => setShowPostPlay(false)}
             currentId={cleanTmdbId}
             type={type}
+            nextEpisode={nextEpisodeCoords}
             onPlay={(nid, ntype, ns, ne) => {
               setShowPostPlay(false);
               if (ns && ne) {
@@ -389,3 +424,4 @@ export default function WatchPage() {
     </Suspense>
   );
 }
+

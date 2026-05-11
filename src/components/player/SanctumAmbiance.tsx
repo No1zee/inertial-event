@@ -57,7 +57,7 @@ export function SanctumAmbiance({ src }: SanctumAmbianceProps) {
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-primary/5"
+        className="absolute inset-0 bg-linear-to-tr from-primary/10 via-transparent to-primary/5"
       />
 
       {/* Vignette to focus on player */}
@@ -65,3 +65,4 @@ export function SanctumAmbiance({ src }: SanctumAmbianceProps) {
     </div>
   );
 }
+

@@ -56,8 +56,8 @@ export function HuluHero({ item }: HuluHeroProps) {
         />
 
         {/* Hulu Gradient Architecture */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0c0f] via-[#0b0c0f]/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0b0c0f] via-[#0b0c0f]/20 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#0b0c0f] via-[#0b0c0f]/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-[#0b0c0f] via-[#0b0c0f]/20 to-transparent" />
 
         {/* Animayhem Texture (Optional/Simulated) */}
         <div className="absolute inset-0 opacity-[0.05] pointer-events-none mix-blend-screen bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
@@ -150,7 +150,8 @@ export function HuluHero({ item }: HuluHeroProps) {
       </div>
 
       {/* Bottom Glow */}
-      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#0b0c0f] to-transparent z-10" />
+      <div className="absolute bottom-0 left-0 w-full h-32 bg-linear-to-t from-[#0b0c0f] to-transparent z-10" />
     </section>
   );
 }
+

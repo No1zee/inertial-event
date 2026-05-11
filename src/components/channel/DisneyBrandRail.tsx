@@ -11,28 +11,28 @@ const BRANDS = [
     name: 'Disney',
     video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564674844-disney.mp4',
     image: '/providers/disney.svg',
-    gradient: 'bg-gradient-to-b from-[#113CCF] to-[#0f1014]',
+    gradient: 'bg-linear-to-b from-[#113CCF] to-[#0f1014]',
   },
   {
     id: 'pixar',
     name: 'Pixar',
     video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564676714-pixar.mp4',
     image: 'https://images.ctfassets.net/usf1vwtuqyxm/1d4x91D0F8d9d8x1d8d/5d1d8d1d8d1d8d1d8d1d8d1d8d1d8d1d/pixar.svg',
-    gradient: 'bg-gradient-to-b from-[#113CCF] to-[#0f1014]',
+    gradient: 'bg-linear-to-b from-[#113CCF] to-[#0f1014]',
   },
   {
     id: 'marvel',
     name: 'Marvel',
     video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564676115-marvel.mp4',
     image: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Marvel_Logo.svg',
-    gradient: 'bg-gradient-to-b from-[#ED1D24] to-[#0f1014]',
+    gradient: 'bg-linear-to-b from-[#ED1D24] to-[#0f1014]',
   },
   {
     id: 'starwars',
     name: 'Star Wars',
     video: 'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2020/12/17/1608229455-star-wars.mp4',
     image: 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Star_Wars_Logo.svg',
-    gradient: 'bg-gradient-to-b from-[#FFE81F] to-[#0f1014]',
+    gradient: 'bg-linear-to-b from-[#FFE81F] to-[#0f1014]',
   },
   {
     id: 'natgeo',
@@ -40,7 +40,7 @@ const BRANDS = [
     video:
       'https://vod-bgc-na-east-1.media.dssott.com/bgui/ps01/disney/bgui/2019/08/01/1564676296-national-geographic.mp4',
     image: 'https://upload.wikimedia.org/wikipedia/commons/6/67/National_Geographic_Logo.svg',
-    gradient: 'bg-gradient-to-b from-[#FFCC00] to-[#0f1014]',
+    gradient: 'bg-linear-to-b from-[#FFCC00] to-[#0f1014]',
   },
 ];
 
@@ -57,7 +57,7 @@ export function DisneyBrandRail() {
             aria-label={`Browse ${brand.name} collection`}
             className={cn(
               'relative aspect-video rounded-xl overflow-hidden cursor-pointer group outline-none focus-visible:ring-2 focus-visible:ring-white',
-              'border border-white/10 shadow-lg bg-gradient-to-br from-[#30323e] to-[#1e1f2a]',
+              'border border-white/10 shadow-lg bg-linear-to-br from-[#30323e] to-[#1e1f2a]',
               'hover:scale-105 hover:border-white transition-all duration-300 hover:shadow-2xl'
             )}
             onClick={() => {
@@ -95,10 +95,11 @@ export function DisneyBrandRail() {
                 />
               </div>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-20 transition-opacity" />
+            <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-20 transition-opacity" />
           </button>
         ))}
       </div>
     </div>
   );
 }
+

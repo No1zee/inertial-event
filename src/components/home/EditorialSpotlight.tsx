@@ -43,8 +43,8 @@ export const EditorialSpotlight: React.FC<EditorialSpotlightProps> = ({
           fill
           className="object-cover opacity-60 group-hover/spotlight:scale-105 transition-transform [transition-duration:2s] ease-out"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent" />
       </div>
 
       {/* Content Overlay */}
@@ -102,3 +102,4 @@ export const EditorialSpotlight: React.FC<EditorialSpotlightProps> = ({
     </motion.div>
   );
 };
+

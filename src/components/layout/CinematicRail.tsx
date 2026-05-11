@@ -54,14 +54,16 @@ export const CinematicRail: React.FC = () => {
       initial={false}
       animate={{
         width: isRailExpanded ? 260 : 72,
-        backgroundColor: isRailExpanded ? 'rgba(5, 5, 5, 0.95)' : 'rgba(5, 5, 5, 0.4)',
+        backgroundColor: isRailExpanded 
+          ? 'rgba(var(--background-rgb), 0.95)' 
+          : 'rgba(var(--background-rgb), 0.4)',
       }}
       onMouseEnter={() => setIsRailExpanded(true)}
       onMouseLeave={() => setIsRailExpanded(false)}
       className={cn(
         'fixed left-0 top-0 h-screen z-[100] backdrop-blur-3xl flex flex-col py-8 select-none transition-all duration-500 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]',
-        'ghost-stroke border-r-0',
-        isRailExpanded ? 'shadow-[20px_0_50px_rgba(0,0,0,0.8)]' : 'shadow-none'
+        'border-r border-[hsl(var(--border))]/30',
+        isRailExpanded ? 'shadow-[20px_0_50px_rgba(0,0,0,0.5)]' : 'shadow-none'
       )}
     >
       {/* Logo Section */}
@@ -74,7 +76,7 @@ export const CinematicRail: React.FC = () => {
         <button
           onClick={() => setSearchOpen(true)}
           className={cn(
-            'w-full flex items-center justify-center h-12 rounded-2xl bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-all group overflow-hidden',
+            'w-full flex items-center justify-center h-12 rounded-2xl bg-[hsl(var(--surface-elevated))]/20 border border-[hsl(var(--border))]/30 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-elevated))]/40 transition-all group overflow-hidden',
             isRailExpanded ? 'px-4 justify-start' : 'px-0'
           )}
         >
@@ -89,7 +91,7 @@ export const CinematicRail: React.FC = () => {
             <motion.span
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="ml-4 text-[13px] font-medium tracking-tight text-zinc-500 group-hover:text-white"
+              className="ml-4 text-[13px] font-medium tracking-tight text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))]"
             >
               Search...
             </motion.span>
@@ -132,8 +134,8 @@ export const CinematicRail: React.FC = () => {
                     className={cn(
                       'relative flex items-center h-12 rounded-2xl transition-all group',
                       isActive
-                        ? 'bg-white/[0.05] text-primary'
-                        : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]',
+                        ? 'bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))]'
+                        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-elevated))]/30',
                       !isRailExpanded && 'justify-center'
                     )}
                   >
@@ -164,7 +166,7 @@ export const CinematicRail: React.FC = () => {
                     )}
 
                     {!isRailExpanded && (
-                      <div className="absolute left-16 px-3 py-1.5 bg-zinc-950 border border-white/10 rounded-lg text-[10px] font-bold text-white uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-3 group-hover:translate-x-0 z-50 shadow-2xl">
+                      <div className="absolute left-16 px-3 py-1.5 bg-[hsl(var(--surface-elevated))] border border-[hsl(var(--border))]/30 rounded-lg text-[10px] font-bold text-[hsl(var(--foreground))] uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-3 group-hover:translate-x-0 z-50 shadow-2xl">
                         {item.label}
                       </div>
                     )}
@@ -177,11 +179,11 @@ export const CinematicRail: React.FC = () => {
       </nav>
 
       {/* Bottom Section */}
-      <div className="px-4 mt-auto pt-8 space-y-3 shrink-0 border-t border-white/[0.03]">
+      <div className="px-4 mt-auto pt-8 space-y-3 shrink-0 border-t border-[hsl(var(--border))]/20">
         <Link
           href="/settings"
           className={cn(
-            'flex items-center h-12 rounded-2xl text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03] transition-all group',
+            'flex items-center h-12 rounded-2xl text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-elevated))]/30 transition-all group',
             !isRailExpanded && 'justify-center'
           )}
         >
@@ -199,7 +201,7 @@ export const CinematicRail: React.FC = () => {
 
         <button
           className={cn(
-            'w-full flex items-center h-12 rounded-2xl text-zinc-500 hover:text-red-400 hover:bg-red-900/10 transition-all group',
+            'w-full flex items-center h-12 rounded-2xl text-[hsl(var(--muted-foreground))] hover:text-red-400 hover:bg-red-900/10 transition-all group',
             !isRailExpanded && 'justify-center'
           )}
         >

@@ -220,16 +220,16 @@ export default function ChannelView({ id }: { id: string }) {
   // Determine Background Gradient
   let bgGradient = 'bg-[#141414]';
   if (isDisney) bgGradient = 'bg-radial-disney';
-  else if (isHulu) bgGradient = 'bg-gradient-to-b from-[#1CE783]/20 to-[#141414]';
-  else if (isApple) bgGradient = 'bg-gradient-to-b from-black via-zinc-950 to-black';
-  else if (isNetflix) bgGradient = 'bg-gradient-to-b from-black via-zinc-950 to-black';
-  else if (isPrime) bgGradient = 'bg-gradient-to-b from-[#00A8E1]/20 to-[#0F171E]';
-  else if (isPeacock) bgGradient = 'bg-gradient-to-b from-zinc-800/20 via-black to-black';
-  else if (isMax) bgGradient = 'bg-gradient-to-b from-blue-900/20 via-black to-black';
+  else if (isHulu) bgGradient = 'bg-linear-to-b from-[#1CE783]/20 to-[#141414]';
+  else if (isApple) bgGradient = 'bg-linear-to-b from-black via-zinc-950 to-black';
+  else if (isNetflix) bgGradient = 'bg-linear-to-b from-black via-zinc-950 to-black';
+  else if (isPrime) bgGradient = 'bg-linear-to-b from-[#00A8E1]/20 to-[#0F171E]';
+  else if (isPeacock) bgGradient = 'bg-linear-to-b from-zinc-800/20 via-black to-black';
+  else if (isMax) bgGradient = 'bg-linear-to-b from-blue-900/20 via-black to-black';
   else if (isAdultSwim)
     bgGradient = 'bg-black'; // Pure black for Adult Swim contrast
   else if (isAunties)
-    bgGradient = 'bg-gradient-to-b from-amber-950/20 via-black to-purple-950/20'; // Warm gradient
+    bgGradient = 'bg-linear-to-b from-amber-950/20 via-black to-purple-950/20'; // Warm gradient
   else if (isAcu) bgGradient = 'bg-[#0a0a0a]'; // Deep obsidian for ACU
 
   return (
@@ -391,7 +391,7 @@ export default function ChannelView({ id }: { id: string }) {
           <>
             <ContentRail title="K-Drama Favorites ❤️" items={koreanDramas} railId="aunties-korean" />
             <ContentRail title="Telenovelas & Spanish Drama 🌹" items={telenovelas} railId="aunties-telenovelas" />
-            <div className="py-8 px-6 md:px-12 lg:px-16 bg-gradient-to-r from-amber-900/10 to-purple-900/10 border-y border-amber-500/20">
+            <div className="py-8 px-6 md:px-12 lg:px-16 bg-linear-to-r from-amber-900/10 to-purple-900/10 border-y border-amber-500/20">
               <p className="text-amber-100 text-center text-lg md:text-xl font-serif italic">
                 &quot;Stories that bring families together, one episode at a time.&quot;
               </p>
@@ -428,7 +428,7 @@ export default function ChannelView({ id }: { id: string }) {
             <ContentRail title="Nollywood Excellence 🇳🇬" items={nollywood} railId="acu-nollywood" />
             <ContentRail title="Afrofuturism Vanguard 🚀" items={afrofuturism} railId="acu-afrofuturism" />
             
-            <div className="py-12 px-6 md:px-12 lg:px-24 bg-gradient-to-r from-yellow-900/10 via-black to-red-900/10 border-y border-yellow-500/10 my-8">
+            <div className="py-12 px-6 md:px-12 lg:px-24 bg-linear-to-r from-yellow-900/10 via-black to-red-900/10 border-y border-yellow-500/10 my-8">
               <div className="flex flex-col">
               <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Status</span>
               <span className="text-sm text-yellow-500/80 font-bold uppercase">Streaming Now</span>
@@ -563,3 +563,4 @@ export default function ChannelView({ id }: { id: string }) {
     </div>
   );
 }
+

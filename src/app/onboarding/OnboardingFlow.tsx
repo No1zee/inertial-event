@@ -156,7 +156,7 @@ export function OnboardingFlow() {
       } catch (error) {
         console.error('❌ [AG] Onboarding completion failed:', error);
       }
-    }, 2000); // 2 second reward moment
+    }, 500); // 0.5 second reward moment
   };
 
   const toggleGenre = (id: string) => {
@@ -175,7 +175,7 @@ export function OnboardingFlow() {
     <div className="relative min-h-screen w-full flex items-center justify-center bg-black overflow-hidden p-6">
       {/* Background Cinematic Elements */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/80 to-black z-10" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/80 to-black z-10" />
         <motion.img 
           key={step}
           initial={{ opacity: 0, scale: 1.1 }}
@@ -580,3 +580,4 @@ export function OnboardingFlow() {
     </div>
   );
 }
+

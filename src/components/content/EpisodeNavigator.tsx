@@ -227,7 +227,7 @@ export function EpisodeNavigator({
                             </div>
                           )}
 
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -260,3 +260,4 @@ export function EpisodeNavigator({
     </AnimatePresence>
   );
 }
+

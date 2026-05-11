@@ -46,7 +46,7 @@ export default function ChannelsClient({ initialBroadcasts }: ChannelsClientProp
           fill
           className="object-cover opacity-20 blur-[100px]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-transparent" />
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-8 p-8 relative z-10 overflow-hidden">
@@ -164,3 +164,4 @@ export default function ChannelsClient({ initialBroadcasts }: ChannelsClientProp
     </div>
   );
 }
+

@@ -80,7 +80,7 @@ function SearchContent() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 pointer-events-none z-0"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black" />
+            <div className="absolute inset-0 bg-linear-to-b from-black via-transparent to-black" />
             <Image 
               src={`https://image.tmdb.org/t/p/original${results[0].backdrop || results[0].backdrop_path}`}
               className="w-full h-full object-cover blur-[100px] scale-110"
@@ -241,3 +241,4 @@ export default function SearchPage() {
     </Suspense>
   );
 }
+

@@ -91,7 +91,7 @@ export function BrandBlock({ text, subtext, bgImage, onClick, variant = 'preview
       )}
 
       {/* Cinematic Scrims (Institutional Mastering Layer) */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--background))] via-transparent to-[hsl(var(--background))]/80" />
+      <div className="absolute inset-0 bg-linear-to-t from-[hsl(var(--background))] via-transparent to-[hsl(var(--background))]/80" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,hsl(var(--background))_90%)]" />
 
       {/* Ambient Animated Glows (Atmospheric Glow) */}
@@ -202,3 +202,4 @@ export function BrandBlock({ text, subtext, bgImage, onClick, variant = 'preview
     </motion.div>
   );
 }
+

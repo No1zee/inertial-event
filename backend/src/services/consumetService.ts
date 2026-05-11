@@ -7,6 +7,7 @@ class ConsumetService {
     private tmdb = new META.TMDB();
     private anilist = new META.Anilist();
     private hianime = new ANIME.Hianime();
+    private flixhq = new MOVIES.FlixHQ();
 
     // Circuit breaker state - prevents cascading 522/521 hangs from dead providers
     private providerHealth: Record<string, { failures: number; lastFailure: number }> = {
@@ -133,7 +134,10 @@ class ConsumetService {
                 };
             }
         } catch (e: any) {
-            console.warn(`[ConsumetService] TMDB strategy failed: ${e.message}`);
+            console.error(`[ConsumetService] TMDB strategy failed:`, {
+                message: e.message,
+                stack: e.stack
+            });
         }
         return { sources: [], subtitles: [] };
     }
@@ -193,7 +197,10 @@ class ConsumetService {
                 }
             }
         } catch (e: any) {
-            console.warn(`[ConsumetService] FlixHQ strategy failed: ${e.message}`);
+            console.error(`[ConsumetService] FlixHQ strategy failed:`, {
+                message: e.message,
+                stack: e.stack
+            });
             this.reportProviderFailure('flixhq');
         }
         return { sources: [], subtitles: [] };

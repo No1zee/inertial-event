@@ -37,8 +37,8 @@ export function NetflixHero({ item }: NetflixHeroProps) {
         />
 
         {/* Netflix Iconic Scrims */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-black/30" />
+        <div className="absolute inset-0 bg-linear-to-r from-black via-black/40 to-transparent" />
 
         {/* Netflix Red Glow */}
         <div className="absolute inset-0 bg-[#E50914]/5 mix-blend-color" />
@@ -138,7 +138,8 @@ export function NetflixHero({ item }: NetflixHeroProps) {
       </div>
 
       {/* Bottom Gradient Overlay */}
-      <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
+      <div className="absolute bottom-0 left-0 w-full h-48 bg-linear-to-t from-black via-black/60 to-transparent z-10" />
     </section>
   );
 }
+

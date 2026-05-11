@@ -210,7 +210,7 @@ export function UpcomingPreviews() {
 
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="aspect-[16/11] rounded-[2rem] bg-white/5 animate-pulse" />
+                    <div key={i} className="aspect-16/11 rounded-[2rem] bg-white/5 animate-pulse" />
                   ))
                 ) : upcoming?.slice(0, 6).map((item: Content, idx: number) => (
                   <motion.div
@@ -220,7 +220,7 @@ export function UpcomingPreviews() {
                     onHoverStart={() => setHoveredPrototype(idx)}
                     onHoverEnd={() => setHoveredPrototype(null)}
                     transition={{ delay: idx * 0.15, type: 'spring', damping: 20 }}
-                    className="group relative aspect-[16/11] rounded-[2rem] overflow-hidden cursor-pointer border border-white/5 hover:border-primary/30 transition-all duration-500 shadow-2xl"
+                    className="group relative aspect-16/11 rounded-[2rem] overflow-hidden cursor-pointer border border-white/5 hover:border-primary/30 transition-all duration-500 shadow-2xl"
                     onClick={() => handleWatch(item)}
                   >
                     <OptimizedImage
@@ -229,7 +229,7 @@ export function UpcomingPreviews() {
                       fill
                       className="object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[0.3] group-hover:grayscale-0"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
                     
                     {/* Play Button Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
@@ -320,3 +320,4 @@ export function UpcomingPreviews() {
     </section>
   );
 }
+

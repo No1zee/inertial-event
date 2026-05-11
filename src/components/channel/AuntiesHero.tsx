@@ -25,7 +25,7 @@ export function AuntiesHero({ item }: AuntiesHeroProps) {
       <div className="absolute inset-0">
         {/* Shimmer Background Layer */}
         <div className="absolute inset-0 bg-zinc-900">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/[0.03] to-transparent -translate-x-full animate-shimmer" />
         </div>
 
         {item.backdrop && (
@@ -39,8 +39,8 @@ export function AuntiesHero({ item }: AuntiesHeroProps) {
           />
         )}
         {/* Institutional Cinematic Scrims */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/20 to-transparent" />
         <div className="absolute inset-0 bg-amber-900/10 mix-blend-overlay" />
       </div>
 
@@ -84,7 +84,7 @@ export function AuntiesHero({ item }: AuntiesHeroProps) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleWatch}
-              className="flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white px-8 py-3 rounded-full font-medium transition-all shadow-lg shadow-amber-900/50"
+              className="flex items-center gap-2 bg-linear-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white px-8 py-3 rounded-full font-medium transition-all shadow-lg shadow-amber-900/50"
             >
               <Play className="w-5 h-5 fill-white" />
               <span>Watch Now</span>
@@ -94,7 +94,8 @@ export function AuntiesHero({ item }: AuntiesHeroProps) {
       </div>
 
       {/* Decorative Elements */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-black to-transparent" />
     </section>
   );
 }
+

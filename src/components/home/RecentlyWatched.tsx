@@ -55,7 +55,7 @@ const RecentlyWatchedCard = React.forwardRef<HTMLDivElement, RecentlyWatchedCard
           )}
 
           {/* Technical Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent p-4 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-transparent p-4 flex flex-col justify-end">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="px-1.5 py-0.5 rounded-sm bg-white/10 text-[8px] font-bold text-white/50 uppercase tracking-wider">
@@ -66,7 +66,7 @@ const RecentlyWatchedCard = React.forwardRef<HTMLDivElement, RecentlyWatchedCard
                     className={cn(
                       'flex items-center px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-wider',
                       item.providerId === 'acu'
-                        ? 'acu-badge bg-gradient-to-r from-amber-200 to-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                        ? 'acu-badge bg-linear-to-r from-amber-200 to-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]'
                         : item.providerId === 'netflix'
                           ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)]'
                           : item.providerId === 'hulu'
@@ -111,7 +111,7 @@ const RecentlyWatchedCard = React.forwardRef<HTMLDivElement, RecentlyWatchedCard
                 animate={{ width: `${item.progress}%` }}
                 transition={{ duration: 1, ease: 'easeOut' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
               </motion.div>
             </div>
           )}
@@ -216,3 +216,4 @@ export default function RecentlyWatched() {
     </section>
   );
 }
+

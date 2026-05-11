@@ -27,8 +27,8 @@ export function PrimeHero({ item }: PrimeHeroProps) {
           priority
         />
         {/* Prime Deep Blue Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F171E] via-[#0F171E]/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0F171E] via-[#0F171E]/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#0F171E] via-[#0F171E]/60 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-r from-[#0F171E] via-[#0F171E]/40 to-transparent" />
       </div>
 
       {/* Content */}
@@ -92,3 +92,4 @@ export function PrimeHero({ item }: PrimeHeroProps) {
     </section>
   );
 }
+

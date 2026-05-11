@@ -17,6 +17,9 @@ const RAW_MOVIES: Content[] = [
       'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.',
     poster: 'https://image.tmdb.org/t/p/w342/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/hkBaDkMWbLaf8B1lsWsKX7Ew3Xq.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 9.0,
     releaseDate: '2008-07-18',
     type: 'movie',
@@ -35,6 +38,9 @@ const RAW_MOVIES: Content[] = [
       'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea.',
     poster: 'https://image.tmdb.org/t/p/w342/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/s3TBrRGB1iav7gFOCNx3H31MoES.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 8.8,
     releaseDate: '2010-07-16',
     type: 'movie',
@@ -52,6 +58,9 @@ const RAW_MOVIES: Content[] = [
     description: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
     poster: 'https://image.tmdb.org/t/p/w342/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/pbrkL804c8yAv3zBZR4QPEafpAR.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 8.6,
     releaseDate: '2014-11-07',
     type: 'movie',
@@ -70,6 +79,9 @@ const RAW_MOVIES: Content[] = [
       'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.',
     poster: 'https://image.tmdb.org/t/p/w342/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/icmmSD4vTTDKOq2vvdulafOGw93.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 8.7,
     releaseDate: '1999-03-31',
     type: 'movie',
@@ -88,6 +100,9 @@ const RAW_MOVIES: Content[] = [
       'The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption.',
     poster: 'https://image.tmdb.org/t/p/w342/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 8.9,
     releaseDate: '1994-10-14',
     type: 'movie',
@@ -108,6 +123,9 @@ const RAW_TV_SHOWS: Content[] = [
     description: 'A high school chemistry teacher turned methamphetamine producer partners with a former student.',
     poster: 'https://image.tmdb.org/t/p/w342/ggFHVNu6YYI5L9pCfOacjizRGt.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 9.5,
     releaseDate: '2008-01-20',
     type: 'tv',
@@ -126,6 +144,9 @@ const RAW_TV_SHOWS: Content[] = [
       'When a young boy disappears, his mother, a police chief and his friends must confront terrifying supernatural forces.',
     poster: 'https://image.tmdb.org/t/p/w342/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/56v2KjBlU4XaOv9rVYEQypROD7P.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 8.7,
     releaseDate: '2016-07-15',
     type: 'tv',
@@ -144,6 +165,9 @@ const RAW_TV_SHOWS: Content[] = [
       'After a global pandemic destroys civilization, a hardened survivor takes charge of a 14-year-old girl.',
     poster: 'https://image.tmdb.org/t/p/w342/uKvVjHNqB5VmOrdxqAt2F7J78ED.jpg',
     backdrop: 'https://image.tmdb.org/t/p/w780/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg',
+    poster_path: null,
+    backdrop_path: null,
+
     rating: 8.8,
     releaseDate: '2023-01-15',
     type: 'tv',

@@ -51,7 +51,7 @@ export const SkipOverlay: React.FC<SkipOverlayProps> = ({
             className="pointer-events-auto group relative flex items-center gap-4 px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-3xl border border-white/20 rounded-2xl overflow-hidden shadow-2xl transition-all active:scale-95"
           >
             {/* Animated Glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <div className="absolute inset-0 bg-linear-to-r from-primary/0 via-primary/20 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
             
             <FastForward size={24} className="text-primary fill-primary/20 group-hover:scale-110 transition-transform" />
             
@@ -70,3 +70,4 @@ export const SkipOverlay: React.FC<SkipOverlayProps> = ({
     </div>
   );
 };
+
